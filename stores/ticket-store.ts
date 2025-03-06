@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Ticket, TicketFilter } from '@/types/tickets';
+import { Ticket, TicketComment, TicketFilter } from '@/types/tickets';
 
 interface TicketStore {
     tickets: Ticket[];
@@ -14,6 +14,7 @@ interface TicketStore {
     setFilters: (filters: TicketFilter) => void;
     setIsLoading: (isLoading: boolean) => void;
     setError: (error: string | null) => void;
+    addComment: (ticketId: string, comment: Omit<TicketComment, 'id'>) => void;
 }
 
 export const useTicketStore = create<TicketStore>((set) => ({
@@ -25,10 +26,39 @@ export const useTicketStore = create<TicketStore>((set) => ({
     setTickets: (tickets) => set({ tickets }),
     addTicket: (ticket) => set((state) => ({ tickets: [ticket, ...state.tickets] })),
     updateTicket: (ticket) => set((state) => ({
-        tickets: state.tickets.map((t) => t.id === ticket.id ? ticket : t)
+        tickets: state.tickets.map((t) => t.id === ticket.id ? ticket : t),
+        selectedTicket: state.selectedTicket?.id === ticket.id ? ticket : state.selectedTicket
     })),
     setSelectedTicket: (ticket) => set({ selectedTicket: ticket }),
     setFilters: (filters) => set({ filters }),
     setIsLoading: (isLoading) => set({ isLoading }),
-    setError: (error) => set({ error })
+    setError: (error) => set({ error }),
+    addComment: (ticketId, comment) => set((state) => {
+        const newComment = {
+            ...comment,
+            id: Date.now().toString() // Geçici ID oluştur
+        };
+
+        const updatedTickets = state.tickets.map(ticket => {
+            if (ticket.id === ticketId) {
+                return {
+                    ...ticket,
+                    comments: [...(ticket.comments || []), newComment]
+                };
+            }
+            return ticket;
+        });
+
+        const updatedSelectedTicket = state.selectedTicket?.id === ticketId
+            ? {
+                ...state.selectedTicket,
+                comments: [...(state.selectedTicket.comments || []), newComment]
+            }
+            : state.selectedTicket;
+
+        return {
+            tickets: updatedTickets,
+            selectedTicket: updatedSelectedTicket
+        };
+    })
 }));

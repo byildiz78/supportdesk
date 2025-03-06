@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { motion } from "framer-motion"
-import { Save, Building2, Phone, Mail, MessageSquare, Tag, AlertCircle, Users, User, Briefcase } from "lucide-react"
+import { Save, Building2, Phone, Mail, MessageSquare, Tag, AlertCircle, Users, User, Briefcase, Paperclip, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useTicketStore } from "@/stores/ticket-store"
+import { FileAttachment } from "@/types/tickets"
 
 export default function NewTicketPage() {
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [files, setFiles] = useState<File[]>([])
   const [ticketData, setTicketData] = useState({
     title: "",
     description: "",
@@ -32,14 +34,54 @@ export default function NewTicketPage() {
     tags: []
   })
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || [])
+    setFiles(prev => [...prev, ...selectedFiles])
+  }
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError("")
 
     try {
-      // API call will be implemented here
-      console.log("Form submitted:", ticketData)
+      // Convert files to FileAttachment format
+      const attachments: FileAttachment[] = files.map(file => ({
+        id: Math.random().toString(36).substring(7),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: "current_user"
+      }))
+
+      // Create ticket object with attachments
+      const newTicket = {
+        id: Math.random().toString(36).substring(7),
+        title: ticketData.title,
+        description: ticketData.description,
+        status: "open",
+        priority: ticketData.priority,
+        source: ticketData.source,
+        category: ticketData.category,
+        assignedTo: ticketData.assignedTo,
+        customerName: ticketData.contactName,
+        customerEmail: ticketData.contactEmail,
+        customerPhone: ticketData.contactPhone,
+        createdBy: "current_user",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        attachments,
+        comments: []
+      }
+
+      // Add ticket to store
+      useTicketStore.getState().addTicket(newTicket)
       
     } catch (error) {
       console.error('Error submitting form:', error)
@@ -133,6 +175,51 @@ export default function NewTicketPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="md:col-span-2">
+                  <Label>Dosya Ekle</Label>
+                  <div className="mt-2 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        id="file-upload"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileChange}
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => document.getElementById('file-upload')?.click()}
+                        type="button"
+                      >
+                        <Paperclip className="h-4 w-4 mr-2" />
+                        Dosya Seç
+                      </Button>
+                    </div>
+
+                    {files.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {files.map((file, index) => (
+                          <div 
+                            key={index}
+                            className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-md group"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm max-w-[200px] truncate">
+                              {file.name}
+                            </span>
+                            <button
+                              onClick={() => removeFile(index)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </Card>
           </motion.div>
@@ -161,33 +248,25 @@ export default function NewTicketPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label>Firma Adı</Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      value={ticketData.companyName}
-                      onChange={(e) => setTicketData(prev => ({ ...prev, companyName: e.target.value }))}
-                      placeholder="Firma adı"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    value={ticketData.companyName}
+                    onChange={(e) => setTicketData(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="Firma adı"
+                  />
                 </div>
                 <div>
                   <Label>Firma ID</Label>
-                  <div className="relative">
-                    <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      value={ticketData.companyId}
-                      onChange={(e) => setTicketData(prev => ({ ...prev, companyId: e.target.value }))}
-                      placeholder="Firma ID"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    value={ticketData.companyId}
+                    onChange={(e) => setTicketData(prev => ({ ...prev, companyId: e.target.value }))}
+                    placeholder="Firma ID"
+                  />
                 </div>
               </div>
             </Card>
           </motion.div>
 
-          {/* Kontakt Bilgileri */}
+          {/* İletişim Bilgileri */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -200,7 +279,7 @@ export default function NewTicketPage() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-amber-600 dark:text-amber-400">
-                    Kontakt Bilgileri
+                    İletişim Bilgileri
                   </h3>
                   <p className="text-sm text-amber-600/80 dark:text-amber-400/80">
                     İletişim kurulacak kişi bilgileri
@@ -210,53 +289,37 @@ export default function NewTicketPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label>Kontakt Adı</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      value={ticketData.contactName}
-                      onChange={(e) => setTicketData(prev => ({ ...prev, contactName: e.target.value }))}
-                      placeholder="Kontakt adı"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Label>İletişim Adı</Label>
+                  <Input
+                    value={ticketData.contactName}
+                    onChange={(e) => setTicketData(prev => ({ ...prev, contactName: e.target.value }))}
+                    placeholder="İletişim adı"
+                  />
                 </div>
                 <div>
                   <Label>Pozisyon</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      value={ticketData.contactPosition}
-                      onChange={(e) => setTicketData(prev => ({ ...prev, contactPosition: e.target.value }))}
-                      placeholder="Pozisyon"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    value={ticketData.contactPosition}
+                    onChange={(e) => setTicketData(prev => ({ ...prev, contactPosition: e.target.value }))}
+                    placeholder="Pozisyon"
+                  />
                 </div>
                 <div>
                   <Label>E-posta</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      type="email"
-                      value={ticketData.contactEmail}
-                      onChange={(e) => setTicketData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                      placeholder="E-posta adresi"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    type="email"
+                    value={ticketData.contactEmail}
+                    onChange={(e) => setTicketData(prev => ({ ...prev, contactEmail: e.target.value }))}
+                    placeholder="E-posta adresi"
+                  />
                 </div>
                 <div>
                   <Label>Telefon</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input
-                      value={ticketData.contactPhone}
-                      onChange={(e) => setTicketData(prev => ({ ...prev, contactPhone: e.target.value }))}
-                      placeholder="Telefon numarası"
-                      className="pl-10"
-                    />
-                  </div>
+                  <Input
+                    value={ticketData.contactPhone}
+                    onChange={(e) => setTicketData(prev => ({ ...prev, contactPhone: e.target.value }))}
+                    placeholder="Telefon numarası"
+                  />
                 </div>
               </div>
             </Card>

@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -30,11 +31,11 @@ const priorityConfig = {
     urgent: { label: "Acil", class: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800" }
 }
 
-const sourceConfig = {
-    email: { icon: Mail, class: "text-blue-600 dark:text-blue-400" },
-    phone: { icon: Phone, class: "text-green-600 dark:text-green-400" },
-    web: { icon: Globe, class: "text-purple-600 dark:text-purple-400" },
-    chat: { icon: MessageCircle, class: "text-amber-600 dark:text-amber-400" }
+const sourceIcons = {
+    email: Mail,
+    phone: Phone,
+    web: Globe,
+    chat: MessageCircle
 }
 
 export function TicketList({ tickets, isLoading }: TicketListProps) {
@@ -103,9 +104,16 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
                                 <TableCell>
                                     {ticket.source && (
                                         <div className="flex items-center gap-2">
-                                            {React.createElement(sourceConfig[ticket.source].icon, {
-                                                className: cn("h-4 w-4", sourceConfig[ticket.source].class)
-                                            })}
+                                            {(() => {
+                                                const Icon = sourceIcons[ticket.source as keyof typeof sourceIcons]
+                                                return Icon && <Icon className={cn(
+                                                    "h-4 w-4",
+                                                    ticket.source === 'email' && "text-blue-600 dark:text-blue-400",
+                                                    ticket.source === 'phone' && "text-green-600 dark:text-green-400",
+                                                    ticket.source === 'web' && "text-purple-600 dark:text-purple-400",
+                                                    ticket.source === 'chat' && "text-amber-600 dark:text-amber-400"
+                                                )} />
+                                            })()}
                                             <span className="capitalize">{ticket.source}</span>
                                         </div>
                                     )}

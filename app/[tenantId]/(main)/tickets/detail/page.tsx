@@ -4,185 +4,123 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTicketStore } from "@/stores/ticket-store"
-import { MessageSquare, Send, Paperclip, Clock, User, Mail, Phone, Tag, AlertCircle } from "lucide-react"
+import { User, Mail, Phone, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { CommentTimeline } from "@/components/tickets/comment-timeline"
+import { CommentForm } from "@/components/tickets/comment-form"
+import { mockTickets } from "../data/mock-data"
 
 interface TicketDetailPageProps {
     ticketId: string;
 }
 
 export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
-    const { selectedTicket, setSelectedTicket } = useTicketStore()
-    const [newComment, setNewComment] = useState("")
-    const [isInternal, setIsInternal] = useState(false)
+    const { selectedTicket, setSelectedTicket, addComment } = useTicketStore()
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
-        // Fetch ticket details
-        // This will be replaced with actual API call
-        const mockTicket = {
-            id: ticketId,
-            title: "Örnek Destek Talebi",
-            description: "Bu bir örnek destek talebidir.",
-            status: "open",
-            priority: "medium",
-            source: "email",
-            category: "technical",
-            customerName: "John Doe",
-            customerEmail: "john@example.com",
-            customerPhone: "+90 555 123 4567",
-            createdAt: new Date().toISOString(),
-            comments: [
-                {
-                    id: "1",
-                    content: "Merhaba, talebinizi aldık. En kısa sürede dönüş yapacağız.",
-                    createdBy: "Destek Ekibi",
-                    createdAt: new Date().toISOString(),
-                    isInternal: false
-                }
-            ]
+        // Find ticket from mock data
+        const ticket = mockTickets.find(t => t.id === ticketId)
+        if (ticket) {
+            setSelectedTicket(ticket)
         }
-        setSelectedTicket(mockTicket)
-    }, [ticketId])
+    }, [ticketId, setSelectedTicket])
+
+    const handleCommentSubmit = async (content: string, isInternal: boolean, attachments?: string[]) => {
+        if (!selectedTicket) return
+
+        setIsSubmitting(true)
+        try {
+            const newComment = {
+                ticketId: selectedTicket.id,
+                content,
+                createdBy: "current_user_id",
+                createdByName: "Destek Ekibi",
+                createdAt: new Date().toISOString(),
+                isInternal,
+                attachments
+            }
+            
+            addComment(selectedTicket.id, newComment)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     if (!selectedTicket) {
         return <div>Loading...</div>
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)]">
-            <div className="flex-1 flex gap-4 overflow-hidden p-4">
-                {/* Main Content */}
-                <div className="flex-1 flex flex-col gap-4 min-w-0">
-                    {/* Ticket Header */}
-                    <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                                    {selectedTicket.title}
-                                </h1>
-                                <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
-                                    <Clock className="h-4 w-4" />
-                                    {new Date(selectedTicket.createdAt).toLocaleString()}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-                                    #{selectedTicket.id}
-                                </Badge>
+        <div className="flex h-[calc(100vh-8rem)] overflow-hidden">
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0 p-4 pr-2">
+                {/* Ticket Header */}
+                <Card className="p-6 mb-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                {selectedTicket.title}
+                            </h1>
+                            <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
+                                <User className="h-4 w-4" />
+                                {selectedTicket.createdBy} tarafından oluşturuldu
                             </div>
                         </div>
-                    </Card>
-
-                    {/* Comments Section */}
-                    <Card className="flex-1 overflow-hidden">
-                        <ScrollArea className="h-full">
-                            <div className="p-6 space-y-6">
-                                {/* Original Description */}
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                                            <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                                                {selectedTicket.customerName}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                                {new Date(selectedTicket.createdAt).toLocaleString()}
-                                            </div>
-                                        </div>
-                                        <div className="text-gray-700 dark:text-gray-300">
-                                            {selectedTicket.description}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Comments */}
-                                {selectedTicket.comments?.map((comment) => (
-                                    <div key={comment.id} className="flex gap-4">
-                                        <div className="flex-shrink-0">
-                                            <div className={cn(
-                                                "w-10 h-10 rounded-full flex items-center justify-center",
-                                                comment.isInternal
-                                                    ? "bg-amber-100 dark:bg-amber-900/50"
-                                                    : "bg-green-100 dark:bg-green-900/50"
-                                            )}>
-                                                <User className={cn(
-                                                    "h-5 w-5",
-                                                    comment.isInternal
-                                                        ? "text-amber-600 dark:text-amber-400"
-                                                        : "text-green-600 dark:text-green-400"
-                                                )} />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="font-medium text-gray-900 dark:text-gray-100">
-                                                    {comment.createdBy}
-                                                    {comment.isInternal && (
-                                                        <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-800">
-                                                            İç Not
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {new Date(comment.createdAt).toLocaleString()}
-                                                </div>
-                                            </div>
-                                            <div className="text-gray-700 dark:text-gray-300">
-                                                {comment.content}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                    </Card>
-
-                    {/* Comment Input */}
-                    <Card className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
-                        <div className="space-y-4">
-                            <Textarea
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                                placeholder="Yanıtınızı yazın..."
-                                className="min-h-[100px]"
-                            />
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="icon">
-                                        <Paperclip className="h-4 w-4" />
-                                    </Button>
-                                    <Select
-                                        value={isInternal ? "internal" : "public"}
-                                        onValueChange={(value) => setIsInternal(value === "internal")}
-                                    >
-                                        <SelectTrigger className="w-[140px]">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="public">Genel Yanıt</SelectItem>
-                                            <SelectItem value="internal">İç Not</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button className="bg-blue-600 hover:bg-blue-700">
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Gönder
-                                </Button>
-                            </div>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                                #{selectedTicket.id}
+                            </Badge>
                         </div>
-                    </Card>
-                </div>
+                    </div>
+                </Card>
 
-                {/* Sidebar */}
-                <Card className="w-80 p-6 space-y-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
+                {/* Comments Section */}
+                <Card className="flex-1 overflow-hidden">
+                    <ScrollArea className="h-[calc(100vh-24rem)]">
+                        <div className="p-6 space-y-6">
+                            {/* Original Description */}
+                            <div className="flex gap-4">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                        <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                                            {selectedTicket.customerName}
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            {new Date(selectedTicket.createdAt).toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="text-gray-700 dark:text-gray-300">
+                                        {selectedTicket.description}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Comments */}
+                            {selectedTicket.comments && selectedTicket.comments.length > 0 && (
+                                <CommentTimeline comments={selectedTicket.comments} />
+                            )}
+                        </div>
+                    </ScrollArea>
+                </Card>
+
+                {/* Comment Input */}
+                <Card className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
+                    <CommentForm onSubmit={handleCommentSubmit} />
+                </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="w-80 p-4 pl-2">
+                <Card className="h-full p-6 space-y-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
                     <div>
                         <h3 className="font-semibold mb-4">Durum</h3>
                         <Select defaultValue={selectedTicket.status}>
@@ -221,9 +159,9 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                                 <SelectValue placeholder="Atanmadı" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="agent1">Destek Uzmanı 1</SelectItem>
-                                <SelectItem value="agent2">Destek Uzmanı 2</SelectItem>
-                                <SelectItem value="agent3">Destek Uzmanı 3</SelectItem>
+                                <SelectItem value="agent1">Ahmet Yılmaz</SelectItem>
+                                <SelectItem value="agent2">Ayşe Kaya</SelectItem>
+                                <SelectItem value="agent3">Can Demir</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

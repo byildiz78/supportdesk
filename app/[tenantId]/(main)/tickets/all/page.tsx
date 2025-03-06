@@ -1,19 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { TicketList } from "../components/TicketList"
 import { TicketHeader } from "../components/TicketHeader"
 import { TicketFilters } from "../components/TicketFilters"
 import { TicketPagination } from "../components/TicketPagination"
 import { useTicketStore } from "@/stores/ticket-store"
+import { mockTickets } from "../data/mock-data"
 
 export default function AllTicketsPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
 
-    const { tickets, isLoading } = useTicketStore()
+    const { tickets, setTickets, isLoading } = useTicketStore()
+
+    // Load mock data
+    useEffect(() => {
+        setTickets(mockTickets)
+    }, [setTickets])
 
     // Filter tickets based on search term
     const filteredTickets = tickets.filter(ticket => 

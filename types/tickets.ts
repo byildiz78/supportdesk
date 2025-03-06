@@ -18,8 +18,18 @@ export interface Ticket {
     contactPhone?: string;
     contactPosition?: string;
     tags?: string[];
-    attachments?: string[];
+    attachments?: FileAttachment[];
     comments?: TicketComment[];
+}
+
+export interface FileAttachment {
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+    uploadedAt: string;
+    uploadedBy: string;
 }
 
 export interface TicketComment {
@@ -27,9 +37,10 @@ export interface TicketComment {
     ticketId: string;
     content: string;
     createdBy: string;
+    createdByName: string;
     createdAt: string;
     isInternal: boolean;
-    attachments?: string[];
+    attachments?: FileAttachment[];
 }
 
 export interface TicketFilter {
