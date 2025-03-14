@@ -42,7 +42,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {
                         title: "Ana Firmalar",
                         icon: LucideIcons.Building2,
-                        url: "/customers/main-companies"
+                        url: "/customers/parent-companies"
                     },
                     {
                         title: "Firmalar",
@@ -81,6 +81,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         title: "Çözülen Talepler",
                         icon: LucideIcons.CheckCircle,
                         url: "/tickets/resolved"
+                    }
+                ]
+            },
+            {
+                title: "Ayarlar",
+                icon: LucideIcons.Settings,
+                isActive: true,
+                expanded: true,
+                items: [
+                    {
+                        title: "Kullanıcı Ayarları",
+                        icon: LucideIcons.UserCog,
+                        url: "/settings/users"
+                    },
+                    {
+                        title: "Grup Kategori Yönetimi",
+                        icon: LucideIcons.FolderTree,
+                        url: "/settings/categories"
+                    },
+                    {
+                        title: "Flow Firmaları",
+                        icon: LucideIcons.Building,
+                        url: "/settings/flow-companies"
                     }
                 ]
             }

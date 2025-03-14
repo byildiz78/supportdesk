@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CustomLoader } from "@/components/ui/custom-loader"
-import { MoreHorizontal, Eye, MessageSquare, CheckCircle, Clock, AlertCircle, Phone, Mail, Globe, MessageCircle } from "lucide-react"
+import { MoreHorizontal, Eye, MessageSquare, CheckCircle, Clock, AlertCircle, Phone, Mail, Globe, MessageCircle, Building, Building2, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Ticket } from "@/types/tickets"
 import { useTabStore } from "@/stores/tab-store"
+import { format, isAfter } from "date-fns"
 
 interface TicketListProps {
     tickets: Ticket[]
@@ -65,20 +66,36 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
             <Table>
                 <TableHeader className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10">
                     <TableRow>
-                        <TableHead className="w-[10%]">Talep No</TableHead>
-                        <TableHead className="w-[25%]">Başlık</TableHead>
-                        <TableHead className="w-[15%]">Müşteri</TableHead>
-                        <TableHead className="w-[10%]">Kaynak</TableHead>
-                        <TableHead className="w-[10%]">Öncelik</TableHead>
-                        <TableHead className="w-[10%]">Durum</TableHead>
-                        <TableHead className="w-[15%]">Atanan</TableHead>
-                        <TableHead className="w-[5%]">İşlemler</TableHead>
+                        <TableHead className="w-[8%]">Talep No</TableHead>
+                        <TableHead className="w-[20%]">Başlık</TableHead>
+                        <TableHead className="w-[15%]">
+                            <div className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                <span>Ana Firma</span>
+                            </div>
+                        </TableHead>
+                        <TableHead className="w-[15%]">
+                            <div className="flex items-center gap-1">
+                                <Building className="h-3 w-3" />
+                                <span>Firma</span>
+                            </div>
+                        </TableHead>
+                        <TableHead className="w-[12%]">
+                            <div className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span>İletişim</span>
+                            </div>
+                        </TableHead>
+                        <TableHead className="w-[8%]">Öncelik</TableHead>
+                        <TableHead className="w-[8%]">Durum</TableHead>
+                        <TableHead className="w-[10%]">Atanan</TableHead>
+                        <TableHead className="w-[4%]">İşlemler</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="h-[400px]">
+                            <TableCell colSpan={9} className="h-[400px]">
                                 <CustomLoader
                                     message="Yükleniyor"
                                     description="Destek talepleri hazırlanıyor..."
@@ -87,7 +104,7 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
                         </TableRow>
                     ) : tickets.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="h-[400px] text-center">
+                            <TableCell colSpan={9} className="h-[400px] text-center">
                                 <div className="flex flex-col items-center justify-center gap-2">
                                     <MessageSquare className="h-8 w-8 text-gray-400" />
                                     <h3 className="font-semibold text-lg">Destek Talebi Bulunamadı</h3>
@@ -97,26 +114,57 @@ export function TicketList({ tickets, isLoading }: TicketListProps) {
                         </TableRow>
                     ) : (
                         tickets.map((ticket) => (
-                            <TableRow key={ticket.id} className="group hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <TableRow 
+                                key={ticket.id} 
+                                className={cn(
+                                    "group hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                                    ticket.slaBreach && "bg-red-50/50 dark:bg-red-900/10"
+                                )}
+                            >
                                 <TableCell className="font-medium">#{ticket.id}</TableCell>
-                                <TableCell>{ticket.title}</TableCell>
-                                <TableCell>{ticket.customerName}</TableCell>
                                 <TableCell>
-                                    {ticket.source && (
-                                        <div className="flex items-center gap-2">
-                                            {(() => {
-                                                const Icon = sourceIcons[ticket.source as keyof typeof sourceIcons]
-                                                return Icon && <Icon className={cn(
-                                                    "h-4 w-4",
-                                                    ticket.source === 'email' && "text-blue-600 dark:text-blue-400",
-                                                    ticket.source === 'phone' && "text-green-600 dark:text-green-400",
-                                                    ticket.source === 'web' && "text-purple-600 dark:text-purple-400",
-                                                    ticket.source === 'chat' && "text-amber-600 dark:text-amber-400"
-                                                )} />
-                                            })()}
-                                            <span className="capitalize">{ticket.source}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex flex-col">
+                                        <span>{ticket.title}</span>
+                                        {ticket.dueDate && (
+                                            <span className={cn(
+                                                "text-xs mt-1",
+                                                ticket.slaBreach 
+                                                    ? "text-red-600 dark:text-red-400" 
+                                                    : "text-muted-foreground"
+                                            )}>
+                                                <Clock className="inline-block h-3 w-3 mr-1" />
+                                                {format(new Date(ticket.dueDate), "dd.MM.yyyy HH:mm")}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-1">
+                                        <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                                        <span className="truncate" title={ticket.parentCompanyName || ""}>
+                                            {ticket.parentCompanyName || "-"}
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-1">
+                                        <Building className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                        <span className="truncate" title={ticket.companyName || ""}>
+                                            {ticket.companyName || "-"}
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="truncate font-medium" title={ticket.contactName || ""}>
+                                            {ticket.contactName || "-"}
+                                        </span>
+                                        {ticket.contactPosition && (
+                                            <span className="text-xs text-muted-foreground truncate" title={ticket.contactPosition}>
+                                                {ticket.contactPosition}
+                                            </span>
+                                        )}
+                                    </div>
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="outline" className={cn(priorityConfig[ticket.priority].class)}>

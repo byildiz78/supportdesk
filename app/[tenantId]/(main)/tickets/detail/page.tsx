@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTicketStore } from "@/stores/ticket-store"
-import { User, Mail, Phone, Tag } from "lucide-react"
+import { User, Mail, Phone, Tag, Building2, Calendar, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CommentTimeline } from "@/components/tickets/comment-timeline"
 import { CommentForm } from "@/components/tickets/comment-form"
 import { mockTickets } from "../data/mock-data"
+import { format } from "date-fns"
+import { tr } from "date-fns/locale"
 
 interface TicketDetailPageProps {
     ticketId: string;
@@ -92,7 +94,7 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                                 <div className="flex-1 space-y-2">
                                     <div className="flex items-center justify-between">
                                         <div className="font-medium text-gray-900 dark:text-gray-100">
-                                            {selectedTicket.customerName}
+                                            {selectedTicket.contactName}
                                         </div>
                                         <div className="text-sm text-gray-500">
                                             {new Date(selectedTicket.createdAt).toLocaleString()}
@@ -166,20 +168,71 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                         </Select>
                     </div>
 
+                    {/* Due Date and SLA */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold">Müşteri Bilgileri</h3>
+                        <h3 className="font-semibold">Zaman Bilgileri</h3>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Calendar className="h-4 w-4 text-gray-500" />
+                                <span>Oluşturulma: {format(new Date(selectedTicket.createdAt), 'PPP', { locale: tr })}</span>
+                            </div>
+                            {selectedTicket.dueDate && (
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Calendar className="h-4 w-4 text-gray-500" />
+                                    <span>Son Tarih: {format(new Date(selectedTicket.dueDate), 'PPP', { locale: tr })}</span>
+                                </div>
+                            )}
+                            {selectedTicket.slaBreach && (
+                                <div className="flex items-center gap-2 text-sm text-red-500">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <span>SLA İhlali</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Parent Company */}
+                    {selectedTicket.parentCompanyId && (
+                        <div className="space-y-4">
+                            <h3 className="font-semibold">Ana Firma Bilgileri</h3>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Building2 className="h-4 w-4 text-indigo-500" />
+                                    <span>{selectedTicket.parentCompanyName}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Company */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold">Firma Bilgileri</h3>
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Building2 className="h-4 w-4 text-green-500" />
+                                <span>{selectedTicket.companyName}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Contact */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold">İletişim Bilgileri</h3>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm">
                                 <User className="h-4 w-4 text-gray-500" />
-                                <span>{selectedTicket.customerName}</span>
+                                <span>{selectedTicket.contactName}</span>
+                                {selectedTicket.contactPosition && (
+                                    <span className="text-gray-500">({selectedTicket.contactPosition})</span>
+                                )}
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                                 <Mail className="h-4 w-4 text-gray-500" />
-                                <span>{selectedTicket.customerEmail}</span>
+                                <span>{selectedTicket.contactEmail}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                                 <Phone className="h-4 w-4 text-gray-500" />
-                                <span>{selectedTicket.customerPhone}</span>
+                                <span>{selectedTicket.contactPhone}</span>
                             </div>
                         </div>
                     </div>

@@ -24,8 +24,10 @@ export default function AllTicketsPage() {
     // Filter tickets based on search term
     const filteredTickets = tickets.filter(ticket => 
         ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.id.toLowerCase().includes(searchTerm.toLowerCase())
+        ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.parentCompanyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ticket.contactName?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     // Calculate pagination

@@ -7,12 +7,16 @@ import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const Dialog = DialogPrimitive.Root
+export { Dialog }
 
 const DialogTrigger = DialogPrimitive.Trigger
+export { DialogTrigger }
 
 const DialogPortal = DialogPrimitive.Portal
+export { DialogPortal }
 
 const DialogClose = DialogPrimitive.Close
+export { DialogClose }
 
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
@@ -28,6 +32,7 @@ const DialogOverlay = React.forwardRef<
   />
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
+export { DialogOverlay }
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
@@ -52,6 +57,7 @@ const DialogContent = React.forwardRef<
   </DialogPortal>
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
+export { DialogContent }
 
 const DialogHeader = ({
   className,
@@ -66,6 +72,7 @@ const DialogHeader = ({
   />
 )
 DialogHeader.displayName = "DialogHeader"
+export { DialogHeader }
 
 const DialogFooter = ({
   className,
@@ -80,6 +87,7 @@ const DialogFooter = ({
   />
 )
 DialogFooter.displayName = "DialogFooter"
+export { DialogFooter }
 
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
@@ -95,6 +103,7 @@ const DialogTitle = React.forwardRef<
   />
 ))
 DialogTitle.displayName = DialogPrimitive.Title.displayName
+export { DialogTitle }
 
 const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
@@ -107,16 +116,4 @@ const DialogDescription = React.forwardRef<
   />
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
-
-export {
-  Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogClose,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-}
+export { DialogDescription }
