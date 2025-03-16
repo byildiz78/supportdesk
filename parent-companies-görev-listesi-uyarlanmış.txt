@@ -1,0 +1,77 @@
+# Ana Şirketler (Parent Companies) Modülü Görev Listesi
+
+## 1. Klasör Yapısı Oluşturma
+- [ ] `/app/parent-companies` - Ana klasör
+- [ ] `/app/parent-companies/components` - Liste ve filtre bileşenleri
+- [ ] `/app/parent-companies/crud-components` - CRUD işlemleri için bileşenler
+- [ ] `/app/api/main/parent-companies` - API endpoint'leri
+- [x] `/stores/main/parent-companies-store.ts` - Zustand store (mevcut)
+
+## 2. Ana Sayfa Bileşenleri
+- [x] `page.tsx` - Ana sayfa (mevcut)
+  - [x] useFilterStore ile şube filtresi entegrasyonu
+  - [x] useTabStore ile sekme yönetimi
+  - [x] useParentCompaniesStore ile veri yönetimi
+  - [x] fetchParentCompanies fonksiyonu
+  - [x] Arama, filtreleme ve sayfalama mantığı
+  - [x] Excel'e aktarma fonksiyonu
+  - [x] localBranchFilter ile şube gösterimi
+- [ ] `components/ParentCompanyHeader.tsx` - Başlık ve butonlar
+  - [ ] "Ana Şirketler" başlığı
+  - [ ] "Yeni Ana Şirket" butonu
+  - [ ] Excel'e aktarma butonu
+- [ ] `components/ParentCompanyFilters.tsx` - Arama ve filtreler
+  - [ ] Arama kutusu
+- [ ] `components/ParentCompanyList.tsx` - Liste tablosu
+  - [ ] Ana şirket bilgilerini gösteren tablo
+  - [ ] Düzenleme ve silme butonları
+  - [ ] Yükleniyor durumu
+  - [ ] Hata durumu
+- [ ] `components/ParentCompanyPagination.tsx` - Sayfalama
+  - [ ] Sayfa numaraları
+  - [ ] Sayfa başına öğe sayısı seçimi
+
+## 3. CRUD Bileşenleri
+- [ ] `crud-components/CreateParentCompany.tsx` - Oluşturma formu
+  - [ ] Form alanları (isim, vergi no, adres vb.)
+  - [ ] Kaydet ve İptal butonları
+  - [ ] Form doğrulama
+  - [ ] API entegrasyonu
+
+## 4. API Endpoint'leri
+- [ ] `/api/main/parent-companies/parent-companiesList` - Listeleme
+- [ ] `/api/main/parent-companies/create-parent-company` - Oluşturma
+- [ ] `/api/main/parent-companies/update-parent-company` - Güncelleme
+- [ ] `/api/main/parent-companies/delete-parent-company` - Silme
+
+## 5. Şube Filtresi Entegrasyonu
+- [x] Şube (tenant) bazlı filtreleme
+  - [x] selectedFilter.branches ve selectedFilter.selectedBranches kullanımı
+  - [x] Şube değişikliğinde verileri yenileme (appliedAt kontrolü)
+  - [x] localBranchFilter state'i ile şube gösterimi
+
+## 6. Sekme Yönetimi
+- [x] useTabStore ile sekme yönetimi
+  - [x] Yeni sekme ekleme (addTab)
+  - [x] Aktif sekmeyi değiştirme (setActiveTab)
+  - [x] Sekme kontrolü (activeTab === "Ana Firmalar")
+
+## 7. Veri İşlemleri
+- [x] fetchParentCompanies fonksiyonu
+  - [x] Şube bazlı filtreleme
+  - [x] Hata yakalama
+  - [x] Yükleniyor durumu
+- [x] Arama ve filtreleme
+  - [x] İsim, vergi no, e-posta, telefon, şehir alanlarında arama
+  - [x] Sayfalama mantığı
+
+## 8. Excel'e Aktarma
+- [x] createExcelExportHandler kullanımı
+  - [x] Filtrelenmiş ve sayfalanmış verileri Excel'e aktarma
+
+## Notlar:
+- Şube filtresi değişikliklerinde veri yenileme işlemi yapılmalı (appliedAt kontrolü)
+- Sekme değişikliklerinde gereksiz API isteklerini önlemek için activeTab kontrolü yapılmalı
+- Tüm API isteklerinde hata yakalama ve yükleniyor durumları ele alınmalı
+- Şube temizlendiğinde boş dizi gönderilmeli, null değil
+- Dashboard sayfasındaki gibi localBranchFilter kullanarak şube gösterimi yapılmalı

@@ -9,6 +9,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion } from "framer-motion"
 import { MessageSquare, Paperclip, X } from "lucide-react"
 
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Subcategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface TicketInfoFormProps {
   title: string
   description: string
@@ -25,6 +43,12 @@ interface TicketInfoFormProps {
   onPriorityChange: (value: string) => void
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onFileRemove: (index: number) => void
+  categories: Category[]
+  subcategories: Subcategory[]
+  groups: Group[]
+  isLoadingCategories: boolean
+  isLoadingSubcategories: boolean
+  isLoadingGroups: boolean
 }
 
 export default function TicketInfoForm({
@@ -42,7 +66,13 @@ export default function TicketInfoForm({
   onGroupChange,
   onPriorityChange,
   onFileChange,
-  onFileRemove
+  onFileRemove,
+  categories = [],
+  subcategories = [],
+  groups = [],
+  isLoadingCategories = false,
+  isLoadingSubcategories = false,
+  isLoadingGroups = false
 }: TicketInfoFormProps) {
   return (
     <motion.div
@@ -88,15 +118,23 @@ export default function TicketInfoForm({
             <Select
               value={category}
               onValueChange={onCategoryChange}
+              disabled={isLoadingCategories}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Kategori seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="technical">Teknik Destek</SelectItem>
-                <SelectItem value="billing">Fatura/Ödeme</SelectItem>
-                <SelectItem value="account">Hesap İşlemleri</SelectItem>
-                <SelectItem value="general">Genel Sorular</SelectItem>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    {isLoadingCategories ? "Yükleniyor..." : "Kategori bulunamadı"}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -105,15 +143,27 @@ export default function TicketInfoForm({
             <Select
               value={subcategory}
               onValueChange={onSubcategoryChange}
+              disabled={!category || isLoadingSubcategories}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Alt kategori seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hardware">Donanım</SelectItem>
-                <SelectItem value="software">Yazılım</SelectItem>
-                <SelectItem value="network">Ağ</SelectItem>
-                <SelectItem value="other">Diğer</SelectItem>
+                {subcategories.length > 0 ? (
+                  subcategories.map((subcat) => (
+                    <SelectItem key={subcat.id} value={subcat.id}>
+                      {subcat.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    {isLoadingSubcategories 
+                      ? "Yükleniyor..." 
+                      : category 
+                        ? "Alt kategori bulunamadı" 
+                        : "Önce kategori seçin"}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -122,14 +172,27 @@ export default function TicketInfoForm({
             <Select
               value={group}
               onValueChange={onGroupChange}
+              disabled={!subcategory || isLoadingGroups}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Grup seçin" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="group1">Grup 1</SelectItem>
-                <SelectItem value="group2">Grup 2</SelectItem>
-                <SelectItem value="group3">Grup 3</SelectItem>
+                {groups.length > 0 ? (
+                  groups.map((grp) => (
+                    <SelectItem key={grp.id} value={grp.id}>
+                      {grp.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    {isLoadingGroups 
+                      ? "Yükleniyor..." 
+                      : subcategory 
+                        ? "Grup bulunamadı" 
+                        : "Önce alt kategori seçin"}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

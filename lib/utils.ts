@@ -3,7 +3,7 @@ import { twMerge } from "tailwind-merge"
 import { DatabaseResponse } from "@/types/dataset";
 import { Dataset } from "@/lib/dataset";
 import * as LucideIcons from "lucide-react";
-import { DivideIcon as LucideIcon } from "lucide-react";
+import React from 'react'
 
 interface FormatNumberOptions {
     decimals?: number;
@@ -21,10 +21,10 @@ interface IntlFormatNumberOptions {
     currency?: string;
 }
 
-export const getLucideIcon = (iconName: string | undefined, defaultIcon?: LucideIcon): LucideIcon => {
+export const getLucideIcon = (iconName: string | undefined, defaultIcon?: LucideIcons.Icon): LucideIcons.Icon => {
     if (!iconName) return defaultIcon || LucideIcons.HelpCircle;
-    
-    const Icon = LucideIcons[iconName as keyof typeof LucideIcons] as LucideIcon;
+
+    const Icon = LucideIcons[iconName as keyof typeof LucideIcons] as LucideIcons.Icon;
     return Icon || defaultIcon || LucideIcons.HelpCircle;
 };
 
@@ -33,7 +33,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export async function checkTenantDatabase(tenantId: string): Promise<DatabaseResponse | undefined> {
     // For Bolt mode, return a mock database response
-    if(process.env.IS_BOLT === "1") {
+    if (process.env.IS_BOLT === "1") {
         return {
             databaseId: "1",
             tenantId: process.env.BOLTTENANT || "",
@@ -46,7 +46,7 @@ export async function checkTenantDatabase(tenantId: string): Promise<DatabaseRes
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION && cached.database !== undefined) {
         return cached.database;
     }
-       
+
     try {
         const instance = Dataset.getInstance();
         const databases = await instance.getDatabase<DatabaseResponse[]>();
@@ -77,8 +77,32 @@ export const formatDateTime = (timestamp: string | any) => {
     const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
     const year = date.getUTCFullYear();
     const time = date.toISOString().slice(11, 16);
-    
+
     return `${day}.${month}.${year} ${time}`;
+};
+
+export const formatDates = (timestamp: string | any) => {
+    // Eğer tarih zaten "DD.MM.YYYY" formatındaysa, doğrudan döndür
+    if (typeof timestamp === 'string' && /^\d{2}\.\d{2}\.\d{4}$/.test(timestamp)) {
+        return timestamp;
+    }
+    
+    try {
+        const date = new Date(timestamp);
+        // Geçerli bir tarih mi kontrol et
+        if (isNaN(date.getTime())) {
+            return timestamp; // Geçersiz tarih ise orijinal değeri döndür
+        }
+        
+        const day = date.getUTCDate().toString().padStart(2, '0');
+        const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+        const year = date.getUTCFullYear();
+
+        return `${day}.${month}.${year}`;
+    } catch (error) {
+        // Herhangi bir hata durumunda orijinal değeri döndür
+        return timestamp;
+    }
 };
 
 export const formatDateTimeDMY = (date: Date | undefined) => {
@@ -116,16 +140,22 @@ export const formatDateTimeYMDHI = (date: Date | undefined) => {
     return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
-export const formatDateTimeDMYHI = (date: Date | undefined) => {
-    if (!date) return '';
+export const formatDateTimeDMYHI = (date: Date | undefined | null) => {
+    // Null, undefined veya geçerli bir Date nesnesi olup olmadığını kontrol edelim
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) return '';
 
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-
-    return `${day}-${month}-${year} ${hours}:${minutes}`;
+    try {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${day}-${month}-${year} ${hours}:${minutes}`;
+    } catch (error) {
+        console.error("Tarih formatlanırken hata oluştu:", error);
+        return '';
+    }
 }
 
 export function extractTenantId(referer: string | undefined): string {
@@ -133,10 +163,73 @@ export function extractTenantId(referer: string | undefined): string {
         return process.env.IS_BOLT === "1" ? process.env.BOLTTENANT || "" : "";
     }
     try {
-        const tenantId = new URL(referer).pathname.replace(process.env.NEXT_PUBLIC_BASEPATH ||'', '').split("/")[1] || '';
+        const tenantId = new URL(referer).pathname.replace(process.env.NEXT_PUBLIC_BASEPATH || '', '').split("/")[1] || '';
         return process.env.IS_BOLT === "1" ? process.env.BOLTTENANT || "" : tenantId;
     } catch (error) {
         console.error('Error parsing referer:', error);
         return process.env.IS_BOLT === "1" ? process.env.BOLTTENANT || "" : "";
     }
 }
+
+export const extractTenantFromBody = (tenantId: any): string | null => {
+    // Not provided
+    if (!tenantId) return null;
+
+    // Single value (string) case
+    if (!Array.isArray(tenantId)) return tenantId;
+
+    // Empty array
+    if (tenantId.length === 0) return null;
+
+    // Single item array with valid properties
+    if (tenantId.length === 1) {
+        const item = tenantId[0];
+        return item.BranchName || item.BranchID || null;
+    }
+
+    // Multiple items
+    return null;
+};
+
+
+// Kart tipi için ikon adını döndüren fonksiyon
+export const getCardTypeIconName = (cardType: string | undefined): string => {
+    switch (cardType?.toLowerCase()) {
+        case 'meal':
+            return 'CreditCard';
+        case 'gift':
+            return 'Gift';
+        case 'corporate':
+            return 'Building2';
+        default:
+            return 'HelpCircle';
+    }
+};
+
+// Kart tipi için etiket döndüren fonksiyon
+export const getCardTypeLabel = (cardType: string | undefined): string => {
+    switch (cardType?.toLowerCase()) {
+        case 'meal':
+            return 'Yemek Kartı';
+        case 'gift':
+            return 'Hediye Kartı';
+        case 'corporate':
+            return 'Kurumsal Kart';
+        default:
+            return 'Belirtilmemiş';
+    }
+};
+
+// Kart tipi için badge stilini döndüren fonksiyon
+export const getCardTypeBadgeStyle = (cardType: string | undefined): string => {
+    switch (cardType?.toLowerCase()) {
+        case 'meal':
+            return 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800';
+        case 'gift':
+            return 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200 dark:border-purple-800';
+        case 'corporate':
+            return 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+        default:
+            return 'bg-gray-50 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200 dark:border-gray-800';
+    }
+};

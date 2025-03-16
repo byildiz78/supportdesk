@@ -25,6 +25,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const tenantId = pathname?.split("/")[1] || "";
     const [userData, setUserData] = useState({ name: "", email: "" });
     
+
     const navItems = useMemo(() => {
         const items = [
             {
@@ -42,18 +43,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {
                         title: "Ana Firmalar",
                         icon: LucideIcons.Building2,
-                        url: "/customers/parent-companies"
+                        url: "/parent-companies"
                     },
                     {
                         title: "Firmalar",
                         icon: LucideIcons.Building,
-                        url: "/customers/companies"
+                        url: "/companies"
                     },
                     {
                         title: "Kişiler",
                         icon: LucideIcons.User,
-                        url: "/customers/contacts"
-                    }
+                        url: "/contacts"
+                    },
                 ]
             },
             {
@@ -93,17 +94,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {
                         title: "Kullanıcı Ayarları",
                         icon: LucideIcons.UserCog,
-                        url: "/settings/users"
+                        url: "/users"
                     },
                     {
                         title: "Grup Kategori Yönetimi",
                         icon: LucideIcons.FolderTree,
-                        url: "/settings/categories"
+                        url: "/categories"
                     },
                     {
                         title: "Flow Firmaları",
                         icon: LucideIcons.Building,
-                        url: "/settings/flow-companies"
+                        url: "/flow-companies"
                     }
                 ]
             }
@@ -129,7 +130,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 name: "robotPOS Enterprise",
                 href: `${process.env.PROJECT_BASE_URL || ''}/franchisemanager/${tenantId}`,
                 logo: `${process.env.NEXT_PUBLIC_BASEPATH || ''}/images/Audit.png`,
-                plan: "Account Manager",
+                plan: "Support Desk Manager",
                 className: "bg-blue-200",
             }
         ],

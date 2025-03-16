@@ -24,6 +24,7 @@ import {
 import axios, {isAxiosError} from "@/lib/axios";
 
 import { useRouter, usePathname } from "next/navigation";
+import { useFilterStore } from "@/stores/filters-store";
 import Image from "next/image";
 
 export function NavUser({
@@ -38,10 +39,34 @@ export function NavUser({
     const { isMobile } = useSidebar();
     const router = useRouter()
     const pathname = usePathname();
+    const { setToDefaultFilters } = useFilterStore();
 
     const Logout = () => {
-        const tenantId = pathname?.split('/')[1];
+        const tenantId = pathname?.split('/')[1] || '';
+        
+        // Kullanıcı verilerini temizle
         localStorage.removeItem(`userData_${tenantId}`);
+        
+        // Filtre ve şube seçimlerini sıfırla
+        // Önce store'daki şube listesini temizleyelim ki, setToDefaultFilters çalıştığında
+        // önceki kullanıcının şubeleri seçili kalmasın
+        useFilterStore.getState().setBranchs([]);
+        // Sonra filtreleri sıfırlayalım
+        setToDefaultFilters();
+        
+        // Ek olarak, diğer store'lardaki verileri de temizlemek için localStorage'dan ilgili verileri silebiliriz
+        // Örneğin, filtre ve şube seçimleri ile ilgili localStorage verileri
+        localStorage.removeItem(`filter_${tenantId}`);
+        localStorage.removeItem(`selectedBranches_${tenantId}`);
+        localStorage.removeItem(`branches_${tenantId}`);
+        
+        // Tüm filtre ve ayarlarla ilgili localStorage verilerini temizlemek için
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes(tenantId) && (key.includes('filter') || key.includes('branch') || key.includes('setting'))) {
+                localStorage.removeItem(key);
+            }
+        });
+        
         axios.get('/api/auth/logout').then(()=>{
             router.push(`/${tenantId}/login`);
 

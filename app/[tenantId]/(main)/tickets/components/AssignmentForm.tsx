@@ -1,12 +1,22 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
-import { Users } from "lucide-react"
+import { Users, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { DatePicker } from "@/components/ui/date-picker"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import ReactDatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { tr } from "date-fns/locale"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { UserService } from "../../users/services/user-service"
+import { User } from "@/types/users"
 
 interface AssignmentFormProps {
   assignedTo: string
@@ -29,6 +39,29 @@ export default function AssignmentForm({
   onDueDateChange,
   onSlaBreachChange
 }: AssignmentFormProps) {
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch users from the database
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoadingUsers(true)
+      setError(null)
+      try {
+        const usersData = await UserService.getUsers()
+        setUsers(usersData)
+      } catch (error: any) {
+        console.error("Kullanıcılar alınırken hata oluştu:", error)
+        setError(error.message || "Kullanıcılar alınamadı")
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+
+    fetchUsers()
+  }, [])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,9 +95,25 @@ export default function AssignmentForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Atanmadı</SelectItem>
-                <SelectItem value="agent1">Destek Uzmanı 1</SelectItem>
-                <SelectItem value="agent2">Destek Uzmanı 2</SelectItem>
-                <SelectItem value="agent3">Destek Uzmanı 3</SelectItem>
+                {isLoadingUsers ? (
+                  <SelectItem value="" disabled>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </SelectItem>
+                ) : error ? (
+                  <SelectItem value="" disabled>
+                    {error}
+                  </SelectItem>
+                ) : users.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    Kullanıcı bulunamadı
+                  </SelectItem>
+                ) : (
+                  users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -87,11 +136,29 @@ export default function AssignmentForm({
           </div>
           <div>
             <Label>Son Tarih</Label>
-            <DatePicker 
-              date={dueDate ? new Date(dueDate) : null} 
-              setDate={(date) => onDueDateChange(date ? date.toISOString() : null)} 
-              className="w-full"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dueDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dueDate ? format(new Date(dueDate), "PPP", { locale: tr }) : "Tarih seçin"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <ReactDatePicker
+                  selected={dueDate ? new Date(dueDate) : null}
+                  onChange={(date) => onDueDateChange(date ? date.toISOString() : null)}
+                  dateFormat="dd/MM/yyyy"
+                  locale={tr}
+                  inline
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label>SLA İhlali</Label>

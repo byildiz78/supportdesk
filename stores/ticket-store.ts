@@ -15,6 +15,7 @@ interface TicketStore {
     setIsLoading: (isLoading: boolean) => void;
     setError: (error: string | null) => void;
     addComment: (ticketId: string, comment: Omit<TicketComment, 'id'>) => void;
+    addAttachments: (ticketId: string, attachments: any[]) => void;
 }
 
 export const useTicketStore = create<TicketStore>((set) => ({
@@ -53,6 +54,29 @@ export const useTicketStore = create<TicketStore>((set) => ({
             ? {
                 ...state.selectedTicket,
                 comments: [...(state.selectedTicket.comments || []), newComment]
+            }
+            : state.selectedTicket;
+
+        return {
+            tickets: updatedTickets,
+            selectedTicket: updatedSelectedTicket
+        };
+    }),
+    addAttachments: (ticketId, attachments) => set((state) => {
+        const updatedTickets = state.tickets.map(ticket => {
+            if (ticket.id === ticketId) {
+                return {
+                    ...ticket,
+                    attachments: [...(ticket.attachments || []), ...attachments]
+                };
+            }
+            return ticket;
+        });
+
+        const updatedSelectedTicket = state.selectedTicket?.id === ticketId
+            ? {
+                ...state.selectedTicket,
+                attachments: [...(state.selectedTicket.attachments || []), ...attachments]
             }
             : state.selectedTicket;
 

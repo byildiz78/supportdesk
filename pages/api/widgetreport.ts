@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Dataset } from '@/lib/dataset';
-import { extractTenantId } from '@/lib/utils';
+import { extractTenantFromBody, extractTenantId } from '@/lib/utils';
 
 // Define interfaces for the query results
 interface TopDebtors {
@@ -55,8 +55,7 @@ export default async function handler(
 
     try {
         const instance = Dataset.getInstance();
-        const tenantId = extractTenantId(req.headers.referer);
-
+        const tenantId = extractTenantFromBody(req.body.tenantId) || extractTenantId(req.headers.referer);
         // Top debtors query
         const topDebtorsQuery = `
             SELECT 

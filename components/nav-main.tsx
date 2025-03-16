@@ -6,7 +6,7 @@ import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, Sideba
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useParams } from "next/navigation"
 import { useTabStore } from "@/stores/tab-store"
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { useFilterStore } from "@/stores/filters-store"
 import { toZonedTime } from "date-fns-tz"
 import { useSettingsStore } from "@/stores/settings-store"
@@ -115,11 +115,10 @@ const RecursiveMenuItem = ({
 
 export const NavMain = ({ items }: { items: NavItem[] }) => {
     const { addTab, setActiveTab, tabs, setTabFilter } = useTabStore()
-    const {selectedFilter, setFilter} = useFilterStore();
+    const {selectedFilter,setFilter} = useFilterStore();
     const [searchQuery, setSearchQuery] = useState("");
-    const { settings } = useSettingsStore();
 
-    const handleTabChange = useCallback((id: string, title: string, url?: string, component?: React.ComponentType<any>) => {
+    const handleTabChange = (id: string, title: string, url?: string, component?: React.ComponentType<any>) => {
         // Dashboard için özel kontrol
         if (title.toLowerCase() === 'dashboard') {
             setActiveTab('dashboard');
@@ -130,6 +129,7 @@ export const NavMain = ({ items }: { items: NavItem[] }) => {
         if (foundedTab) {
             setActiveTab(id);
         } else {
+            const { settings } = useSettingsStore.getState();
             const daystart = parseInt(settings.find(setting => setting.Kod === "daystart")?.Value || '0');
     
             let startTime: string;
@@ -180,8 +180,7 @@ export const NavMain = ({ items }: { items: NavItem[] }) => {
             setTabFilter(id, defaultFilter);
             setFilter(defaultFilter);
         }
-    }, [addTab, setActiveTab, tabs, setTabFilter, setFilter, selectedFilter, settings]);
-
+    }
     const searchItems = (items: NavItem[], query: string): NavItem[] => {
         return items.map(item => {
             const matchesSearch = item.title.toLowerCase().includes(query.toLowerCase());

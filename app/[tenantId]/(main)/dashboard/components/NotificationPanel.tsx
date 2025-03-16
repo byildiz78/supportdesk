@@ -4,7 +4,7 @@ import { Bell, CheckCircle2, Ban, Tag, AlertCircle, ArrowUpRight, Clock, Refresh
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, formatCurrency } from "@/lib/utils";
 import { NotificationType } from "@/types/tables";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useFilterStore } from "@/stores/filters-store";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ interface NotificationStyle {
 
 interface NotificationPanelProps {
     refreshTrigger: number;
+    branchParam: string;
 }
 
 interface Notification {
@@ -54,7 +55,8 @@ const SALE_TYPE_STYLES: Record<string, NotificationStyle> = {
 };
 
 export default function NotificationPanel({
-    refreshTrigger
+    refreshTrigger,
+    branchParam
 }: NotificationPanelProps) {
     const { selectedFilter } = useFilterStore();
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -63,10 +65,18 @@ export default function NotificationPanel({
     const [error, setError] = useState<string | null>(null);
     const [hasFetched, setHasFetched] = useState(false);
     const { activeTab } = useTabStore();
-
+    
+    // İstek durumunu takip etmek için ref
+    const isFetchingRef = useRef(false);
 
     const fetchNotifications = useCallback(async (isInitial = false) => {
+        // Zaten istek atılıyorsa yeni istek atma
+        if (isFetchingRef.current) return;
+        
         try {
+            // İstek durumunu true yap
+            isFetchingRef.current = true;
+            
             if (isInitial) {
                 setLoading(true);
             } else {
@@ -74,8 +84,23 @@ export default function NotificationPanel({
             }
             setError(null);
 
-            const { data } = await axios.get('/api/notifications');
-
+            // branchParam null veya undefined ise API çağrısı yapmayalım
+            if (!branchParam) {
+                setLoading(false);
+                setIntervalLoading(false);
+                isFetchingRef.current = false;
+                return;
+            }
+          
+            const { data }  = await axios.post(
+                "/api/notifications",
+                {
+                    initialTenantId: branchParam
+                },
+                {
+                    headers: { "Content-Type": "application/json" },
+                }
+            )
             setNotifications(Array.isArray(data) ? data : []);
             setHasFetched(true);
         } catch (err) {
@@ -84,22 +109,31 @@ export default function NotificationPanel({
         } finally {
             setLoading(false);
             setIntervalLoading(false);
+            // İstek tamamlandı, durumu false yap
+            isFetchingRef.current = false;
         }
-    },[]);
+    },[branchParam, refreshTrigger]);
 
     // Handle refreshes based on refreshTrigger
     useEffect(() => {
-        if (activeTab === "dashboard" && refreshTrigger > 0) {
+        if (activeTab === "dashboard" && refreshTrigger > 0 && branchParam) {
             fetchNotifications(false);
         }
-    }, [refreshTrigger, activeTab , fetchNotifications]);
+    }, [refreshTrigger, activeTab, fetchNotifications, branchParam]);
 
     // İlk yüklemede bildirimleri çek
     useEffect(() => {
-        if (activeTab === "dashboard" && !hasFetched) {
+        if (activeTab === "dashboard" && !hasFetched && branchParam) {
             fetchNotifications(true);
         }
-    }, [activeTab, hasFetched, fetchNotifications]);
+    }, [activeTab, hasFetched, fetchNotifications, branchParam]);
+
+    // Şube değişikliğini izle ve bildirimleri yenile
+    useEffect(() => {
+        if (activeTab === "dashboard" && branchParam) {
+            fetchNotifications(false);
+        }
+    }, [branchParam, activeTab, fetchNotifications]);
 
     const renderNotification = useCallback((notification: Notification, index: number, isLastItem: boolean) => {
         const gradients = {

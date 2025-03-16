@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import axios, {isAxiosError} from "@/lib/axios";
+import axios, { isAxiosError } from "@/lib/axios";
 
 import { Efr_Branches } from "@/types/tables";
 import { useFilterStore } from "@/stores/filters-store";
@@ -28,7 +28,7 @@ const normalizeCountryName = (name: string | null | undefined): string => {
     const normalized = name.toUpperCase()
         .replace('İ', 'I')
         .replace('Ü', 'U');
-    
+
     // Eğer TURKIYE ise TÜRKİYE olarak değiştir
     if (normalized === 'TURKIYE') return 'TÜRKİYE';
     return normalized;
@@ -45,10 +45,10 @@ const BranchContext = createContext<{
     selectedCountry: string;
     setSelectedCountry: (country: string) => void;
 }>({
-    refetchBranches: async () => {},
+    refetchBranches: async () => { },
     countries: [],
     selectedCountry: 'TÜRKİYE',
-    setSelectedCountry: () => {},
+    setSelectedCountry: () => { },
 });
 
 export const useBranchContext = () => useContext(BranchContext);
@@ -65,32 +65,43 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
                     "Content-Type": "application/json",
                 },
             });
-            
+
             // Tüm şubeleri al
             const allBranches = response.data;
-            
+
             // Ülkeleri ayıkla ve normalize et (null kontrolü ile)
-            const uniqueCountries = [...new Set(allBranches
+            const uniqueCountries = Array.from(new Set(allBranches
                 .filter(branch => branch?.CountryName) // null veya undefined olanları filtrele
                 .map(branch => normalizeCountryName(branch.CountryName))
-            )];
-            
+            ));
+
             // Ülke bilgilerini oluştur
             const countryInfos = uniqueCountries.map(country => ({
                 name: country,
                 code: countryToCode[country] || 'tr' // Eğer kod bulunamazsa varsayılan olarak tr
             }));
-            
+
             setCountries(countryInfos);
-            
+
             // Seçili ülkeye göre şubeleri filtrele (normalize edilmiş isimlerle karşılaştır)
             const filteredBranches = allBranches.filter(branch => {
                 const normalizedBranchCountry = normalizeCountryName(branch?.CountryName);
                 return normalizedBranchCountry === selectedCountry;
             });
-            
+
+            // Şubeleri ayarla - setBranchs fonksiyonu artık otomatik olarak
+            // ilk şubeyi seçecek şekilde düzenlendi
             setBranchs(filteredBranches);
-            
+
+            // Artık bu kısma gerek yok, çünkü setBranchs fonksiyonu
+            // her zaman ilk şubeyi otomatik olarak seçiyor
+            // if (filteredBranches.length > 0 && useFilterStore.getState().selectedFilter.selectedBranches.length === 0) {
+            //     useFilterStore.getState().setFilter({
+            //         ...useFilterStore.getState().selectedFilter,
+            //         selectedBranches: [filteredBranches[0]]
+            //     });
+            // }
+
         } catch (error) {
             console.error("❌ Şube yüklenirken hata:", error);
             if (isAxiosError(error)) {
@@ -108,7 +119,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     }, [selectedCountry]); // selectedCountry değiştiğinde yeniden fetch yap
 
     return (
-        <BranchContext.Provider value={{ 
+        <BranchContext.Provider value={{
             refetchBranches: fetchBranches,
             countries,
             selectedCountry,

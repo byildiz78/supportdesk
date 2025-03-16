@@ -48,26 +48,47 @@ export const useFilterStore = create<FilterStore>((set) => ({
 
   setFilter: (filter: FilterState) =>
     set((state) => {
+      // Önce mevcut filtrenin ve gelen filtrenin derin bir kopyasını oluşturalım
+      const currentFilter = JSON.parse(JSON.stringify(state.selectedFilter));
+      const incomingFilter = JSON.parse(JSON.stringify(filter));
+
+      // Tarihleri kontrol edelim ve her koşulda mevcut tarihleri koruyalım
+      const safeDate = {
+        from: currentFilter.date?.from
+          ? new Date(currentFilter.date.from)
+          : toZonedTime(new Date(new Date().setHours(0, 0, 0, 0)), 'Europe/Istanbul'),
+        to: currentFilter.date?.to
+          ? new Date(currentFilter.date.to)
+          : toZonedTime(new Date().setHours(23, 59, 59, 999), 'Europe/Istanbul')
+      };
+
       // Tüm seçili tag'lerin branch'larını birleştir
-      const allBranchIDs = filter.selectedTags?.reduce((ids: string[], tag) => {
+      const allBranchIDs = incomingFilter.selectedTags?.reduce((ids: string[], tag) => {
         return [...ids, ...tag.BranchID];
       }, []) || [];
 
-      const effectiveBranches = filter.selectedTags?.length > 0
-        ? filter.selectedBranches.filter(branch =>
-            allBranchIDs.includes(branch.BranchID)
-          )
-        : filter.selectedBranches;
+      let effectiveBranches = incomingFilter.selectedTags?.length > 0
+        ? incomingFilter.selectedBranches.filter(branch =>
+          allBranchIDs.includes(branch.BranchID)
+        )
+        : incomingFilter.selectedBranches;
+        
+      // Eğer seçili şube yoksa ve şube listesi doluysa, ilk şubeyi seç
+      if (effectiveBranches.length === 0 && incomingFilter.branches.length > 0) {
+        effectiveBranches = [incomingFilter.branches[0]];
+      }
 
       // Mevcut tab'ın filter'ını al
       const activeTab = useTabStore.getState().activeTab;
       const currentTabFilter = useTabStore.getState().getTabFilter(activeTab);
-      
+
+      // Yeni filtre nesnesini oluşturalım, tarihleri daima koruyarak
       const newFilter = {
-        ...filter,
+        ...incomingFilter,
+        date: safeDate, // Tarihler daima korunur
         selectedBranches: effectiveBranches,
-        selectedTags: filter.selectedTags || [],
-        tags: filter.tags || state.selectedFilter.tags,
+        selectedTags: incomingFilter.selectedTags || currentFilter.selectedTags,
+        tags: incomingFilter.tags || currentFilter.tags,
         appliedAt: Date.now(),
         selectedDateRange: currentTabFilter?.selectedDateRange || 'today'
       };
@@ -77,17 +98,28 @@ export const useFilterStore = create<FilterStore>((set) => ({
         useTabStore.getState().setTabFilter(activeTab, newFilter);
       }
 
+
       return {
         selectedFilter: newFilter
       };
     }),
   setBranchs: (branchs: Efr_Branches[]) =>
-    set((state) => ({
-      selectedFilter: {
-        ...state.selectedFilter,
-        branches: branchs
+    set((state) => {
+      // Kullanıcı değiştiğinde veya yeni şubeler yüklendiğinde
+      // her zaman ilk şubeyi seç, önceki seçimleri dikkate alma
+      let selectedBranches: Efr_Branches[] = [];
+      if (branchs.length > 0) {
+        selectedBranches = [branchs[0]];
       }
-    })),
+      
+      return {
+        selectedFilter: {
+          ...state.selectedFilter,
+          branches: branchs,
+          selectedBranches: selectedBranches
+        }
+      };
+    }),
   setTags: (tags: Efr_Tags[]) =>
     set((state) => ({
       selectedFilter: {
@@ -96,19 +128,26 @@ export const useFilterStore = create<FilterStore>((set) => ({
       }
     })),
   setToDefaultFilters: () =>
-    set(() => ({
-      selectedFilter: {
-        date: {
-          from: new Date(new Date().setHours(0, 0, 0, 0)),
-          to: new Date(new Date().setHours(23, 59, 59, 999))
-        },
-        branches: [],
-        tags: [],
-        selectedBranches: [],
-        selectedTags: [],
-        appliedAt: undefined
-      }
-    })),
+    set((state) => {
+      // Eğer şube listesi doluysa, ilk şubeyi seç
+      const defaultSelectedBranches = state.selectedFilter.branches.length > 0 
+        ? [state.selectedFilter.branches[0]] 
+        : [];
+        
+      return {
+        selectedFilter: {
+          date: {
+            from: new Date(new Date().setHours(0, 0, 0, 0)),
+            to: new Date(new Date().setHours(23, 59, 59, 999))
+          },
+          branches: state.selectedFilter.branches,
+          tags: state.selectedFilter.tags,
+          selectedBranches: defaultSelectedBranches,
+          selectedTags: [],
+          appliedAt: undefined
+        }
+      };
+    }),
   addBranch: (branch: Efr_Branches) =>
     set((state) => ({
       selectedFilter: {
@@ -243,7 +282,7 @@ export const useFilterStore = create<FilterStore>((set) => ({
   handleTagSelect: (tag: Efr_Tags) =>
     set((state) => {
       let newSelectedTags;
-      
+
       // Eğer tag zaten seçiliyse, seçimi kaldır
       if (state.selectedFilter.selectedTags.some(t => t.TagID === tag.TagID)) {
         newSelectedTags = state.selectedFilter.selectedTags.filter(t => t.TagID !== tag.TagID);

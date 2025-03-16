@@ -73,10 +73,10 @@ const translations = {
   tr: {
     startDate: "Başlangıç Tarihi",
     endDate: "Bitiş Tarihi",
-    allBranches: "Tüm Şubeler",
-    branchesSelected: "Şube Seçili",
-    searchBranch: "Şube ara...",
-    branchNotFound: "Şube bulunamadı.",
+    allBranches: "Tüm Firmalar",
+    branchesSelected: "Firma Seçili",
+    searchBranch: "Firma ara...",
+    branchNotFound: "Firma bulunamadı.",
     apply: "Uygula",
     refresh: "Yenile",
     notifications: "Bildirimler",
@@ -96,7 +96,7 @@ const translations = {
     cancel: "İptal",
     functions: "Fonksiyonlar",
     tags: "Etiketler",
-    branches: "Şubeler",
+    branches: "Firmalar",
   },
   en: {
     startDate: "Start Date",
@@ -229,6 +229,7 @@ export default function Header() {
     const currentFilter = tabStore.getTabFilter(tabStore.activeTab);
     return currentFilter?.selectedDateRange || "today";
   });
+  const { handleTabOpen } = useTab();
 
   useEffect(() => {
     if (settings.length > 0) {
@@ -295,11 +296,27 @@ export default function Header() {
   );
 
   useEffect(() => {
+    // selectedFilter.selectedBranches değiştiğinde pendingBranches'i güncelle
+    setPendingBranches(selectedFilter.selectedBranches);
+  }, [selectedFilter.selectedBranches]);
+
+  useEffect(() => {
     setTempStartDate(selectedFilter.date.from);
     setTempEndDate(selectedFilter.date.to);
   }, [selectedFilter.date.from, selectedFilter.date.to, activeTab]);
 
   const memoizedPendingBranches = useMemo(() => pendingBranches, [pendingBranches]);
+  const memoizedBranches = useMemo(() => selectedFilter.branches, [selectedFilter.branches]);
+  const memoizedTags = useMemo(() => selectedFilter.tags, [selectedFilter.tags]);
+
+  useEffect(() => {
+    // Component ilk yüklendiğinde veya branches değiştiğinde
+    // eğer hiç şube seçili değilse ve şube listesi doluysa
+    // ilk şubeyi otomatik olarak seç
+    if (memoizedPendingBranches.length === 0 && memoizedBranches.length > 0) {
+      setPendingBranches([memoizedBranches[0]]);
+    }
+  }, [memoizedBranches, memoizedPendingBranches]);
 
   const handleDateRangeChange = useCallback((value: string) => {
     setSelectedDateRange(value);
@@ -411,18 +428,20 @@ export default function Header() {
       },
       selectedBranches: pendingBranches,
     });
- 
-  }, [tempStartDate, tempEndDate, tempStartTime, tempEndTime, pendingBranches, selectedFilter]);
 
-  const memoizedBranches = useMemo(() => selectedFilter.branches, [selectedFilter.branches]);
-  const memoizedTags = useMemo(() => selectedFilter.tags, [selectedFilter.tags]);
+  }, [tempStartDate, tempEndDate, tempStartTime, tempEndTime, pendingBranches, selectedFilter]);
 
   const applyFilters = () => {
     handleApplyFilters();
   };
 
   const clearSelectedBranches = () => {
-    setPendingBranches([]);
+    // Şube listesi boş değilse, ilk şubeyi seç
+    if (memoizedBranches.length > 0) {
+      setPendingBranches([memoizedBranches[0]]);
+    } else {
+      setPendingBranches([]);
+    }
     selectedFilter.selectedTags = [];
   };
 
@@ -431,6 +450,7 @@ export default function Header() {
   };
 
   return (
+    <BranchProvider>
       <TagProvider>
         <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md shadow-lg dark:shadow-slate-900/20">
           <div className="flex h-16 items-center px-4 gap-4">
@@ -596,8 +616,10 @@ export default function Header() {
                       {selectedFilter.selectedTags.length > 0
                         ? `${selectedFilter.selectedTags.length} ${t.tags}`
                         : memoizedPendingBranches.length > 0
-                          ? `${memoizedPendingBranches.length} ${t.branchesSelected}`
-                          : t.allBranches}
+                          ? `${memoizedPendingBranches[0].BranchName}`
+                          : memoizedBranches.length > 0
+                            ? memoizedBranches[0].BranchName
+                            : t.allBranches}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -611,7 +633,8 @@ export default function Header() {
                       </div>
                       <CommandEmpty>{t.branchNotFound}</CommandEmpty>
                       <CommandGroup>
-                        <div className="p-2 border-b border-border/50">
+                        {/* Tag Kapalı */}
+                        {/* <div className="p-2 border-b border-border/50">
                           <div className="font-semibold mb-2 px-2">{t.tags}</div>
                           <div className="max-h-[150px] overflow-y-auto   
                           border-r border-gray-200 dark:border-slate-700
@@ -654,7 +677,7 @@ export default function Header() {
                               </CommandItem>
                             ))}
                           </div>
-                        </div>
+                        </div> */}
                         <div className="pt-2">
                           <div className="font-semibold mb-2 px-2">{t.branches}</div>
                           <CommandList className="max-h-[200px] overflow-y-auto">
@@ -663,20 +686,19 @@ export default function Header() {
                                 key={branch.BranchID}
                                 value={branch.BranchName}
                                 onSelect={() => {
+                                  // Tek bir şube seçimi için, seçilen şube zaten seçiliyse kaldır, değilse sadece bu şubeyi seç
                                   const isSelected = memoizedPendingBranches.find(
                                     (selectedBranch: Efr_Branches) =>
                                       selectedBranch.BranchID === branch.BranchID
                                   );
 
-                                  const newSelectedBranches = isSelected
-                                    ? memoizedPendingBranches.filter(
-                                      (selectedBranch: Efr_Branches) =>
-                                        selectedBranch.BranchID !==
-                                        branch.BranchID
-                                    )
-                                    : [...memoizedPendingBranches, branch];
-
-                                  setPendingBranches(newSelectedBranches);
+                                  // Eğer seçilen şube zaten seçiliyse, seçimi kaldır
+                                  if (isSelected) {
+                                    setPendingBranches([]);
+                                  } else {
+                                    // Değilse, sadece bu şubeyi seç (diğer seçimleri temizle)
+                                    setPendingBranches([branch]);
+                                  }
                                 }}
                                 className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent/50"
                               >
@@ -738,9 +760,8 @@ export default function Header() {
                 </div>
               </div>
             </div>
-
             <div className="flex items-center gap-2">
-            <DropdownMenu>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
@@ -837,8 +858,15 @@ export default function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-       
-{/* 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-accent/50"
+                onClick={() => handleTabOpen('settings', t.settings)}
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+              {/* 
               <Button
                 variant="ghost"
                 size="icon"
@@ -851,5 +879,6 @@ export default function Header() {
           </div>
         </header>
       </TagProvider>
+    </BranchProvider>
   );
 }

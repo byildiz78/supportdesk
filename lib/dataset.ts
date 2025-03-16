@@ -59,7 +59,7 @@ export class Dataset {
                 data: body,
                 headers,
             });
-            
+            // console.log('console',response);
             return response.data.data as T;
         } catch (error) {
             if (isAxiosError(error)) {
@@ -72,7 +72,7 @@ export class Dataset {
     }
     public async executeQuery<T>(params: ExecuteParams): Promise<T> {
         const { query, parameters = {}, tenantId: paramTenantId, req, skipCache } = params;
-        let tenantId = paramTenantId;
+        let tenantId = "authportal";
         if (params.req && req?.headers.referer) {
             try {
                 tenantId = extractTenantId(req.headers.referer);

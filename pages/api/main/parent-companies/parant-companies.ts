@@ -1,0 +1,24 @@
+export type ParentCompany = {
+    id: string;
+    uuid: string;
+    name: string;
+    taxId?: string;
+    taxOffice?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    industry?: string;
+    companyType?: string;
+    notes?: string;
+    isActive: boolean;
+    createdAt: Date;
+    createdBy?: string;
+    updatedAt: Date;
+    updatedBy?: string;
+    isDeleted: boolean;
+};

@@ -1,85 +1,121 @@
 export interface Ticket {
     id: string;
+    ticketno: number;
     title: string;
     description: string;
-    status: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed';
-    priority: 'low' | 'medium' | 'high' | 'urgent';
-    source: 'email' | 'phone' | 'web' | 'chat';
-    category: string;
-    subcategory?: string;
-    group?: string;
-    assignedTo?: string;
-    assignedToName?: string;
-    parentCompanyId?: string;
-    parentCompanyName?: string;
-    companyId?: string;
-    companyName?: string;
-    contactId?: string;
-    contactName?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    contactPosition?: string;
-    dueDate?: string;
-    resolutionTime?: number; // in minutes
-    slaBreach?: boolean;
+    status: string;
+    priority: string;
+    source: string | null;
+    
+    // Fields from database schema
+    category_id: string | null;
+    category_name: string | null;
+    subcategory_id: string | null;
+    group_id: string | null;
+    assigned_to: string | null;
+    assignedTo?: string | null; // camelCase version for API compatibility
+    assignedUserName?: string | null; // Added for displaying assigned user name
+    customer_name: string | null;
+    customer_email: string | null;
+    customer_phone: string | null;
+    company_name: string | null;
+    company_id: string | null;
+    contact_id: string | null;
+    contact_name: string | null;
+    contact_first_name: string | null;
+    contact_last_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+    contact_position: string | null;
+    due_date: string | null;
+    resolution_time: number | null;
+    parent_company_id: string | null;
+    sla_breach: boolean | null;
+    
+    // CamelCase versions for frontend compatibility
+    categoryId?: string | null;
+    subcategoryId?: string | null;
+    groupId?: string | null;
+    customerName?: string | null;
+    customerEmail?: string | null;
+    customerPhone?: string | null;
+    companyName?: string | null;
+    companyId?: string | null;
+    contactId?: string | null;
+    contactName?: string | null;
+    contactPosition?: string | null;
+    dueDate?: string | null;
+    resolutionTime?: number | null;
+    parentCompanyId?: string | null;
+    slaBreach?: boolean | null;
+    
+    // Additional fields
     tags?: string[];
     attachments?: FileAttachment[];
     comments?: TicketComment[];
-    createdBy: string;
-    createdAt: string;
-    updatedAt: string;
+    created_at: string;
+    created_by: string | null;
+    updated_at: string | null;
+    updated_by: string | null;
+    is_deleted: boolean;
+    
+    // CamelCase versions for created/updated fields
+    createdAt?: string;
+    createdBy?: string | null;
+    updatedAt?: string | null;
+    updatedBy?: string | null;
 }
 
 export interface ParentCompany {
     id: string;
     name: string;
-    taxId?: string;
-    taxOffice?: string;
+    tax_id?: string;
+    tax_office?: string;
     address?: string;
     city?: string;
     state?: string;
-    postalCode?: string;
+    postal_code?: string;
     country?: string;
     phone?: string;
     email?: string;
     website?: string;
     industry?: string;
-    companyType?: string;
+    company_type?: string;
     notes?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Company {
     id: string;
-    parentCompanyId?: string;
-    parentCompanyName?: string;
+    parent_company_id?: string;
+    parent_company_name?: string;
     name: string;
-    taxId?: string;
-    taxOffice?: string;
+    tax_id?: string;
+    tax_office?: string;
     address?: string;
     city?: string;
     state?: string;
-    postalCode?: string;
+    postal_code?: string;
     country?: string;
     phone?: string;
     email?: string;
     website?: string;
     industry?: string;
-    companyType?: string;
+    company_type?: string;
     notes?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Contact {
     id: string;
-    companyId: string;
-    companyName?: string;
-    firstName: string;
-    lastName: string;
+    company_id: string;
+    company_name?: string;
+    first_name: string;
+    last_name: string;
     position?: string;
     email?: string;
     phone?: string;
@@ -87,13 +123,13 @@ export interface Contact {
     address?: string;
     city?: string;
     state?: string;
-    postalCode?: string;
+    postal_code?: string;
     country?: string;
     notes?: string;
-    isPrimary: boolean;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
+    is_primary: boolean;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface FileAttachment {
@@ -102,18 +138,18 @@ export interface FileAttachment {
     size: number;
     type: string;
     url: string;
-    uploadedAt: string;
-    uploadedBy: string;
+    uploaded_at: string;
+    uploaded_by: string;
 }
 
 export interface TicketComment {
     id: string;
-    ticketId: string;
+    ticket_id: string;
     content: string;
-    createdBy: string;
-    createdByName: string;
-    createdAt: string;
-    isInternal: boolean;
+    created_by: string;
+    created_by_name: string;
+    created_at: string;
+    is_internal: boolean;
     attachments?: FileAttachment[];
 }
 
@@ -123,13 +159,13 @@ export interface TicketFilter {
     category?: string[];
     subcategory?: string[];
     group?: string[];
-    assignedTo?: string[];
-    parentCompanyId?: string[];
-    companyId?: string[];
-    contactId?: string[];
-    dateRange?: {
+    assigned_to?: string[];
+    parent_company_id?: string[];
+    company_id?: string[];
+    contact_id?: string[];
+    date_range?: {
         from: string;
         to: string;
     };
-    slaBreach?: boolean;
+    sla_breach?: boolean;
 }

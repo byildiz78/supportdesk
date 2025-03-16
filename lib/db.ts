@@ -1,54 +1,23 @@
-import { Pool } from 'pg';
+import mysql from 'mysql2/promise';
 
-// Veritabanı bağlantı havuzu oluşturma
-const pool = new Pool({
-  user: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  host: process.env.POSTGRES_HOST,
-  port: parseInt(process.env.POSTGRES_PORT || '5432'),
-  database: process.env.POSTGRES_DB,
-  ssl: process.env.POSTGRES_SSL === 'true' ? { rejectUnauthorized: false } : false
+// MySQL bağlantı havuzu oluştur
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'supportdesk',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-// Bağlantı hatalarını yakalama
-pool.on('error', (err) => {
-  console.error('Beklenmeyen veritabanı hatası:', err);
-});
-
-// Dışa aktarılan metotlar
-export default {
-  /**
-   * SQL sorgusu çalıştırma
-   * @param text SQL sorgusu
-   * @param params Sorgu parametreleri
-   */
-  query: (text: string, params?: any[]) => pool.query(text, params),
-  
-  /**
-   * Veritabanı bağlantısı alma
-   * Uzun işlemler veya transaction'lar için kullanılabilir
-   */
-  getClient: async () => {
-    const client = await pool.connect();
-    const query = client.query;
-    const release = client.release;
-    
-    // Bağlantıyı serbest bırakma metodunu override ederek
-    // bağlantının zamanında serbest bırakılmasını sağlama
-    client.release = () => {
-      release.apply(client);
-    };
-    
-    // client.query metodunu override ederek hata yakalama
-    client.query = (...args: any[]) => {
-      return query.apply(client, args).catch((err: Error) => {
-        console.error('Sorgu hatası:', err);
-        // Hata durumunda bağlantıyı serbest bırakma
-        client.release();
-        throw err;
-      });
-    };
-    
-    return client;
+// SQL sorgusu çalıştırmak için yardımcı fonksiyon
+export async function executeQuery(query: string, params: any[] = []): Promise<any> {
+  try {
+    const [rows] = await pool.execute(query, params);
+    return rows;
+  } catch (error) {
+    console.error('Database error:', error);
+    throw error;
   }
-};
+}

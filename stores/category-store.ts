@@ -11,7 +11,7 @@ interface CategoryStore {
     error: string | null;
     
     // Category actions
-    setCategories: (categories: Category[]) => void;
+    setCategories: (categories: Category[] | ((prevCategories: Category[]) => Category[])) => void;
     addCategory: (category: Category) => void;
     updateCategory: (category: Category) => void;
     deleteCategory: (categoryId: string) => void;
@@ -29,8 +29,7 @@ interface CategoryStore {
     deleteGroup: (groupId: string) => void;
     setSelectedGroup: (group: Group | null) => void;
     
-    // Other actions
-    setFilters: (filters: CategoryFilter) => void;
+    // Status actions
     setIsLoading: (isLoading: boolean) => void;
     setError: (error: string | null) => void;
 }
@@ -45,7 +44,12 @@ export const useCategoryStore = create<CategoryStore>((set) => ({
     error: null,
     
     // Category actions
-    setCategories: (categories) => set({ categories }),
+    setCategories: (categories) => set((state) => {
+        if (typeof categories === 'function') {
+            return { categories: categories(state.categories) };
+        }
+        return { categories };
+    }),
     addCategory: (category) => set((state) => ({ 
         categories: [...state.categories, category] 
     })),
@@ -185,8 +189,7 @@ export const useCategoryStore = create<CategoryStore>((set) => ({
     }),
     setSelectedGroup: (group) => set({ selectedGroup: group }),
     
-    // Other actions
-    setFilters: (filters) => set({ filters }),
+    // Status actions
     setIsLoading: (isLoading) => set({ isLoading }),
     setError: (error) => set({ error })
 }));

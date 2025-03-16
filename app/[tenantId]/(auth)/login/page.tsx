@@ -125,13 +125,6 @@ export default function LoginPage() {
 
                 // Settings'i al
                 try {
-                    const settingsResponse = await axios.get('/api/get-user-settings');
-                    const settings = {
-                        minDiscountAmount: settingsResponse.data.minDiscountAmount ?? 0,
-                        minCancelAmount: settingsResponse.data.minCancelAmount ?? 0,
-                        minSaleAmount: settingsResponse.data.minSaleAmount ?? 0
-                    };
-
                     // Settings ve kullanıcı bilgilerini localStorage'a kaydet
                     localStorage.setItem(`userData_${tenantId}`, JSON.stringify({
                         name: response.data.name,
@@ -139,7 +132,6 @@ export default function LoginPage() {
                         userId: response.data.userId,
                         username: response.data.username,
                         usercategory: response.data.userCategory,
-                        settings: settings
                     }));
                 } catch (error) {
                     localStorage.setItem(`userData_${tenantId}`, JSON.stringify({
@@ -148,11 +140,6 @@ export default function LoginPage() {
                         userId: response.data.userId,
                         username: response.data.username,
                         usercategory: response.data.usercategory,
-                        settings: {
-                            minDiscountAmount: 0,
-                            minCancelAmount: 0,
-                            minSaleAmount: 0
-                        }
                     }));
                 }
 
@@ -301,9 +288,9 @@ export default function LoginPage() {
                         <div className="mt-16 sm:mt-0 mb-4 text-center">
                             <div className="relative group">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/15 via-transparent to-secondary/15 rounded-lg blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                                <h1 className="relative text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-[0_4px_4px_rgba(0,0,0,1)] dark:text-white dark:drop-shadow-[0_4px_4px_rgba(0,0,0,1)] [text-shadow:_2px_2px_0_rgb(0_0_0_/_40%)]">
+                                {/* <h1 className="relative text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-[0_4px_4px_rgba(0,0,0,1)] dark:text-white dark:drop-shadow-[0_4px_4px_rgba(0,0,0,1)] [text-shadow:_2px_2px_0_rgb(0_0_0_/_40%)]">
                                     {tenantName}
-                                </h1>
+                                </h1> */}
                             </div>
                         </div>
 
@@ -321,7 +308,7 @@ export default function LoginPage() {
                                         </h2>
                                     </div>
                                     <p className="text-lg text-white/90 text-center font-medium md:block hidden">
-                                        Kolay ve hızlı online müşteri hesap yönetimi
+                                        Kolay ve hızlı ticket yönetimi
                                     </p>
                                 </div>
                             </div>

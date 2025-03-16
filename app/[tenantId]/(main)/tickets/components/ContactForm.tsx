@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
-import { User } from "lucide-react"
+import { Loader2, User } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ContactService, Contact } from "../../contacts/services/contact-service"
 
 interface ContactFormProps {
   companyId: string
@@ -34,32 +36,42 @@ export default function ContactForm({
   onContactPhoneChange,
   onContactPositionChange
 }: ContactFormProps) {
-  // Mock contacts data - in a real app, you would fetch these based on the companyId
-  const contactsByCompany: Record<string, Array<{id: string, firstName: string, lastName: string, email: string, phone: string, position: string}>> = {
-    "c1": [
-      { id: "ct1", firstName: "Ahmet", lastName: "Yılmaz", email: "ahmet@firmaA1.com", phone: "555-1234", position: "Müdür" },
-      { id: "ct2", firstName: "Ayşe", lastName: "Kaya", email: "ayse@firmaA1.com", phone: "555-5678", position: "Teknisyen" }
-    ],
-    "c2": [
-      { id: "ct3", firstName: "Mehmet", lastName: "Demir", email: "mehmet@firmaA2.com", phone: "555-9012", position: "Direktör" },
-      { id: "ct4", firstName: "Fatma", lastName: "Şahin", email: "fatma@firmaA2.com", phone: "555-3456", position: "Uzman" }
-    ],
-    "c3": [
-      { id: "ct5", firstName: "Ali", lastName: "Öztürk", email: "ali@firmaB1.com", phone: "555-7890", position: "Yönetici" },
-      { id: "ct6", firstName: "Zeynep", lastName: "Çelik", email: "zeynep@firmaB1.com", phone: "555-1122", position: "Asistan" }
-    ]
-  }
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false)
 
-  const contacts = companyId ? contactsByCompany[companyId] || [] : []
+  useEffect(() => {
+    const fetchContacts = async () => {
+      setIsLoadingContacts(true)
+      try {
+        console.log('İletişim kişileri yükleniyor, companyId:', companyId)
+        
+        // ContactService kullanarak firmaya ait kişileri getir
+        const contactsData = await ContactService.getContactsByCompanyId(companyId)
+        console.log('İletişim kişileri başarıyla yüklendi:', contactsData.length)
+        setContacts(contactsData)
+      } catch (error) {
+        console.error('İletişim kişileri yüklenirken hata oluştu:', error)
+        setContacts([])
+      } finally {
+        setIsLoadingContacts(false)
+      }
+    }
+
+    if (companyId) {
+      fetchContacts()
+    } else {
+      setContacts([])
+    }
+  }, [companyId])
 
   const handleContactSelect = (id: string) => {
     onContactIdChange(id)
     const contact = contacts.find(c => c.id === id)
     if (contact) {
-      onContactNameChange(`${contact.firstName} ${contact.lastName}`)
-      onContactEmailChange(contact.email)
-      onContactPhoneChange(contact.phone)
-      onContactPositionChange(contact.position)
+      onContactNameChange(`${contact.first_name} ${contact.last_name}`)
+      onContactEmailChange(contact.email || "")
+      onContactPhoneChange(contact.phone || "")
+      onContactPositionChange(contact.position || "")
     }
   }
 
@@ -90,62 +102,60 @@ export default function ContactForm({
             <Select
               value={contactId}
               onValueChange={handleContactSelect}
-              disabled={!companyId}
+              disabled={!companyId || isLoadingContacts}
             >
               <SelectTrigger>
-                <SelectValue placeholder={companyId ? "İletişim kişisi seçin" : "Önce firma seçin"} />
+                {isLoadingContacts ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Yükleniyor...</span>
+                  </div>
+                ) : (
+                  <SelectValue placeholder={companyId ? "İletişim kişisi seçin" : "Önce firma seçin"} />
+                )}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Seçiniz</SelectItem>
-                {contacts.map(contact => (
-                  <SelectItem key={contact.id} value={contact.id}>
-                    {`${contact.firstName} ${contact.lastName}`}
+                {contacts.length > 0 ? (
+                  contacts.map(contact => (
+                    <SelectItem key={contact.id} value={contact.id}>
+                      {`${contact.first_name} ${contact.last_name}`}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    {companyId ? "Bu firmaya ait kişi bulunamadı" : "Önce firma seçin"}
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
-          {contactId && (
-            <>
-              <div>
-                <Label>İsim</Label>
-                <Input
-                  value={contactName}
-                  onChange={(e) => onContactNameChange(e.target.value)}
-                  placeholder="İsim"
-                  disabled
-                />
-              </div>
-              <div>
-                <Label>Pozisyon</Label>
-                <Input
-                  value={contactPosition}
-                  onChange={(e) => onContactPositionChange(e.target.value)}
-                  placeholder="Pozisyon"
-                  disabled
-                />
-              </div>
-              <div>
-                <Label>E-posta</Label>
-                <Input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(e) => onContactEmailChange(e.target.value)}
-                  placeholder="E-posta adresi"
-                  disabled
-                />
-              </div>
-              <div>
-                <Label>Telefon</Label>
-                <Input
-                  value={contactPhone}
-                  onChange={(e) => onContactPhoneChange(e.target.value)}
-                  placeholder="Telefon numarası"
-                  disabled
-                />
-              </div>
-            </>
-          )}
+
+          <div>
+            <Label>E-posta</Label>
+            <Input
+              value={contactEmail}
+              onChange={(e) => onContactEmailChange(e.target.value)}
+              placeholder="E-posta adresi"
+            />
+          </div>
+
+          <div>
+            <Label>Telefon</Label>
+            <Input
+              value={contactPhone}
+              onChange={(e) => onContactPhoneChange(e.target.value)}
+              placeholder="Telefon numarası"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label>Pozisyon</Label>
+            <Input
+              value={contactPosition}
+              onChange={(e) => onContactPositionChange(e.target.value)}
+              placeholder="Pozisyon/Unvan"
+            />
+          </div>
         </div>
       </Card>
     </motion.div>
