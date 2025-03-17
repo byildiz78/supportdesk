@@ -13,10 +13,14 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Loader2, Download, Check, List, Settings } from "lucide-react";
 import axios from "axios";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
+import { toast } from "sonner";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 interface FlowCompany {
   ID: string;
@@ -45,6 +49,8 @@ interface CustomFields {
 }
 
 export default function FlowCompaniesPage() {
+  const router = useRouter();
+  const params = useParams();
   const [companies, setCompanies] = useState<FlowCompany[]>([]);
   const [customFields, setCustomFields] = useState<CustomFields>({});
   const [selectedFields, setSelectedFields] = useState<string[]>([]);
@@ -54,6 +60,8 @@ export default function FlowCompaniesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [nextStart, setNextStart] = useState(0);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
 
   // Fetch custom fields first
   useEffect(() => {
@@ -204,12 +212,92 @@ export default function FlowCompaniesPage() {
     return String(value);
   };
 
+  const toggleCompanySelection = (companyId: string) => {
+    setSelectedCompanies(prev => {
+      if (prev.includes(companyId)) {
+        return prev.filter(id => id !== companyId);
+      } else {
+        return [...prev, companyId];
+      }
+    });
+  };
+
+  const importSelectedCompanies = async () => {
+    if (selectedCompanies.length === 0) {
+      toast.error("Lütfen en az bir firma seçin");
+      return;
+    }
+
+    try {
+      setImporting(true);
+      
+      // Seçilen firmaları filtrele
+      const companiesToImport = companies.filter(company => 
+        selectedCompanies.includes(company.ID)
+      );
+
+      // API'ye gönderilecek veriyi hazırla
+      const importData = companiesToImport.map(company => ({
+        name: company.TITLE,
+        address: company.ADDRESS || null,
+        phone: company.PHONE || null,
+        email: company.EMAIL || null,
+        city: company.ADDRESS_CITY || null,
+        country: company.ADDRESS_COUNTRY || null,
+        notes: `Flow'dan içe aktarıldı. Flow ID: ${company.ID}`
+      }));
+
+      // API çağrısı yap
+      const response = await axios.post('/supportdesk/api/main/companies/importFlowCompanies', {
+        companies: importData
+      });
+
+      if (response.data.success) {
+        toast.success(`${response.data.importedCount} firma başarıyla içe aktarıldı`);
+        setSelectedCompanies([]);
+      } else {
+        toast.error(response.data.message || "İçe aktarma sırasında bir hata oluştu");
+      }
+    } catch (error: any) {
+      console.error("Import error:", error);
+      toast.error(error.response?.data?.message || "Firmalar içe aktarılırken bir hata oluştu");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const displayColumns = getDisplayColumns();
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Flow Firmaları</h2>
+        <div className="flex space-x-2">
+          <Link href={`/${params?.tenantId || ''}/imported-flow-companies`}>
+            <Button variant="outline">
+              <List className="mr-2 h-4 w-4" />
+              İçe Aktarılan Firmalar
+            </Button>
+          </Link>
+          <Link href={`/${params?.tenantId || ''}/settings/flow-company-mapping`}>
+            <Button variant="outline">
+              <Settings className="mr-2 h-4 w-4" />
+              Alan Eşleştirme Ayarları
+            </Button>
+          </Link>
+          <Button 
+            onClick={importSelectedCompanies} 
+            disabled={selectedCompanies.length === 0 || importing}
+            className="flex items-center"
+          >
+            {importing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Seçili Firmaları İçe Aktar ({selectedCompanies.length})
+          </Button>
+        </div>
       </div>
       <Tabs defaultValue="companies" className="space-y-4">
         <TabsList>
@@ -247,6 +335,7 @@ export default function FlowCompaniesPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead className="w-12 text-center">Seç</TableHead>
                               {displayColumns.map((column) => (
                                 <TableHead key={column.field} className="text-center whitespace-nowrap">
                                   <div className="font-medium">{column.title}</div>
@@ -258,13 +347,23 @@ export default function FlowCompaniesPage() {
                           <TableBody>
                             {filteredCompanies.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={displayColumns.length} className="text-center">
+                                <TableCell colSpan={displayColumns.length + 1} className="text-center">
                                   Firma bulunamadı
                                 </TableCell>
                               </TableRow>
                             ) : (
                               filteredCompanies.map((company) => (
-                                <TableRow key={company.ID}>
+                                <TableRow key={company.ID} className={selectedCompanies.includes(company.ID) ? "bg-muted/50" : ""}>
+                                  <TableCell className="text-center">
+                                    <div className="flex items-center justify-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedCompanies.includes(company.ID)}
+                                        onChange={() => toggleCompanySelection(company.ID)}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                      />
+                                    </div>
+                                  </TableCell>
                                   {displayColumns.map((column) => (
                                     <TableCell key={`${company.ID}-${column.field}`} className="whitespace-nowrap">
                                       {formatFieldValue(column.field, company[column.field])}
