@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
 import { Loader2, User } from "lucide-react"
-import { useEffect, useState } from "react"
-import { ContactService, Contact } from "../../contacts/services/contact-service"
+import { useEffect, useState, useMemo } from "react"
+import { useContacts } from "@/providers/contacts-provider"
 
 interface ContactFormProps {
   companyId: string
@@ -36,44 +36,34 @@ export default function ContactForm({
   onContactPhoneChange,
   onContactPositionChange
 }: ContactFormProps) {
-  const [contacts, setContacts] = useState<Contact[]>([])
-  const [isLoadingContacts, setIsLoadingContacts] = useState(false)
-
-  useEffect(() => {
-    const fetchContacts = async () => {
-      setIsLoadingContacts(true)
-      try {
-        console.log('İletişim kişileri yükleniyor, companyId:', companyId)
-        
-        // ContactService kullanarak firmaya ait kişileri getir
-        const contactsData = await ContactService.getContactsByCompanyId(companyId)
-        console.log('İletişim kişileri başarıyla yüklendi:', contactsData.length)
-        setContacts(contactsData)
-      } catch (error) {
-        console.error('İletişim kişileri yüklenirken hata oluştu:', error)
-        setContacts([])
-      } finally {
-        setIsLoadingContacts(false)
-      }
-    }
-
-    if (companyId) {
-      fetchContacts()
-    } else {
-      setContacts([])
-    }
-  }, [companyId])
+  // ContactsProvider'dan tüm kişileri al
+  const { contacts, loading: isLoadingContacts } = useContacts();
+  
+  // Şirket ID'sine göre kişileri filtrele
+  const filteredContacts = useMemo(() => {
+    if (!companyId) return [];
+    
+    return contacts.filter(contact => {
+      const contactCompanyId = contact.companyId || contact.company_id;
+      return contactCompanyId === companyId;
+    });
+  }, [contacts, companyId]);
 
   const handleContactSelect = (id: string) => {
-    onContactIdChange(id)
-    const contact = contacts.find(c => c.id === id)
+    onContactIdChange(id);
+    const contact = contacts.find(c => c.id === id);
     if (contact) {
-      onContactNameChange(`${contact.first_name} ${contact.last_name}`)
-      onContactEmailChange(contact.email || "")
-      onContactPhoneChange(contact.phone || "")
-      onContactPositionChange(contact.position || "")
+      // İsim için hem yeni hem eski alan adlarını kontrol et
+      const firstName = contact.firstName || contact.first_name || '';
+      const lastName = contact.lastName || contact.last_name || '';
+      const contactName = contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
+      
+      onContactNameChange(contactName);
+      onContactEmailChange(contact.email || "");
+      onContactPhoneChange(contact.phone || "");
+      onContactPositionChange(contact.position || "");
     }
-  }
+  };
 
   return (
     <motion.div
@@ -115,12 +105,18 @@ export default function ContactForm({
                 )}
               </SelectTrigger>
               <SelectContent>
-                {contacts.length > 0 ? (
-                  contacts.map(contact => (
-                    <SelectItem key={contact.id} value={contact.id}>
-                      {`${contact.first_name} ${contact.last_name}`}
-                    </SelectItem>
-                  ))
+                {filteredContacts.length > 0 ? (
+                  filteredContacts.map(contact => {
+                    const firstName = contact.firstName || contact.first_name || '';
+                    const lastName = contact.lastName || contact.last_name || '';
+                    const contactName = contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
+                    
+                    return (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contactName}
+                      </SelectItem>
+                    );
+                  })
                 ) : (
                   <SelectItem value="" disabled>
                     {companyId ? "Bu firmaya ait kişi bulunamadı" : "Önce firma seçin"}

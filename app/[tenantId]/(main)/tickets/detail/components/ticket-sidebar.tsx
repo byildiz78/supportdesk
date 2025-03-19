@@ -10,8 +10,10 @@ import { tr } from "date-fns/locale"
 import React, { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { TicketService, CompanyService, ContactService } from "../services/ticket-service"
-import { UserService } from "../../../users/services/user-service"
+import { TicketService } from "../services/ticket-service"
+import { useCompanies } from "@/providers/companies-provider"
+import { useUsers } from "@/providers/users-provider"
+import { useContacts } from "@/providers/contacts-provider"
 
 interface TicketSidebarProps {
     ticket: any;
@@ -19,12 +21,9 @@ interface TicketSidebarProps {
 }
 
 export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
-    const [companies, setCompanies] = useState<any[]>([])
-    const [contacts, setContacts] = useState<any[]>([])
-    const [users, setUsers] = useState<any[]>([])
-    const [loadingCompanies, setLoadingCompanies] = useState(false)
-    const [loadingContacts, setLoadingContacts] = useState(false)
-    const [loadingUsers, setLoadingUsers] = useState(false)
+    const { companies, loading: loadingCompanies } = useCompanies()
+    const { users, isLoading: loadingUsers } = useUsers()
+    const { contacts, loading: loadingContacts } = useContacts()
     const [updatedTicket, setUpdatedTicket] = useState<any>(ticket || {})
     const [isSaving, setIsSaving] = useState(false)
     const { toast } = useToast()
@@ -35,71 +34,6 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             setUpdatedTicket(ticket)
         }
     }, [ticket])
-
-    // Firmaları getir
-    const fetchCompanies = async () => {
-        setLoadingCompanies(true)
-        try {
-            const companiesData = await CompanyService.getCompanies()
-            setCompanies(companiesData || [])
-        } catch (error: any) {
-            console.error('Firmalar alınırken hata oluştu:', error)
-            toast({
-                title: "Hata",
-                description: "Firmalar alınırken bir hata oluştu",
-                variant: "destructive",
-            })
-            setCompanies([])
-        } finally {
-            setLoadingCompanies(false)
-        }
-    }
-
-    // Tüm kişileri getir
-    const fetchAllContacts = async () => {
-        setLoadingContacts(true)
-        try {
-            // ContactService üzerinden tüm kişileri getir
-            const contactsData = await ContactService.getAllContacts()
-            setContacts(contactsData || [])
-        } catch (error: any) {
-            console.error('Kişiler alınırken hata oluştu:', error)
-            toast({
-                title: "Hata",
-                description: "Kişiler alınırken bir hata oluştu",
-                variant: "destructive",
-            })
-            setContacts([])
-        } finally {
-            setLoadingContacts(false)
-        }
-    }
-
-    // Kullanıcıları getir
-    const fetchUsers = async () => {
-        setLoadingUsers(true)
-        try {
-            const usersData = await UserService.getUsers()
-            setUsers(usersData || [])
-        } catch (error: any) {
-            console.error('Kullanıcılar alınırken hata oluştu:', error)
-            toast({
-                title: "Hata",
-                description: "Kullanıcılar alınırken bir hata oluştu",
-                variant: "destructive",
-            })
-            setUsers([])
-        } finally {
-            setLoadingUsers(false)
-        }
-    }
-
-    // Sayfa yüklendiğinde firmaları ve kişileri getir
-    useEffect(() => {
-        fetchCompanies()
-        fetchAllContacts()
-        fetchUsers()
-    }, [])
 
     // Durum değiştiğinde
     const handleStatusChange = (value: string) => {
@@ -163,11 +97,13 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
         const selectedContact = contacts.find(contact => contact.id === value)
         if (selectedContact) {
-            // Contact nesnesinde name özelliği olmayabilir, bu durumda first_name ve last_name kullan
+            // Contact nesnesinde name özelliği olmayabilir, bu durumda firstName ve lastName kullan
+            const firstName = selectedContact.firstName || selectedContact.first_name || '';
+            const lastName = selectedContact.lastName || selectedContact.last_name || '';
             const contactName = selectedContact.name || 
-                              `${selectedContact.first_name || ''} ${selectedContact.last_name || ''}`.trim() || 
-                              "İsimsiz Kişi";
-            
+                               `${firstName} ${lastName}`.trim() || 
+                               "İsimsiz Kişi";
+
             setUpdatedTicket((prev: any) => ({
                 ...prev,
                 contact_id: value,
@@ -189,7 +125,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             })
             return
         }
-        
+
         setIsSaving(true)
         try {
             // TicketService üzerinden güncelleme yap
@@ -197,7 +133,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                 ...updatedTicket,
                 id: updatedTicket.id
             })
-            
+
             // Başarılı olursa bileti güncelle
             onTicketUpdate(updatedTicketData)
             toast({
@@ -222,12 +158,12 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
         console.log("Creating company options from:", companies);
         console.log("Companies type:", typeof companies);
         console.log("Is companies an array:", Array.isArray(companies));
-        
+
         if (!Array.isArray(companies)) {
             console.log("Companies is not an array, returning empty array");
             return [];
         }
-        
+
         const options = companies.map(company => {
             console.log("Processing company:", company);
             return {
@@ -235,7 +171,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                 label: company.name || "İsimsiz Firma"
             };
         });
-        
+
         console.log("Final company options:", options);
         return options;
     }, [companies]);
@@ -245,32 +181,32 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
         console.log("Creating contact options from:", contacts);
         console.log("Contacts type:", typeof contacts);
         console.log("Is contacts an array:", Array.isArray(contacts));
-        
+
         if (!Array.isArray(contacts)) {
             console.log("Contacts is not an array, returning empty array");
             return [];
         }
-        
+
         const options = contacts.map(contact => {
             console.log("Processing contact:", contact);
             
-            // Contact nesnesinde name özelliği olmayabilir, bu durumda first_name ve last_name kullan
-            const firstName = contact.first_name || '';
-            const lastName = contact.last_name || '';
-            console.log("Contact first_name:", firstName, "last_name:", lastName);
+            // Contact nesnesinde name özelliği olmayabilir, bu durumda firstName ve lastName kullan
+            const firstName = contact.firstName || contact.first_name || '';
+            const lastName = contact.lastName || contact.last_name || '';
+            console.log("Contact firstName:", firstName, "lastName:", lastName);
             
             const contactName = contact.name || 
                                `${firstName} ${lastName}`.trim() || 
                                "İsimsiz Kişi";
             
             console.log("Final contact name:", contactName);
-            
+
             return {
                 value: contact.id || "",
                 label: contactName
             };
         });
-        
+
         console.log("Final contact options:", options);
         return options;
     }, [contacts]);
@@ -295,19 +231,19 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
     // Combobox için atanan kişi seçenekleri
     const assignedToOptions = React.useMemo(() => {
         console.log("Creating assignedTo options from:", users);
-        
+
         if (!Array.isArray(users)) {
             console.log("Users is not an array, returning empty array");
             return [];
         }
-        
+
         const options = users.map(user => {
             return {
                 value: user.id || "",
                 label: user.name || "İsimsiz Kullanıcı"
             };
         });
-        
+
         console.log("Final assignedTo options:", options);
         return options;
     }, [users]);
@@ -376,26 +312,38 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
                         <div>
                             <h3 className="font-semibold mb-4">Firma</h3>
-                            <Combobox
-                                options={companyOptions}
-                                value={updatedTicket?.company_id || ""}
-                                onChange={handleCompanyChange}
-                                placeholder="Seçiniz"
-                                searchPlaceholder="Firma ara..."
-                                disabled={loadingCompanies}
-                            />
+                            {loadingCompanies ? (
+                                <div className="flex items-center space-x-2 p-2 border rounded-md">
+                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                    <span className="text-sm text-gray-500">Firmalar yükleniyor...</span>
+                                </div>
+                            ) : (
+                                <Combobox
+                                    options={companyOptions}
+                                    value={updatedTicket?.company_id || ""}
+                                    onChange={handleCompanyChange}
+                                    placeholder="Seçiniz"
+                                    searchPlaceholder="Firma ara..."
+                                />
+                            )}
                         </div>
 
                         <div>
                             <h3 className="font-semibold mb-4">İletişim Kişisi</h3>
-                            <Combobox
-                                options={contactOptions}
-                                value={updatedTicket?.contact_id || ""}
-                                onChange={handleContactChange}
-                                placeholder="Seçiniz"
-                                searchPlaceholder="Kişi ara..."
-                                disabled={loadingContacts}
-                            />
+                            {loadingContacts ? (
+                                <div className="flex items-center space-x-2 p-2 border rounded-md">
+                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                    <span className="text-sm text-gray-500">Kişiler yükleniyor...</span>
+                                </div>
+                            ) : (
+                                <Combobox
+                                    options={contactOptions}
+                                    value={updatedTicket?.contact_id || ""}
+                                    onChange={handleContactChange}
+                                    placeholder="Seçiniz"
+                                    searchPlaceholder="Kişi ara..."
+                                />
+                            )}
                         </div>
 
                         {updatedTicket?.customer_name && (
@@ -455,27 +403,26 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                         </div>
                     </div>
                 </ScrollArea>
+                <div className="sticky bottom-0 p-4 bg-background border-t shadow-md">
+                    <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Kaydediliyor...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Değişiklikleri Kaydet
+                            </>
+                        )}
+                    </Button>
+                </div>
             </Card>
-            
-            <div className="sticky bottom-0 p-4 bg-background border-t shadow-md">
-                <Button 
-                    onClick={handleSave} 
-                    disabled={isSaving}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                    {isSaving ? (
-                        <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Kaydediliyor...
-                        </>
-                    ) : (
-                        <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Değişiklikleri Kaydet
-                        </>
-                    )}
-                </Button>
-            </div>
         </div>
     )
 }

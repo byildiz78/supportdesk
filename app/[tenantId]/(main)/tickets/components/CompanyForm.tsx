@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { motion } from "framer-motion"
 import { Building2, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { CompanyService, Company } from "../../companies/services/company-service"
-import { ContactService, Contact } from "../../contacts/services/contact-service"
-import axios from 'axios';
+import { useCompanies } from "@/providers/companies-provider"
+import { useContacts } from "@/providers/contacts-provider"
 
 interface CompanyFormProps {
   parentCompanyId?: string
@@ -46,52 +45,24 @@ export default function CompanyForm({
   onContactPhoneChange,
   onContactPositionChange
 }: CompanyFormProps) {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
-  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  // Provider'lardan veri al
+  const { companies, loading: isLoadingCompanies } = useCompanies();
+  const { contacts, loading: isLoadingContacts } = useContacts();
+  
+  // Filtrelenmiş şirketler
+  const [filteredCompanies, setFilteredCompanies] = useState(companies);
 
-  // Firmaları yükle
+  // parentCompanyId değiştiğinde şirketleri filtrele
   useEffect(() => {
-    const fetchCompanies = async () => {
-      setIsLoadingCompanies(true);
-      try {
-        console.log('Firmalar yükleniyor, parentCompanyId:', parentCompanyId);
-        
-        // CompanyService kullanarak firmaları getir
-        const companiesData = await CompanyService.getCompanies(parentCompanyId || undefined);
-        console.log('Firmalar başarıyla yüklendi:', companiesData.length);
-        setCompanies(companiesData);
-      } catch (error) {
-        console.error('Firmalar yüklenirken hata oluştu:', error);
-        setCompanies([]);
-      } finally {
-        setIsLoadingCompanies(false);
-      }
-    };
-
-    fetchCompanies();
-  }, [parentCompanyId]);
-
-  // Tüm iletişim kişilerini yükle (bağımsız olarak)
-  useEffect(() => {
-    const fetchAllContacts = async () => {
-      setIsLoadingContacts(true);
-      try {
-        // ContactService kullanarak tüm kişileri getir
-        const contactsData = await ContactService.getContacts();
-        console.log('İletişim kişileri başarıyla yüklendi:', contactsData.length);
-        setContacts(contactsData);
-      } catch (error) {
-        console.error('İletişim kişileri yüklenirken hata oluştu:', error);
-        setContacts([]);
-      } finally {
-        setIsLoadingContacts(false);
-      }
-    };
-
-    fetchAllContacts();
-  }, []);
+    if (parentCompanyId) {
+      const filtered = companies.filter(company => 
+        company.parentCompanyId === parentCompanyId
+      );
+      setFilteredCompanies(filtered);
+    } else {
+      setFilteredCompanies(companies);
+    }
+  }, [companies, parentCompanyId]);
 
   const handleCompanySelect = (id: string) => {
     onCompanyIdChange(id);
@@ -105,16 +76,25 @@ export default function CompanyForm({
     onContactIdChange(id);
     const contact = contacts.find(c => c.id === id);
     if (contact) {
-      onContactNameChange(contact.name);
+      // İsim için hem yeni hem eski alan adlarını kontrol et
+      const firstName = contact.firstName || contact.first_name || '';
+      const lastName = contact.lastName || contact.last_name || '';
+      const fullName = contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
+      
+      onContactNameChange(fullName);
       onContactEmailChange(contact.email || "");
       onContactPhoneChange(contact.phone || "");
       onContactPositionChange(contact.position || "");
       
       // İletişim kişisi seçildiğinde, ilgili firmayı da otomatik olarak seçebiliriz
       // Ancak bu isteğe bağlı, kullanıcı isterse farklı bir firma seçebilir
-      if (contact.company_id && !companyId) {
-        onCompanyIdChange(contact.company_id);
-        onCompanyNameChange(contact.company_name || "");
+      const contactCompanyId = contact.companyId || contact.company_id;
+      if (contactCompanyId && !companyId) {
+        onCompanyIdChange(contactCompanyId);
+        const company = companies.find(c => c.id === contactCompanyId);
+        if (company) {
+          onCompanyNameChange(company.name || "");
+        }
       }
     }
   };
@@ -160,7 +140,7 @@ export default function CompanyForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Seçiniz</SelectItem>
-                {companies.map(company => (
+                {filteredCompanies.map(company => (
                   <SelectItem key={company.id} value={company.id}>
                     {company.name}
                   </SelectItem>
@@ -188,11 +168,18 @@ export default function CompanyForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Seçiniz</SelectItem>
-                {contacts.map(contact => (
-                  <SelectItem key={contact.id} value={contact.id}>
-                    {contact.name} {contact.company_name ? `(${contact.company_name})` : ''}
-                  </SelectItem>
-                ))}
+                {contacts.map(contact => {
+                  const firstName = contact.firstName || contact.first_name || '';
+                  const lastName = contact.lastName || contact.last_name || '';
+                  const contactName = contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
+                  const companyName = contact.companyName || '';
+                  
+                  return (
+                    <SelectItem key={contact.id} value={contact.id}>
+                      {contactName} {companyName ? `(${companyName})` : ''}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

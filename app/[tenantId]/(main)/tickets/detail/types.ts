@@ -62,7 +62,19 @@ export interface Company {
 
 export interface Contact {
   id: string;
-  name: string;
-  company_id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  position?: string;
+  companyId?: string;
+  companyName?: string;
+  company_id?: string;
+  company_name?: string;
+  // Ek alanlar
   [key: string]: any;
 }

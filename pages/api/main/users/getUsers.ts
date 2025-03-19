@@ -4,9 +4,11 @@ import { db } from '@/lib/database';
 interface User {
   id: string;
   name: string;
+  username: string;
   email: string;
   role: string;
   department: string | null;
+  password_hash: string;
   status: string;
   lastLogin: string | null;
   profileImageUrl: string | null;
@@ -37,9 +39,11 @@ export default async function handler(
       SELECT 
         id,
         name,
+        username,
         email,
         role,
         department,
+        password_hash,
         status,
         last_login as "lastLogin",
         profile_image_url as "profileImageUrl",
@@ -53,15 +57,11 @@ export default async function handler(
       ORDER BY created_at DESC
     `;
 
-    console.log('Kullanıcılar sorgusu çalıştırılıyor:', usersQuery);
-
     const usersResult = await db.executeQuery<User[]>({
       query: usersQuery,
       params: [],
       req
     });
-
-    console.log(`${usersResult.length} kullanıcı bulundu`);
 
     return res.status(200).json({
       success: true,

@@ -28,18 +28,18 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
 
     return (
         <TableHeader className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10">
-            <TableRow>
+            <TableRow className="whitespace-nowrap">
                 <TableHead 
-                    className="w-[6%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[60px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('ticketno')}
                 >
                     <div className="flex items-center">
-                        <span>Talep No</span>
+                        <span>No</span>
                         {renderSortIndicator('ticketno')}
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[15%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[120px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('title')}
                 >
                     <div className="flex items-center">
@@ -48,7 +48,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[15%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[120px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('description')}
                 >
                     <div className="flex items-center">
@@ -57,7 +57,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[10%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[100px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('companyName')}
                 >
                     <div className="flex items-center gap-1">
@@ -67,7 +67,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[10%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[100px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('customerName')}
                 >
                     <div className="flex items-center gap-1">
@@ -77,7 +77,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[6%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('source')}
                 >
                     <div className="flex items-center">
@@ -86,7 +86,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[6%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('priority')}
                 >
                     <div className="flex items-center">
@@ -96,7 +96,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                 </TableHead>
                 {showStatusColumn && (
                 <TableHead 
-                    className="w-[8%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('status')}
                 >
                     <div className="flex items-center">
@@ -106,7 +106,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                 </TableHead>
                 )}
                 <TableHead 
-                    className="w-[8%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('assignedUserName')}
                 >
                     <div className="flex items-center">
@@ -115,7 +115,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[8%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('createdAt')}
                 >
                     <div className="flex items-center">
@@ -124,16 +124,16 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[6%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('elapsedTime')}
                 >
                     <div className="flex items-center">
-                        <span>Geçen Süre</span>
+                        <span>Süre</span>
                         {renderSortIndicator('elapsedTime')}
                     </div>
                 </TableHead>
                 <TableHead 
-                    className="w-[6%] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    className="w-[60px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     onClick={() => onSort('dueDate')}
                 >
                     <div className="flex items-center">
@@ -141,7 +141,7 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                         {renderSortIndicator('dueDate')}
                     </div>
                 </TableHead>
-                <TableHead className="w-[3%]">İşlemler</TableHead>
+                <TableHead className="w-[60px]">İşlemler</TableHead>
             </TableRow>
         </TableHeader>
     )

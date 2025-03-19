@@ -1,12 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, useRef } from "react";
-import { WebWidget, WebWidgetData } from "@/types/tables";
 import { useFilterStore } from "@/stores/filters-store";
 import { useSettingsStore } from "@/stores/settings-store";
-import NotificationPanel from "@/app/[tenantId]/(main)/dashboard/components/NotificationPanel";
 import { 
-    ArrowDownRight, 
     ArrowUpRight, 
     ChevronRight, 
     MessageSquare, 
@@ -19,7 +16,8 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTabStore } from "@/stores/tab-store";
-import axios from "@/lib/axios";
+import axios, { isAxiosError } from "@/lib/axios";
+import { AxiosError } from "axios";
 import { Card } from "@/components/ui/card";
 import { TicketTrendsChart } from "./components/TicketTrendsChart"; // Bu componenti oluşturmanız gerekebilir
 import { toast } from "@/components/ui/toast/use-toast";
@@ -93,31 +91,11 @@ export default function Dashboard() {
     const hasResetBranches = useRef(false);
     const shouldResetBranches = useRef(false);
 
-    // Tenant bilgisini formatlayıp döndüren yardımcı fonksiyon
-    const formatTenantInfo = useCallback(() => {
-        if (selectedFilter.selectedBranches?.length > 0) {
-            return selectedFilter.selectedBranches.map(b => b.BranchName).join(", ");
-        } else if (selectedFilter.branches?.length > 0) {
-            return selectedFilter.branches[0].BranchName;
-        } else {
-            return typeof window !== 'undefined' ? extractTenantId(window.location.href) : '';
-        }
-    }, [selectedFilter.selectedBranches, selectedFilter.branches]);
 
     const fetchData = useCallback(async () => {
-        // Şube bilgisini almadan önce, mevcut filtreyi saklayalım
-        const currentFilter = JSON.parse(JSON.stringify(selectedFilter));
-
-        let branchParam = selectedFilter.selectedBranches.length > 0
-            ? selectedFilter.selectedBranches
-            : selectedFilter.branches;
+ 
 
         if (loading) return;
-
-        // Şubelerin hala yüklenip yüklenmediğini kontrol et
-        if (branchParam.length === 0) {
-            return; // Şubeler yüklenmemişse veri çekme işlemine devam etme
-        }
 
         try {
             setLoading(true);
@@ -131,34 +109,11 @@ export default function Dashboard() {
                 recentTickets: true,
             });
             
-            if (!branchParam || (Array.isArray(branchParam) && branchParam.length === 0)) {
-                setLoading(false);
-                setLoadingCards({
-                    totalTickets: false,
-                    openTickets: false,
-                    resolvedToday: false,
-                    activeAgents: false,
-                    trendsChart: false,
-                    recentTickets: false,
-                });
-                return; // Boş branchParam ile API çağrısı yapmayı engelle
-            }
-
-            // API çağrısı için branchParam'ın bir kopyasını oluşturalım
-            const branchParamCopy = JSON.parse(JSON.stringify(branchParam));
-            
-            // Tenant bilgisini state'e kaydedelim (NotificationPanel için)
-            setCurrentBranchParam(branchParamCopy);
-            
-            // Tenant bilgisini local state'e kaydet
-            setLocalTenantInfo(formatTenantInfo());
-
             const response = await axios.post<DashboardData>(
-                "/api/main/dashboard/getDashboardData", // Düzeltilmiş API endpoint yolu
+                "/supportdesk/api/main/dashboard/getDashboardData",
                 {
                     date1: selectedFilter.date.from,
                     date2: selectedFilter.date.to,
-                    tenantId: branchParamCopy
                 },
                 {
                     headers: { "Content-Type": "application/json" },
@@ -170,21 +125,6 @@ export default function Dashboard() {
             if (filterApplied) setFilterApplied(false);
             if (shouldFetch) setShouldFetch(false);
 
-            // İşlem sonrası, seçili şubeleri sessizce temizleyelim - ancak sadece shouldResetBranches true ise
-            if (selectedFilter.selectedBranches.length > 0 && !hasResetBranches.current && shouldResetBranches.current) {
-                // hasResetBranches bayrağını hemen güncelleyelim ki sonsuz döngü oluşmasın
-                hasResetBranches.current = true;
-
-                // En güncel filtreyi alalım, fetchData başında aldığımız kopyayı kullanmak yerine
-                const latestFilter = JSON.parse(JSON.stringify(useFilterStore.getState().selectedFilter));
-                const newFilter = { ...latestFilter, selectedBranches: [] };
-
-                // React'in state güncellemelerini daha iyi yönetmesi için useEffect içinde yapacağız
-                setFilter(newFilter);
-                // Şube sıfırlama işlemi tamamlandı, bayrağı sıfırla
-                shouldResetBranches.current = false;
-            }
-
             setLoadingCards({
                 totalTickets: false,
                 openTickets: false,
@@ -193,9 +133,9 @@ export default function Dashboard() {
                 trendsChart: false,
                 recentTickets: false,
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Error fetching data:", error);
-            if (error.response && error.response.status === 404) {
+            if (isAxiosError(error) && error.response && error.response.status === 404) {
                 toast({
                     title: "Bilgi",
                     description: "Destek merkezi verileri bulunamadı. Lütfen daha sonra tekrar deneyin.",
@@ -219,7 +159,7 @@ export default function Dashboard() {
         } finally {
             setLoading(false);
         }
-    }, [selectedFilter, activeTab, loading, filterApplied, shouldFetch, setFilterApplied, setShouldFetch, setFilter, formatTenantInfo]);
+    }, [selectedFilter, activeTab, loading, filterApplied, shouldFetch, setFilterApplied, setShouldFetch, setFilter]);
 
     useEffect(() => {
         // Yalnızca dashboard sekmesi şu anda aktifken ve daha önce de aktifse filtre değişikliklerini işle
@@ -241,11 +181,6 @@ export default function Dashboard() {
         if (activeTab !== "dashboard") {
             // Dashboard sekme durumunu kaydet
             wasTabActive.current = false;
-            return;
-        }
-
-        // Eğer şubeler henüz yüklenmemişse, işlemi atla ve BranchProvider'ın şubeleri yüklemesini bekle
-        if (selectedFilter.branches.length === 0 && selectedFilter.selectedBranches.length === 0) {
             return;
         }
 
@@ -279,10 +214,8 @@ export default function Dashboard() {
     useEffect(() => {
         if (filterApplied && activeTab === "dashboard") {
             setLocalDateFilter(selectedFilter.date);
-            // Filtre uygulandığında tenant bilgisini güncelle
-            setLocalTenantInfo(formatTenantInfo());
         }
-    }, [filterApplied, selectedFilter.date, activeTab, formatTenantInfo]);
+    }, [filterApplied, selectedFilter.date, activeTab]);
 
     useEffect(() => {
         setIsDashboardTab(activeTab === "dashboard");
@@ -329,9 +262,6 @@ export default function Dashboard() {
         }
     }, [activeTab, filterApplied, selectedFilter.selectedBranches, loading, hasFetched, setFilter]);
 
-    // Tenant bilgisini state'e kaydedelim
-    const [currentBranchParam, setCurrentBranchParam] = useState<any>(null);
-
     return (
         <div className="h-full flex">
             <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent 
@@ -348,17 +278,6 @@ export default function Dashboard() {
                         Destek Merkezi
                     </h2>
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 dark:bg-blue-900 mr-2">
-                                <MessageSquare className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Seçili Firma</span>
-                                <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                                    {localTenantInfo}
-                                </span>
-                            </div>
-                        </div>
                         <div className="bg-card/95 backdrop-blur-sm border border-border/60 rounded-lg px-3 py-2 text-sm text-muted-foreground text-start flex items-center gap-2 group">
                             <div className="duration-[8000ms] text-blue-500 group-hover:text-blue-600 [animation:spin_6s_linear_infinite]">
                                 <svg

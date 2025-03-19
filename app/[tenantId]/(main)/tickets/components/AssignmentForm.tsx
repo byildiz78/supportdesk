@@ -15,8 +15,7 @@ import { format } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { UserService } from "../../users/services/user-service"
-import { User } from "@/types/users"
+import { useUsers } from "@/providers/users-provider"
 
 interface AssignmentFormProps {
   assignedTo: string
@@ -39,28 +38,8 @@ export default function AssignmentForm({
   onDueDateChange,
   onSlaBreachChange
 }: AssignmentFormProps) {
-  const [users, setUsers] = useState<User[]>([])
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  // Fetch users from the database
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoadingUsers(true)
-      setError(null)
-      try {
-        const usersData = await UserService.getUsers()
-        setUsers(usersData)
-      } catch (error: any) {
-        console.error("Kullanıcılar alınırken hata oluştu:", error)
-        setError(error.message || "Kullanıcılar alınamadı")
-      } finally {
-        setIsLoadingUsers(false)
-      }
-    }
-
-    fetchUsers()
-  }, [])
+  // UsersProvider'dan kullanıcıları al
+  const { users, isLoading, error } = useUsers();
 
   return (
     <motion.div
@@ -95,7 +74,7 @@ export default function AssignmentForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Atanmadı</SelectItem>
-                {isLoadingUsers ? (
+                {isLoading ? (
                   <SelectItem value="" disabled>
                     <Loader2 className="h-4 w-4 animate-spin" />
                   </SelectItem>

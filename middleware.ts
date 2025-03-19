@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify, SignJWT, decodeJwt } from 'jose';
-import { checkTenantDatabase } from '@/lib/utils';
 
 const textEncoder = new TextEncoder();
 const ACCESS_TOKEN_SECRET = textEncoder.encode(process.env.ACCESS_TOKEN_SECRET);
@@ -12,21 +11,14 @@ const ACCESS_TOKEN_LIFETIME = parseInt(process.env.ACCESS_TOKEN_LIFETIME || '900
 const ACCESS_TOKEN_ALGORITHM = process.env.ACCESS_TOKEN_ALGORITHM || 'HS512';
 const REFRESH_TOKEN_ALGORITHM = process.env.REFRESH_TOKEN_ALGORITHM || 'HS512';
 
+// Static tenant ID
+const STATIC_TENANT_ID = "panel";
+
 export const config = {
     matcher: [
         '/((?!api|_next/static|_next/image|images|avatars|favicon.ico|favicon2.ico).*)',
         '/api/((?!auth).)*'
     ]
-}
-
-function getTenantId(request: NextRequest): string {
-    const pathname = request.nextUrl.pathname.replace(process.env.NEXT_PUBLIC_BASEPATH ||'', '');
-
-    if (pathname.includes("/api/")) {
-        const referrer = request.headers.get('referer') || '';
-        return referrer.split('/')[3] || '';
-    }
-    return pathname.split('/')[1] || '';
 }
 
 async function verifyToken(token: string, secret: Uint8Array, options: any): Promise<boolean> {
@@ -58,30 +50,13 @@ async function createNewAccessToken(username: string | unknown, userId: string |
 
 export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname.replace(process.env.NEXT_PUBLIC_BASEPATH ||'', '');
-    const tenantId = (process.env.IS_BOLT === "1" ? process.env.BOLTTENANT : getTenantId(request)) ?? "";
+    const tenantId = (process.env.IS_BOLT === "1" ? process.env.BOLTTENANT : STATIC_TENANT_ID) ?? "";
     const isApiRoute = pathname.includes("/api/");
     const isLoginRoute = pathname.includes("login");
     const isNotFoundRoute = pathname.includes("notfound");
 
     if (isNotFoundRoute) {
-        if (tenantId && !isApiRoute) {
-            const database = await checkTenantDatabase(tenantId);
-            if (database !== undefined) {
-                return NextResponse.redirect(new URL(`${process.env.NEXT_PUBLIC_BASEPATH}/${tenantId}/login`, request.url));
-            }
-        }
-        return NextResponse.next();
-    }
-
-    if (!tenantId && !isApiRoute) {
-        return NextResponse.redirect(new URL(`${process.env.NEXT_PUBLIC_BASEPATH}/notfound`, request.url));
-    }
-
-    if (!isApiRoute && !tenantId.includes("api")) {
-        const database = await checkTenantDatabase(tenantId);
-        if (database === undefined) {
-            return NextResponse.redirect(new URL(`${process.env.NEXT_PUBLIC_BASEPATH}/notfound`, request.url));
-        }
+        return NextResponse.redirect(new URL(`${process.env.NEXT_PUBLIC_BASEPATH}/${tenantId}/login`, request.url));
     }
 
     const accessToken = process.env.IS_BOLT === "1" ? process.env.BOLTACCESSTOKEN : request.cookies.get(`${tenantId}_access_token`)?.value;

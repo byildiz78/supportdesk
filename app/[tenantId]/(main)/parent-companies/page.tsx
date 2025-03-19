@@ -23,7 +23,6 @@ export default function ParentCompaniesPage() {
     const [itemsPerPage, setItemsPerPage] = useState(10)
     const [loading, setLoading] = useState(true)
     const [hasFetched, setHasFetched] = React.useState(false)
-    const [localBranchFilter, setLocalBranchFilter] = React.useState(selectedFilter.branches)
     const hasInitializedRef = React.useRef(false)
     const appliedAtRef = React.useRef(selectedFilter.appliedAt)
     const [error, setError] = useState<string | null>(null)
@@ -37,18 +36,7 @@ export default function ParentCompaniesPage() {
 
         try {
             setLoading(true)
-            // selectedBranches'ı doğru şekilde işle
-            let branchParam = selectedFilter.selectedBranches.length > 0
-                ? selectedFilter.selectedBranches
-                : selectedFilter.branches
-
-            // API'ye gönderilecek değeri hazırla
-            if (!branchParam || (Array.isArray(branchParam) && branchParam.length === 0)) {
-                // Boş dizi durumunda boş dizi gönder, null değil
-                branchParam = []
-            }
             const response = await axios.post('/api/main/parent-companies/parent-companiesList', {
-                tenantId: branchParam
             })
             if (response.data) {
                 setParentCompanies(response.data)
@@ -84,13 +72,7 @@ export default function ParentCompaniesPage() {
         if (hasFetched) {
             fetchParentCompanies(false)
         }
-    }, [selectedFilter.selectedBranches, fetchParentCompanies, hasFetched])
-
-    useEffect(() => {
-        if (selectedFilter.branches !== localBranchFilter) {
-            setLocalBranchFilter(selectedFilter.branches)
-        }
-    }, [selectedFilter.branches, localBranchFilter])
+    }, [fetchParentCompanies, hasFetched])
 
     const handleNewParentCompany = () => {
         const tabId = "Yeni Ana Şirket"

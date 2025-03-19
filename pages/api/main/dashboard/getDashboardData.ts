@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         console.log('Dashboard API çağrıldı', req.body);
-        const { date1, date2, tenantId } = req.body;
+        const { date1, date2 } = req.body;
 
         if (!date1 || !date2) {
             return res.status(400).json({ message: 'Date range is required' });
@@ -53,10 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Tenant ID'yi req.body içine ekle
         req.body = {
             ...req.body,
-            tenantId: req.headers['x-tenant-id'] || req.query.tenantId || tenantId?.[0]?.BranchID || 'public'
+            tenantId: req.headers['x-tenant-id'] || req.query.tenantId || 'public'
         };
-
-        console.log('Tenant ID:', tenantId);
 
         // Tenant ID filtresi kaldırıldı
         const tenantFilter = '';

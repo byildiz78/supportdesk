@@ -27,9 +27,9 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
         const fetchTicketDetails = async () => {
             setIsLoading(true)
             setError(null)
-            
+
             console.log('fetchTicketDetails çağrıldı, ticketId:', ticketId);
-            
+
             try {
                 const response = await TicketService.getTicketById(ticketId);
                 console.log('Bilet detayı alındı:', response);
@@ -67,7 +67,7 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
     // Bilet bulunamadıysa
     if (!selectedTicket) {
         return (
-            <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+            <div className="flex items-center justify-center">
                 <div className="text-center">
                     <AlertCircle className="h-8 w-8 mx-auto mb-4 text-yellow-500" />
                     <p className="text-gray-500">Bilet bulunamadı</p>
@@ -77,42 +77,42 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
     }
 
     return (
-        <div className="flex flex-col h-full min-h-[calc(100vh-100px)]">
-            {error && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
+        <div className="flex flex-col h-full">
+            <ScrollArea className="flex-1 h-[calc(70vh-200px)] overflow-y-auto">
+                {error && (
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                )}
 
-            <div className="flex flex-col h-full">
-                {/* Ticket Header */}
-                <TicketHeader 
-                    id={selectedTicket.id} 
-                    title={selectedTicket.title} 
-                    createdBy={selectedTicket.created_by}
-                />
-                
-                {/* Main Content Area */}
-                <div className="flex flex-1 gap-4 px-4 overflow-hidden">
-                    {/* Content */}
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <ScrollArea className="flex-1 h-[calc(100vh-200px)] overflow-y-auto">
+                <div className="flex flex-col h-full">
+                    {/* Ticket Header */}
+                    <TicketHeader
+                        id={selectedTicket.id}
+                        title={selectedTicket.title}
+                        createdBy={selectedTicket.created_by}
+                    />
+
+                    {/* Main Content Area */}
+                    <div className="flex flex-1 gap-4 px-4 overflow-hidden">
+                        {/* Content */}
+                        <div className="flex-1 flex flex-col overflow-hidden">
                             <div className="space-y-6 pb-24 pr-4">
                                 <TicketContent ticket={selectedTicket} />
                             </div>
-                        </ScrollArea>
-                    </div>
+                        </div>
 
-                    {/* Sidebar */}
-                    <div className="w-80">
-                        <TicketSidebar 
-                            ticket={selectedTicket} 
-                            onTicketUpdate={handleTicketUpdate} 
-                        />
+                        {/* Sidebar */}
+                        <div className="w-80 h-full">
+                            <TicketSidebar
+                                ticket={selectedTicket}
+                                onTicketUpdate={handleTicketUpdate}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </ScrollArea>
         </div>
     )
 }

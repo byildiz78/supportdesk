@@ -20,7 +20,7 @@ export function TicketHeader({
         addTab({
             id: tabId,
             title: "Yeni Destek Talebi",
-            lazyComponent: () => import('../new/page').then(module => ({
+            lazyComponent: () => import('../crud-update/page').then(module => ({
                 default: (props: any) => <module.default {...props} />
             }))
         })

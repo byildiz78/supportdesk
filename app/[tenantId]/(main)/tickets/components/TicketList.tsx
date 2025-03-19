@@ -51,7 +51,7 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
         addTab({
             id: tabId,
             title: `Talep #${ticket.ticketno} (Düzenle)`,
-            lazyComponent: () => import('../new/page').then(module => ({
+            lazyComponent: () => import('../crud-update/page').then(module => ({
                 default: (props: any) => <module.default {...props} ticketId={ticket.id} />
             }))
         })
@@ -114,7 +114,7 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
 
     return (
         <>
-            <div className="flex-1 overflow-auto
+            <div className="flex-1 overflow-auto overflow-x-auto
                 [&::-webkit-scrollbar]:w-2
                 [&::-webkit-scrollbar-thumb]:bg-gray-300/50
                 [&::-webkit-scrollbar-thumb]:rounded-full
@@ -122,30 +122,34 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
                 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700/50
                 hover:[&::-webkit-scrollbar-thumb]:bg-gray-300/80
                 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-700/80">
-                <Table>
-                    <TicketListHeader 
-                        sortField={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                    />
-                    <TableBody>
-                        {isLoading ? (
-                            <TicketLoadingState />
-                        ) : sortedTickets.length === 0 ? (
-                            <TicketEmptyState />
-                        ) : (
-                            sortedTickets.map(ticket => (
-                                <TicketRow 
-                                    key={ticket.id}
-                                    ticket={ticket}
-                                    onView={handleViewTicket}
-                                    onEdit={handleEditTicket}
-                                    onDelete={handleDeleteClick}
-                                />
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                <div className="min-w-full inline-block align-middle">
+                    <div className="overflow-hidden">
+                        <Table className="min-w-full table-fixed">
+                            <TicketListHeader 
+                                sortField={sortField}
+                                sortDirection={sortDirection}
+                                onSort={handleSort}
+                            />
+                            <TableBody>
+                                {isLoading ? (
+                                    <TicketLoadingState />
+                                ) : sortedTickets.length === 0 ? (
+                                    <TicketEmptyState />
+                                ) : (
+                                    sortedTickets.map(ticket => (
+                                        <TicketRow 
+                                            key={ticket.id}
+                                            ticket={ticket}
+                                            onView={handleViewTicket}
+                                            onEdit={handleEditTicket}
+                                            onDelete={handleDeleteClick}
+                                        />
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
             </div>
 
             <TicketDeleteDialog 

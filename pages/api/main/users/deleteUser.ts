@@ -30,6 +30,7 @@ export default async function handler(
       UPDATE users
       SET
         is_deleted = true,
+        status = 'inactive',
         updated_at = CURRENT_TIMESTAMP,
         updated_by = $1
       WHERE id = $2

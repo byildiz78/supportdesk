@@ -4,6 +4,8 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { getUserId } from "@/utils/user-utils"
+import axios from "@/lib/axios"
 
 interface FileUploadProps {
     ticketId: string;
@@ -49,19 +51,16 @@ export function FileUpload({ ticketId, onUploadComplete }: FileUploadProps) {
             // Add metadata
             formData.append('entityType', 'ticket');
             formData.append('entityId', ticketId);
-            formData.append('createdBy', '1f56b863-0363-407f-8466-b9495b8b4ff9');
+            formData.append('createdBy', getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9');
             
             // Upload the files
-            const uploadResponse = await fetch('/supportdesk/api/main/files/uploadFile', {
-                method: 'POST',
-                body: formData,
-            });
+            const uploadResponse = await axios.post('/supportdesk/api/main/files/uploadFile', formData);
             
-            if (!uploadResponse.ok) {
+            if (!uploadResponse.data.success) {
                 throw new Error('Dosya yükleme başarısız');
             }
             
-            const uploadResult = await uploadResponse.json();
+            const uploadResult = uploadResponse.data;
             
             if (uploadResult.success) {
                 toast({

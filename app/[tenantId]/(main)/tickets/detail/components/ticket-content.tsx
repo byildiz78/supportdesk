@@ -8,6 +8,7 @@ import { FileUpload } from "./file-upload"
 import { EditableTicketDetails } from "./editable-ticket-details"
 import { useState } from "react"
 import { useTicketStore } from "@/stores/ticket-store"
+import { getUserId } from "@/utils/user-utils"
 
 interface TicketContentProps {
     ticket: {
@@ -78,7 +79,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                 // Add metadata
                 formData.append('entityType', 'ticket'); // Associate directly with the ticket
                 formData.append('entityId', ticket.id); // Use the ticket ID
-                formData.append('createdBy', '1f56b863-0363-407f-8466-b9495b8b4ff9'); // Use a valid UUID format
+                formData.append('createdBy', getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9'); // Kullanıcı ID'sini getUserId() fonksiyonu ile alıyoruz
                 
                 // Upload the files
                 const uploadResponse = await fetch('/supportdesk/api/main/files/uploadFile', {
@@ -99,7 +100,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                 ticketId: ticket.id,
                 content,
                 isInternal,
-                createdBy: '1f56b863-0363-407f-8466-b9495b8b4ff9', // Use a valid UUID format
+                createdBy: getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9', // Önce localStorage'dan userId'yi al, yoksa default değeri kullan
                 attachments: uploadedAttachments
             };
             
@@ -119,8 +120,13 @@ export function TicketContent({ ticket }: TicketContentProps) {
             const result = await response.json();
             
             if (result.success) {
-                // Update the UI with the new comment
+                // Yorum başarıyla eklendiyse, store'a ekle
                 addComment(ticket.id, result.comment);
+                
+                // Eğer dosyalar da yüklendiyse, onları da store'a ekle
+                if (uploadedAttachments.length > 0) {
+                    addAttachments(ticket.id, uploadedAttachments);
+                }
             } else {
                 throw new Error(result.message || 'Failed to add comment');
             }

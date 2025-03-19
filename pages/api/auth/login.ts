@@ -4,6 +4,7 @@ import { SignJWT } from 'jose';
 import crypto from 'crypto';
 import { Dataset } from '@/lib/dataset';
 import { extractTenantId } from '@/lib/utils';
+import { db } from '@/lib/database';
 
 
 const ACCESS_TOKEN_SECRET = new TextEncoder().encode(process.env.ACCESS_TOKEN_SECRET);
@@ -50,32 +51,28 @@ export default async function handler(
         const tenantId = extractTenantId(req.headers.referer);
         const { username, password } = req.body;
         const encryptedpass = encrypt(password);
-        const instance = Dataset.getInstance();
-        
+  
         const query =  `
-            SELECT TOP 1
-                id as UserID,
-                username as UserName,
-                email as Email,
-                CONCAT(name,' ',surname) as Name,
-                type as UserCategory,
-                [schema] as [Schema],
-                phone_number as PhoneNumber
-            FROM dbo.bonus_users WITH (NOLOCK)
+            SELECT 
+                "id" as "UserID",
+                "name" as "Name",
+                "username" as "UserName",
+                "email" as "Email",
+                "department" as "UserCategory",
+                "role" as "Role"
+            FROM "users"
             WHERE 1=1
-                AND username = @username 
-                AND password = @password 
-                AND active = 1
+                AND "email" = $1
+                AND "password_hash" = $2
+                AND "status" = 'active'
+                AND "is_deleted" = false
+            LIMIT 1
         `;
-
-        const response = await instance.executeQuery<{ UserID: number; UserName: string, Email: string, Name: string, UserCategory: string }[]>({
+        const response = await db.executeQuery<any>({
             query,
-            parameters: {
-                username: username,
-                password: encryptedpass?.toString()
-            },
+            params: [username, encryptedpass?.toString()],
             req
-        });
+          });
 
         const user = response[0]
         if (user) {

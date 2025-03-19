@@ -1,5 +1,6 @@
 import axios from "axios";
-import { Ticket, Company, Contact } from "../types";
+import { Ticket, Company } from "../types";
+import { getUserId } from '@/utils/user-utils';
 
 export const TicketService = {
   // Bilet detaylarını getir
@@ -48,25 +49,18 @@ export const TicketService = {
       }
     } catch (error: any) {
       console.error("Bilet detayı alınırken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Bilet bilgileri alınamadı");
+      throw error;
     }
   },
 
   // Bilet güncelle
   updateTicket: async (ticket: Partial<Ticket>): Promise<Ticket> => {
     try {
-      // Extract isUpdate from the ticket object and remove it before sending to API
-      const { isUpdate, ...ticketData } = ticket as any;
+      console.log('updateTicket çağrıldı, ticket:', ticket);
       
-      // Ensure assigned_to is properly mapped to assignedTo for the API
-      if (ticketData.assigned_to && !ticketData.assignedTo) {
-        ticketData.assignedTo = ticketData.assigned_to;
-      }
+      const response = await axios.post('/supportdesk/api/main/tickets/updateTicket', ticket);
       
-      const response = await axios.post("/supportdesk/api/main/tickets/createUpdateTicket", {
-        ...ticketData,
-        isUpdate: true
-      });
+      console.log('updateTicket API yanıtı:', response.data);
       
       if (response.data.success) {
         return response.data.data;
@@ -75,15 +69,23 @@ export const TicketService = {
       }
     } catch (error: any) {
       console.error("Bilet güncellenirken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Bilet güncellenemedi");
+      throw error;
     }
   },
 
   // Yorum ekle
   addComment: async (comment: any): Promise<any> => {
     try {
-      console.log('addComment çağrıldı, yorum:', comment);
-      const response = await axios.post("/supportdesk/api/main/tickets/addTicketComment", comment);
+      console.log('addComment çağrıldı, comment:', comment);
+      
+      // Yorum eklemeden önce kullanıcı ID'sini ekle
+      const userId = getUserId();
+      const commentWithUserId = {
+        ...comment,
+        user_id: userId
+      };
+      
+      const response = await axios.post('/supportdesk/api/main/tickets/addComment', commentWithUserId);
       
       console.log('addComment API yanıtı:', response.data);
       
@@ -94,91 +96,32 @@ export const TicketService = {
       }
     } catch (error: any) {
       console.error("Yorum eklenirken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Yorum eklenemedi");
+      throw error;
     }
   }
 };
 
+// Not: CompanyService artık kullanılmıyor, bunun yerine CompaniesProvider kullanılıyor
 export const CompanyService = {
   // Tüm firmaları getir
   getCompanies: async (): Promise<Company[]> => {
     try {
-      const response = await axios.get("/supportdesk/api/main/companies/getCompanies");
-      
-      if (response.data.success) {
-        return response.data.data || [];
-      } else {
-        throw new Error(response.data.message || "Firmalar alınamadı");
-      }
+      const response = await axios.post('/api/main/companies/companiesList');
+      return response.data || [];
     } catch (error: any) {
       console.error("Firmalar alınırken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Firmalar alınamadı");
+      throw error;
     }
   },
-
+  
   // Firma detaylarını getir
   getCompanyById: async (companyId: string): Promise<Company> => {
     try {
-      const response = await axios.get(`/supportdesk/api/main/companies/getCompanyById?companyId=${companyId}`);
-      
-      if (response.data.success) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.message || "Firma bilgileri alınamadı");
-      }
+      const response = await axios.get(`/api/main/companies/getCompanyById?companyId=${companyId}`);
+      return response.data || {};
     } catch (error: any) {
       console.error("Firma detayı alınırken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Firma bilgileri alınamadı");
-    }
-  }
-};
-
-export const ContactService = {
-  // Tüm kişileri getir
-  getAllContacts: async (): Promise<Contact[]> => {
-    try {
-      const response = await axios.get("/supportdesk/api/main/contacts/getContacts");
-      
-      if (response.data.success) {
-        return response.data.data || [];
-      } else {
-        throw new Error(response.data.message || "Kişiler alınamadı");
-      }
-    } catch (error: any) {
-      console.error("Kişiler alınırken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Kişiler alınamadı");
-    }
-  },
-
-  // Firmaya ait kişileri getir
-  getContactsByCompanyId: async (companyId: string): Promise<Contact[]> => {
-    try {
-      const response = await axios.get(`/supportdesk/api/main/contacts/getContactsByCompanyId?companyId=${companyId}`);
-      
-      if (response.data.success) {
-        return response.data.data || [];
-      } else {
-        throw new Error(response.data.message || "Kişiler alınamadı");
-      }
-    } catch (error: any) {
-      console.error("Kişiler alınırken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Kişiler alınamadı");
-    }
-  },
-
-  // Kişi detaylarını getir
-  getContactById: async (contactId: string): Promise<Contact> => {
-    try {
-      const response = await axios.get(`/supportdesk/api/main/contacts/getContactById?contactId=${contactId}`);
-      
-      if (response.data.success) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.message || "Kişi bilgileri alınamadı");
-      }
-    } catch (error: any) {
-      console.error("Kişi detayı alınırken hata oluştu:", error);
-      throw new Error(error.response?.data?.message || error.message || "Kişi bilgileri alınamadı");
+      throw error;
     }
   }
 };

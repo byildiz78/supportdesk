@@ -209,3 +209,8 @@
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);
 }
+
+/* Tema geçişlerini devre dışı bırakmak için */
+.no-transition * {
+  transition: none !important;
+}

@@ -35,6 +35,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 url: "/dashboard"
             },
             {
+                title: "Analiz",
+                icon: LucideIcons.BarChart,
+                isActive: true,
+                expanded: true,
+                items: [
+                    {
+                        title: "Standart Analiz",
+                        icon: LucideIcons.LineChart,
+                        url: "/analysis"
+                    },
+                    {
+                        title: "Gelişmiş Analiz",
+                        icon: LucideIcons.BarChart3,
+                        url: "/analysis/enhanced" // updated URL
+                    }
+                ]
+            },
+            {
                 title: "Müşteriler",
                 icon: LucideIcons.Users,
                 isActive: true,
@@ -66,22 +84,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     {
                         title: "Tüm Talepler",
                         icon: LucideIcons.ListChecks,
-                        url: "/tickets/all"
+                        url: "/tickets"
                     },
                     {
                         title: "Benim Taleplerim",
                         icon: LucideIcons.UserCheck,
-                        url: "/tickets/my"
+                        url: "/tickets/my-ticket"
                     },
                     {
                         title: "Bekleyen Talepler",
                         icon: LucideIcons.Clock,
-                        url: "/tickets/pending"
+                        url: "/tickets/pending-ticket"
                     },
                     {
                         title: "Çözülen Talepler",
                         icon: LucideIcons.CheckCircle,
-                        url: "/tickets/resolved"
+                        url: "/tickets/resolved-ticket"
                     }
                 ]
             },
@@ -105,6 +123,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         title: "Flow Firmaları",
                         icon: LucideIcons.Building,
                         url: "/flow-companies"
+                    },
+                    {
+                        title: "SLA Kuralları",
+                        icon: LucideIcons.Clock,
+                        url: "/sla-rules"
                     }
                 ]
             }

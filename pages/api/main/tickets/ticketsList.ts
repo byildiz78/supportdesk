@@ -14,7 +14,7 @@ export default async function handler(
     console.log('Filters received:', req.body.filters);
     
     // Extract tenant ID from request body
-    const { tenantId, filters } = req.body;
+    const { date1 , date2 } = req.body;
     
     // Build the query based on the exact schema provided
     let query = `
@@ -46,104 +46,10 @@ export default async function handler(
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)
+      AND t.created_at BETWEEN $1 AND $2
     `;
 
-    // Add filter conditions if provided
-    const params: any[] = [];
-    let paramIndex = 1;
-
-    if (filters) {
-      // Status filter
-      if (filters.status && filters.status.length > 0) {
-        console.log('Applying status filter:', filters.status);
-        query += ` AND t.status = ANY($${paramIndex}::varchar[])`;
-        params.push(filters.status);
-        paramIndex++;
-      }
-
-      // Priority filter
-      if (filters.priority && filters.priority.length > 0) {
-        console.log('Applying priority filter:', filters.priority);
-        query += ` AND t.priority = ANY($${paramIndex}::varchar[])`;
-        params.push(filters.priority);
-        paramIndex++;
-      }
-
-      // Category filter
-      if (filters.category && filters.category.length > 0) {
-        console.log('Applying category filter:', filters.category);
-        query += ` AND t.category_id = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.category);
-        paramIndex++;
-      }
-
-      // Subcategory filter
-      if (filters.subcategory && filters.subcategory.length > 0) {
-        console.log('Applying subcategory filter:', filters.subcategory);
-        query += ` AND t.subcategory_id = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.subcategory);
-        paramIndex++;
-      }
-
-      // Group filter
-      if (filters.group && filters.group.length > 0) {
-        console.log('Applying group filter:', filters.group);
-        query += ` AND t.group_id = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.group);
-        paramIndex++;
-      }
-
-      // Assigned to filter
-      if (filters.assigned_to && filters.assigned_to.length > 0) {
-        console.log('Applying assigned to filter:', filters.assigned_to);
-        query += ` AND t.assigned_to = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.assigned_to);
-        paramIndex++;
-      }
-
-      // Parent company filter
-      if (filters.parent_company_id && filters.parent_company_id.length > 0) {
-        console.log('Applying parent company filter:', filters.parent_company_id);
-        query += ` AND t.parent_company_id = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.parent_company_id);
-        paramIndex++;
-      }
-
-      // Company filter
-      if (filters.company_id && filters.company_id.length > 0) {
-        console.log('Applying company filter:', filters.company_id);
-        query += ` AND t.company_id = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.company_id);
-        paramIndex++;
-      }
-
-      // Contact filter
-      if (filters.contact_id && filters.contact_id.length > 0) {
-        console.log('Applying contact filter:', filters.contact_id);
-        query += ` AND t.contact_id = ANY($${paramIndex}::uuid[])`;
-        params.push(filters.contact_id);
-        paramIndex++;
-      }
-
-      // Date range filter
-      if (filters.date_range && filters.date_range.from && filters.date_range.to) {
-        console.log('Applying date range filter:', filters.date_range);
-        query += ` AND t.created_at BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
-        params.push(filters.date_range.from, filters.date_range.to);
-        paramIndex += 2;
-      }
-
-      // SLA breach filter
-      if (filters.sla_breach !== undefined) {
-        console.log('Applying SLA breach filter:', filters.sla_breach);
-        query += ` AND t.sla_breach = $${paramIndex}`;
-        params.push(filters.sla_breach);
-        paramIndex++;
-      }
-    }
-
-    // Add order by clause
-    query += ` ORDER BY t.created_at DESC`;
+    const params = [date1, date2];
 
     // Execute query with our database utility
     const tickets = await db.executeQuery<any[]>({
@@ -152,10 +58,6 @@ export default async function handler(
       req
     });
 
-    console.log('Final SQL query:', query);
-    console.log('Query parameters:', params);
-    console.log('Number of tickets returned:', tickets.length);
-    
     // Debug: Log the first few tickets to check their status
     if (tickets.length > 0) {
       console.log('Sample ticket data:', tickets.slice(0, 2));

@@ -1,5 +1,9 @@
 import { ThemeProvider } from "@/providers/theme-provider";
 import { LanguageProvider } from "@/providers/language-provider";
+import { UsersProvider } from "@/providers/users-provider";
+import { CompaniesProvider } from "@/providers/companies-provider";
+import { ContactsProvider } from "@/providers/contacts-provider";
+import { CategoriesProvider } from "@/providers/categories-provider";
 import { Toaster } from "@/components/ui/toast/toaster";
 import "./globals.css";
 import { Metadata, Viewport } from "next";
@@ -44,8 +48,16 @@ export default function RootLayout({
                     disableTransitionOnChange
                 >
                     <LanguageProvider>
-                        {children}
-                        <Toaster />
+                        <UsersProvider>
+                            <CompaniesProvider>
+                                <ContactsProvider>
+                                    <CategoriesProvider>
+                                        {children}
+                                        <Toaster />
+                                    </CategoriesProvider>
+                                </ContactsProvider>
+                            </CompaniesProvider>
+                        </UsersProvider>
                     </LanguageProvider>
                 </ThemeProvider>
             </body>

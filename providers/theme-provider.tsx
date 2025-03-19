@@ -9,6 +9,7 @@ type ThemeProviderProps = {
   defaultTheme?: Theme
   storageKey?: string
   enableSystem?: boolean
+  disableTransitionOnChange?: boolean
 }
 
 type ThemeProviderState = {
@@ -28,6 +29,7 @@ export function ThemeProvider({
   defaultTheme = "system",
   storageKey = "theme",
   enableSystem = true,
+  disableTransitionOnChange = false,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme)
   const [mounted, setMounted] = useState(false)
@@ -47,11 +49,21 @@ export function ThemeProvider({
     const isDark = theme === "dark" || 
       (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
+    if (disableTransitionOnChange) {
+      root.classList.add("no-transition")
+    }
+
     requestAnimationFrame(() => {
       root.classList.remove("light", "dark", "blue", "red")
       root.classList.add(isDark ? "dark" : "light")
+      
+      if (disableTransitionOnChange) {
+        // Force a reflow
+        window.getComputedStyle(root).getPropertyValue("opacity")
+        root.classList.remove("no-transition")
+      }
     })
-  }, [theme, mounted])
+  }, [theme, mounted, disableTransitionOnChange])
 
   useEffect(() => {
     if (mounted) {

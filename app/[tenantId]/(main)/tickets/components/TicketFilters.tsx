@@ -5,16 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Search, Filter } from "lucide-react"
 import { TicketFilter } from "@/types/tickets"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-import axios from "@/lib/axios"
-
-interface User {
-    id: string;
-    name: string;
-}
+import { useUsers, User } from "@/providers/users-provider"
 
 interface TicketFiltersProps {
     searchTerm: string
@@ -32,38 +27,7 @@ export function TicketFilters({
     disableStatusFilter = false 
 }: TicketFiltersProps) {
     const [isFilterOpen, setIsFilterOpen] = useState(false)
-    const [users, setUsers] = useState<User[]>([])
-    const [isLoadingUsers, setIsLoadingUsers] = useState(false)
-    
-    // Fetch users for the assigned user filter
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                setIsLoadingUsers(true)
-                const response = await axios.get('/api/main/users/getUsers')
-                console.log('Users API response:', response.data)
-                if (response.data) {
-                    // Handle different response formats
-                    const userData = Array.isArray(response.data) 
-                        ? response.data 
-                        : (response.data.data && Array.isArray(response.data.data)) 
-                            ? response.data.data 
-                            : []
-                    setUsers(userData)
-                } else {
-                    console.error('Invalid users data format:', response.data)
-                    setUsers([])
-                }
-            } catch (error) {
-                console.error('Error fetching users:', error)
-                setUsers([])
-            } finally {
-                setIsLoadingUsers(false)
-            }
-        }
-        
-        fetchUsers()
-    }, [])
+    const { users, isLoading: isLoadingUsers } = useUsers()
     
     // Count active filters
     const getActiveFilterCount = () => {
@@ -174,7 +138,7 @@ export function TicketFilters({
                                                     {isLoadingUsers ? (
                                                         <SelectItem value="" disabled>Yükleniyor...</SelectItem>
                                                     ) : (
-                                                        Array.isArray(users) && users.map(user => (
+                                                        users.map((user) => (
                                                             <SelectItem key={user.id} value={user.id}>
                                                                 {user.name}
                                                             </SelectItem>
@@ -184,52 +148,26 @@ export function TicketFilters({
                                             </Select>
                                         </div>
                                         
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium">SLA İhlali</label>
-                                            <Select
-                                                value={filters.sla_breach !== undefined ? filters.sla_breach.toString() : ""}
-                                                onValueChange={(value) => {
-                                                    if (value === "") {
-                                                        onFilterChange({ sla_breach: undefined })
-                                                    } else {
-                                                        onFilterChange({ sla_breach: value === "true" })
-                                                    }
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Tümü" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="">Tümü</SelectItem>
-                                                    <SelectItem value="true">Evet</SelectItem>
-                                                    <SelectItem value="false">Hayır</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        
-                                        <div className="pt-2 flex justify-between">
-                                            <Button 
-                                                variant="outline" 
-                                                onClick={() => {
-                                                    onFilterChange({
-                                                        status: [],
-                                                        priority: [],
-                                                        category: [],
-                                                        subcategory: [],
-                                                        group: [],
-                                                        assigned_to: [],
-                                                        parent_company_id: [],
-                                                        company_id: [],
-                                                        contact_id: [],
-                                                        date_range: undefined,
-                                                        sla_breach: undefined
-                                                    })
-                                                }}
-                                            >
-                                                Temizle
-                                            </Button>
-                                            <Button onClick={() => setIsFilterOpen(false)}>Uygula</Button>
-                                        </div>
+                                        <Button 
+                                            onClick={() => {
+                                                onFilterChange({
+                                                    status: [],
+                                                    priority: [],
+                                                    category: [],
+                                                    assigned_to: [],
+                                                    parent_company_id: [],
+                                                    company_id: [],
+                                                    date_range: null,
+                                                    sla_breach: undefined
+                                                })
+                                                setIsFilterOpen(false)
+                                            }}
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="w-full mt-2"
+                                        >
+                                            Filtreleri Temizle
+                                        </Button>
                                     </div>
                                 </PopoverContent>
                             </Popover>

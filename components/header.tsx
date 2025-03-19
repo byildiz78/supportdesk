@@ -450,423 +450,296 @@ export default function Header() {
   };
 
   return (
-    <BranchProvider>
-      <TagProvider>
-        <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md shadow-lg dark:shadow-slate-900/20">
-          <div className="flex h-16 items-center px-4 gap-4">
-            <SidebarTrigger className="-ml-1" />
+    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md shadow-lg dark:shadow-slate-900/20">
+      <div className="flex h-16 items-center px-4 gap-4">
+        <SidebarTrigger className="-ml-1" />
 
-            <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-5 gap-2 flex-1">
-              <Select onValueChange={dateRangeChange} value={selectedDateRange}>
-                <SelectTrigger className="w-full bg-background/60 backdrop-blur-sm border-border/50 shadow-sm hover:shadow-md transition-all duration-150">
-                  <SelectValue placeholder={t.dateRange} />
-                </SelectTrigger>
-                <SelectContent
-                  className="bg-background/95 backdrop-blur-sm border-border/50 shadow-xl"
-                  sideOffset={4}
-                  align="start"
-                  position="popper"
-                >
-                  <SelectGroup>
-                    <SelectItem value="today" className="cursor-pointer transition-colors">{t.today}</SelectItem>
-                    <SelectItem value="yesterday" className="cursor-pointer transition-colors">{t.yesterday}</SelectItem>
-                    <SelectItem value="thisWeek" className="cursor-pointer transition-colors">{t.thisWeek}</SelectItem>
-                    <SelectItem value="lastWeek" className="cursor-pointer transition-colors">{t.lastWeek}</SelectItem>
-                    <SelectItem value="thisMonth" className="cursor-pointer transition-colors">{t.thisMonth}</SelectItem>
-                    <SelectItem value="lastMonth" className="cursor-pointer transition-colors">{t.lastMonth}</SelectItem>
-                    <SelectItem value="thisYear" className="cursor-pointer transition-colors">{t.thisYear}</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+        <div className="hidden md:grid md:grid-cols-4 lg:grid-cols-5 gap-2 flex-1">
+          <Select onValueChange={dateRangeChange} value={selectedDateRange}>
+            <SelectTrigger className="w-full bg-background/60 backdrop-blur-sm border-border/50 shadow-sm hover:shadow-md transition-all duration-150">
+              <SelectValue placeholder={t.dateRange} />
+            </SelectTrigger>
+            <SelectContent
+              className="bg-background/95 backdrop-blur-sm border-border/50 shadow-xl"
+              sideOffset={4}
+              align="start"
+              position="popper"
+            >
+              <SelectGroup>
+                <SelectItem value="today" className="cursor-pointer transition-colors">{t.today}</SelectItem>
+                <SelectItem value="yesterday" className="cursor-pointer transition-colors">{t.yesterday}</SelectItem>
+                <SelectItem value="thisWeek" className="cursor-pointer transition-colors">{t.thisWeek}</SelectItem>
+                <SelectItem value="lastWeek" className="cursor-pointer transition-colors">{t.lastWeek}</SelectItem>
+                <SelectItem value="thisMonth" className="cursor-pointer transition-colors">{t.thisMonth}</SelectItem>
+                <SelectItem value="lastMonth" className="cursor-pointer transition-colors">{t.lastMonth}</SelectItem>
+                <SelectItem value="thisYear" className="cursor-pointer transition-colors">{t.thisYear}</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
 
-              <div className="hidden md:block">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal bg-background/60 backdrop-blur-sm",
-                        "border-border/50 shadow-sm hover:shadow-md transition-all duration-300",
-                        "hover:border-border hover:bg-background/80",
-                        !tempStartDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {tempStartDate
-                        ? formatDateTimeDMYHI(tempStartDate)
-                        : t.startDate}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 bg-background/95 backdrop-blur-md border-border/50 shadow-xl"
-                    align="start"
-                  >
-                    <div className="p-4 space-y-4">
-                      <Calendar
-                        mode="single"
-                        selected={tempStartDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            const [hours, minutes] = tempStartTime.split(':');
-                            const newDate = new Date(date);
-                            newDate.setHours(parseInt(hours), parseInt(minutes), 0);
-                            setTempStartDate(newDate);
-                          } else {
-                            setTempStartDate(undefined);
-                          }
-                        }}
-                        initialFocus
-                        disabled={(date: Date) =>
-                          tempEndDate ? date > tempEndDate : false
-                        }
-                        className="rounded-md border-border/50"
-                      />
-                      <TimePicker
-                        value={tempStartTime}
-                        onChange={(value) => {
-                          setTempStartTime(value);
-                          if (tempStartDate) {
-                            const [hours, minutes] = value.split(':');
-                            const newDate = new Date(tempStartDate);
-                            newDate.setHours(parseInt(hours), parseInt(minutes), 0);
-                            setTempStartDate(newDate);
-                          }
-                        }}
-                      />
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="hidden md:block">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal bg-background/60 backdrop-blur-sm",
-                        "border-border/50 shadow-sm hover:shadow-md transition-all duration-300",
-                        "hover:border-border hover:bg-background/80",
-                        !tempEndDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {tempEndDate
-                        ? formatDateTimeDMYHI(tempEndDate)
-                        : t.endDate}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 bg-background/95 backdrop-blur-md border-border/50 shadow-xl"
-                    align="start"
-                  >
-                    <div className="p-4 space-y-4">
-                      <Calendar
-                        mode="single"
-                        selected={tempEndDate}
-                        onSelect={(date) => {
-                          if (date) {
-                            const [hours, minutes] = tempEndTime.split(':');
-                            const newDate = new Date(date);
-                            newDate.setHours(parseInt(hours), parseInt(minutes), 0);
-                            setTempEndDate(newDate);
-                          } else {
-                            setTempEndDate(undefined);
-                          }
-                        }}
-                        initialFocus
-                        disabled={(date: Date) =>
-                          tempStartDate ? date < tempStartDate : false
-                        }
-                        className="rounded-md border-border/50"
-                      />
-                      <TimePicker
-                        value={tempEndTime}
-                        onChange={(value) => {
-                          setTempEndTime(value);
-                          if (tempEndDate) {
-                            const [hours, minutes] = value.split(':');
-                            const newDate = new Date(tempEndDate);
-                            newDate.setHours(parseInt(hours), parseInt(minutes), 0);
-                            setTempEndDate(newDate);
-                          }
-                        }}
-                      />
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="flex gap-2">
-                <Popover
-                  open={desktopBranchOpen}
-                  onOpenChange={setDesktopBranchOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={desktopBranchOpen}
-                      className={cn(
-                        "flex-1 justify-between bg-background/60 backdrop-blur-sm",
-                        "border-border/50 shadow-sm hover:shadow-md transition-all duration-300",
-                        "hover:border-border hover:bg-background/80"
-                      )}
-                    >
-                      {selectedFilter.selectedTags.length > 0
-                        ? `${selectedFilter.selectedTags.length} ${t.tags}`
-                        : memoizedPendingBranches.length > 0
-                          ? `${memoizedPendingBranches[0].BranchName}`
-                          : memoizedBranches.length > 0
-                            ? memoizedBranches[0].BranchName
-                            : t.allBranches}
-                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0 bg-background/95 backdrop-blur-md border-border/50 shadow-xl">
-                    <Command>
-                      <div className="flex items-center p-2 border-b border-border/50">
-                        <CommandInput
-                          placeholder={`${t.tags} veya ${t.searchBranch}`}
-                          className="h-9 border-none focus:ring-0"
-                        />
-                      </div>
-                      <CommandEmpty>{t.branchNotFound}</CommandEmpty>
-                      <CommandGroup>
-                        {/* Tag Kapalı */}
-                        {/* <div className="p-2 border-b border-border/50">
-                          <div className="font-semibold mb-2 px-2">{t.tags}</div>
-                          <div className="max-h-[150px] overflow-y-auto   
-                          border-r border-gray-200 dark:border-slate-700
-                          scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent 
-                          [&::-webkit-scrollbar]:w-2
-                          [&::-webkit-scrollbar-thumb]:bg-gray-300/50
-                          [&::-webkit-scrollbar-thumb]:rounded-full
-                          [&::-webkit-scrollbar-track]:bg-transparent
-                          dark:[&::-webkit-scrollbar-thumb]:bg-gray-700/50
-                          hover:[&::-webkit-scrollbar-thumb]:bg-gray-300/80
-                          dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-700/80">
-                            {memoizedTags.map((tag) => (
-                              <CommandItem
-                                key={tag.TagID}
-                                value={tag.TagTitle}
-                                className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent/50 rounded-md"
-                                onSelect={() => {
-                                  handleTagSelect(tag);
-
-                                  const allSelectedTags = !selectedFilter.selectedTags.some(t => t.TagID === tag.TagID)
-                                    ? [...selectedFilter.selectedTags, tag]
-                                    : selectedFilter.selectedTags.filter(t => t.TagID !== tag.TagID);
-
-                                  const allBranchIDs = allSelectedTags.reduce((ids: string[], tag) => {
-                                    return [...ids, ...tag.BranchID];
-                                  }, []);
-
-                                  const selectedBranches = memoizedBranches.filter(branch =>
-                                    allBranchIDs.includes(branch.BranchID)
-                                  );
-
-                                  setPendingBranches(selectedBranches);
-                                }}
-                              >
-                                <Checkbox
-                                  checked={selectedFilter.selectedTags.some(t => t.TagID === tag.TagID)}
-                                  className="border-border/50"
-                                />
-                                <span>{tag.TagTitle}</span>
-                              </CommandItem>
-                            ))}
-                          </div>
-                        </div> */}
-                        <div className="pt-2">
-                          <div className="font-semibold mb-2 px-2">{t.branches}</div>
-                          <CommandList className="max-h-[200px] overflow-y-auto">
-                            {memoizedBranches.map((branch: Efr_Branches) => (
-                              <CommandItem
-                                key={branch.BranchID}
-                                value={branch.BranchName}
-                                onSelect={() => {
-                                  // Tek bir şube seçimi için, seçilen şube zaten seçiliyse kaldır, değilse sadece bu şubeyi seç
-                                  const isSelected = memoizedPendingBranches.find(
-                                    (selectedBranch: Efr_Branches) =>
-                                      selectedBranch.BranchID === branch.BranchID
-                                  );
-
-                                  // Eğer seçilen şube zaten seçiliyse, seçimi kaldır
-                                  if (isSelected) {
-                                    setPendingBranches([]);
-                                  } else {
-                                    // Değilse, sadece bu şubeyi seç (diğer seçimleri temizle)
-                                    setPendingBranches([branch]);
-                                  }
-                                }}
-                                className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent/50"
-                              >
-                                <Checkbox
-                                  checked={
-                                    memoizedPendingBranches.find(
-                                      (selectedBranch: Efr_Branches) =>
-                                        selectedBranch.BranchID === branch.BranchID
-                                    )
-                                      ? true
-                                      : false
-                                  }
-                                  className="border-border/50"
-                                />
-                                <span>{branch.BranchName}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandList>
-                        </div>
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-
-                <div className="flex gap-2">
-                  {memoizedPendingBranches.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={clearSelectedBranches}
-                      className="shrink-0"
-                      title={t.clearSelected}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+          <div className="hidden md:block">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-background/60 backdrop-blur-sm",
+                    "border-border/50 shadow-sm hover:shadow-md transition-all duration-300",
+                    "hover:border-border hover:bg-background/80",
+                    !tempStartDate && "text-muted-foreground"
                   )}
-
-                  <Button
-                    onClick={applyFilters}
-                    className={cn(
-                      "bg-blue-200 hover:bg-blue-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-gray-900",
-                      "hidden sm:flex"
-                    )}
-                  >
-                    {t.apply}
-                  </Button>
-
-                  <Button
-                    onClick={applyFilters}
-                    size="icon"
-                    className={cn(
-                      "bg-blue-200 hover:bg-blue-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-gray-900",
-                      "flex sm:hidden"
-                    )}
-                    title={t.apply}
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-accent/50 transition-colors duration-300 w-[48px] h-[48px] p-0 relative"
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {language === "tr" && (
-                        <span className="fi fi-tr text-2xl" />
-                      )}
-                      {language === "en" && (
-                        <span className="fi fi-gb text-2xl" />
-                      )}
-                      {language === "ar" && (
-                        <span className="fi fi-sa text-2xl" />
-                      )}
-                      {language === "az" && (
-                        <span className="fi fi-az text-2xl" />
-                      )}
-                      {language === "ru" && (
-                        <span className="fi fi-ru text-2xl" />
-                      )}
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-background/95 backdrop-blur-md border-border/50 shadow-xl w-48"
                 >
-                  <DropdownMenuItem
-                    onClick={() => setLanguage("tr")}
-                    className="cursor-pointer flex items-center gap-4 p-4"
-                  >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {tempStartDate
+                    ? formatDateTimeDMYHI(tempStartDate)
+                    : t.startDate}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto p-0 bg-background/95 backdrop-blur-md border-border/50 shadow-xl"
+                align="start"
+              >
+                <div className="p-4 space-y-4">
+                  <Calendar
+                    mode="single"
+                    selected={tempStartDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        const [hours, minutes] = tempStartTime.split(':');
+                        const newDate = new Date(date);
+                        newDate.setHours(parseInt(hours), parseInt(minutes), 0);
+                        setTempStartDate(newDate);
+                      } else {
+                        setTempStartDate(undefined);
+                      }
+                    }}
+                    initialFocus
+                    disabled={(date: Date) =>
+                      tempEndDate ? date > tempEndDate : false
+                    }
+                    className="rounded-md border-border/50"
+                  />
+                  <TimePicker
+                    value={tempStartTime}
+                    onChange={(value) => {
+                      setTempStartTime(value);
+                      if (tempStartDate) {
+                        const [hours, minutes] = value.split(':');
+                        const newDate = new Date(tempStartDate);
+                        newDate.setHours(parseInt(hours), parseInt(minutes), 0);
+                        setTempStartDate(newDate);
+                      }
+                    }}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="hidden md:block">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-background/60 backdrop-blur-sm",
+                    "border-border/50 shadow-sm hover:shadow-md transition-all duration-300",
+                    "hover:border-border hover:bg-background/80",
+                    !tempEndDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {tempEndDate
+                    ? formatDateTimeDMYHI(tempEndDate)
+                    : t.endDate}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto p-0 bg-background/95 backdrop-blur-md border-border/50 shadow-xl"
+                align="start"
+              >
+                <div className="p-4 space-y-4">
+                  <Calendar
+                    mode="single"
+                    selected={tempEndDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        const [hours, minutes] = tempEndTime.split(':');
+                        const newDate = new Date(date);
+                        newDate.setHours(parseInt(hours), parseInt(minutes), 0);
+                        setTempEndDate(newDate);
+                      } else {
+                        setTempEndDate(undefined);
+                      }
+                    }}
+                    initialFocus
+                    disabled={(date: Date) =>
+                      tempStartDate ? date < tempStartDate : false
+                    }
+                    className="rounded-md border-border/50"
+                  />
+                  <TimePicker
+                    value={tempEndTime}
+                    onChange={(value) => {
+                      setTempEndTime(value);
+                      if (tempEndDate) {
+                        const [hours, minutes] = value.split(':');
+                        const newDate = new Date(tempEndDate);
+                        newDate.setHours(parseInt(hours), parseInt(minutes), 0);
+                        setTempEndDate(newDate);
+                      }
+                    }}
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="flex gap-2">
+            <div className="flex gap-2">
+              {memoizedPendingBranches.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={clearSelectedBranches}
+                  className="shrink-0"
+                  title={t.clearSelected}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
+
+              <Button
+                onClick={applyFilters}
+                className={cn(
+                  "bg-blue-200 hover:bg-blue-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-gray-900",
+                  "hidden sm:flex"
+                )}
+              >
+                {t.apply}
+              </Button>
+
+              <Button
+                onClick={applyFilters}
+                size="icon"
+                className={cn(
+                  "bg-blue-200 hover:bg-blue-300 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-gray-900",
+                  "flex sm:hidden"
+                )}
+                title={t.apply}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-accent/50 transition-colors duration-300 w-[48px] h-[48px] p-0 relative"
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {language === "tr" && (
                     <span className="fi fi-tr text-2xl" />
-                    <span className="text-lg">Türkçe</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setLanguage("en")}
-                    className="cursor-pointer flex items-center gap-4 p-4"
-                  >
+                  )}
+                  {language === "en" && (
                     <span className="fi fi-gb text-2xl" />
-                    <span className="text-lg">English</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setLanguage("az")}
-                    className="cursor-pointer flex items-center gap-4 p-4"
-                  >
+                  )}
+                  {language === "ar" && (
+                    <span className="fi fi-sa text-2xl" />
+                  )}
+                  {language === "az" && (
                     <span className="fi fi-az text-2xl" />
-                    <span className="text-lg">Azərbaycan</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setLanguage("ru")}
-                    className="cursor-pointer flex items-center gap-4 p-4"
-                  >
+                  )}
+                  {language === "ru" && (
                     <span className="fi fi-ru text-2xl" />
-                    <span className="text-lg">Русский</span>
-                  </DropdownMenuItem>
-                  {/* <DropdownMenuItem
+                  )}
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-background/95 backdrop-blur-md border-border/50 shadow-xl w-48"
+            >
+              <DropdownMenuItem
+                onClick={() => setLanguage("tr")}
+                className="cursor-pointer flex items-center gap-4 p-4"
+              >
+                <span className="fi fi-tr text-2xl" />
+                <span className="text-lg">Türkçe</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLanguage("en")}
+                className="cursor-pointer flex items-center gap-4 p-4"
+              >
+                <span className="fi fi-gb text-2xl" />
+                <span className="text-lg">English</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLanguage("az")}
+                className="cursor-pointer flex items-center gap-4 p-4"
+              >
+                <span className="fi fi-az text-2xl" />
+                <span className="text-lg">Azərbaycan</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setLanguage("ru")}
+                className="cursor-pointer flex items-center gap-4 p-4"
+              >
+                <span className="fi fi-ru text-2xl" />
+                <span className="text-lg">Русский</span>
+              </DropdownMenuItem>
+              {/* <DropdownMenuItem
                     onClick={() => setLanguage("ar")}
                     className="cursor-pointer flex items-center gap-4 p-4"
                   >
                     <span className="fi fi-sa text-2xl" />
                     <span className="text-lg">العربية</span>
                   </DropdownMenuItem> */}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-accent/50 transition-colors duration-300"
-                  >
-                    <Palette className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-background/95 backdrop-blur-md border-border/50 shadow-xl"
-                >
-                  <DropdownMenuItem
-                    onClick={() => setTheme("light")}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <Sun className="h-4 w-4" />
-                    Light
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setTheme("dark")}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <Moon className="h-4 w-4" />
-                    Dark
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-accent/50"
-                onClick={() => handleTabOpen('settings', t.settings)}
+                className="hover:bg-accent/50 transition-colors duration-300"
               >
-                <Settings className="h-5 w-5" />
+                <Palette className="h-5 w-5" />
               </Button>
-              {/* 
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-background/95 backdrop-blur-md border-border/50 shadow-xl"
+            >
+              <DropdownMenuItem
+                onClick={() => setTheme("light")}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Sun className="h-4 w-4" />
+                Light
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setTheme("dark")}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Moon className="h-4 w-4" />
+                Dark
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-accent/50"
+            onClick={() => handleTabOpen('settings', t.settings)}
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+          {/* 
               <Button
                 variant="ghost"
                 size="icon"
@@ -875,10 +748,8 @@ export default function Header() {
               >
                 <Settings className="h-5 w-5" />
               </Button> */}
-            </div>
-          </div>
-        </header>
-      </TagProvider>
-    </BranchProvider>
+        </div>
+      </div>
+    </header>
   );
 }

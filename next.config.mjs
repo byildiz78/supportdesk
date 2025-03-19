@@ -24,6 +24,34 @@ const nextConfig = {
         maxInactiveAge: 25 * 1000,
         pagesBufferLength: 2,
     },
+    webpack: (config, { isServer }) => {
+        // Node.js modüllerini tarayıcı tarafında kullanmamak için
+        if (!isServer) {
+            config.resolve.fallback = {
+                fs: false,
+                path: false,
+                os: false,
+                crypto: false,
+                stream: false,
+                net: false,
+                tls: false,
+                dns: false,
+                child_process: false,
+                url: false,
+                util: false,
+                buffer: false,
+                querystring: false,
+                assert: false,
+                http: false,
+                https: false,
+                zlib: false,
+                constants: false,
+                events: false,
+                punycode: false,
+            };
+        }
+        return config;
+    },
     async headers() {
         return [
          {
@@ -39,4 +67,4 @@ const nextConfig = {
     },
 };
  
-export default nextConfig; 
+export default nextConfig;

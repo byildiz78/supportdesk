@@ -14,13 +14,13 @@ import {
     TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { useUserStore } from "@/stores/user-store"
 import { UserHeader } from "../components/UserHeader"
 import { UserFilters } from "../components/UserFilters"
 import { UserPagination } from "../components/UserPagination"
 import { UserForm } from "../components/UserForm"
-import { PlusCircle, Edit, Trash2, User, Mail, Clock, Loader2 } from "lucide-react"
+import { PlusCircle, Edit, Trash2, User, Mail, Clock, Loader2, AlertTriangle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserService } from "./services/user-service"
 import { useToast } from "@/hooks/use-toast"
@@ -31,6 +31,8 @@ export default function UserSettingsPage() {
     const [isAddUserOpen, setIsAddUserOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [userToDelete, setUserToDelete] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
     const itemsPerPage = 10
 
     const { users, setUsers, isLoading, setIsLoading, addUser, updateUser, deleteUser, setError } = useUserStore()
@@ -135,30 +137,36 @@ export default function UserSettingsPage() {
         }
     }
 
-    const handleDeleteUser = async (userId: string) => {
-        if (window.confirm("Bu kullanıcıyı silmek istediğinizden emin misiniz?")) {
-            try {
-                // API üzerinden kullanıcı sil
-                await UserService.deleteUser(userId)
-                
-                // Store'dan sil
-                deleteUser(userId)
-                
-                toast({
-                    title: "Başarılı",
-                    description: "Kullanıcı başarıyla silindi",
-                    variant: "default",
-                })
-            } catch (error: any) {
-                console.error('Kullanıcı silinirken hata oluştu:', error)
-                toast({
-                    title: "Hata",
-                    description: error.message || "Kullanıcı silinirken bir hata oluştu",
-                    variant: "destructive",
-                })
-            }
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
+        
+        setIsDeleting(true);
+        try {
+            // API üzerinden kullanıcı sil
+            await UserService.deleteUser(userToDelete);
+            
+            // Store'dan sil
+            deleteUser(userToDelete);
+            
+            toast({
+                title: "Başarılı",
+                description: "Kullanıcı başarıyla silindi",
+                variant: "default",
+            });
+            
+            // Diyaloğu kapat
+            setUserToDelete(null);
+        } catch (error: any) {
+            console.error('Kullanıcı silinirken hata oluştu:', error);
+            toast({
+                title: "Hata",
+                description: error.message || "Kullanıcı silinirken bir hata oluştu",
+                variant: "destructive",
+            });
+        } finally {
+            setIsDeleting(false);
         }
-    }
+    };
 
     const getInitials = (name: string) => {
         return name
@@ -168,6 +176,12 @@ export default function UserSettingsPage() {
             .toUpperCase()
             .substring(0, 2);
     }
+
+    // Kullanıcı adını bul
+    const getUserName = (userId: string) => {
+        const user = users.find(u => u.id === userId);
+        return user ? user.name : "Kullanıcı";
+    };
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">
@@ -194,6 +208,38 @@ export default function UserSettingsPage() {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            {/* Silme Onay Diyaloğu */}
+            <Dialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="h-5 w-5" />
+                            Kullanıcı Silme Onayı
+                        </DialogTitle>
+                        <DialogDescription className="pt-2">
+                            <strong>{userToDelete ? getUserName(userToDelete) : ""}</strong> adlı kullanıcıyı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => setUserToDelete(null)}
+                        >
+                            İptal
+                        </Button>
+                        <Button 
+                            variant="destructive" 
+                            onClick={confirmDeleteUser}
+                            disabled={isDeleting}
+                            className="gap-2"
+                        >
+                            {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                            {isDeleting ? "Siliniyor..." : "Evet, Sil"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Card className="border-0 shadow-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm flex-1 overflow-hidden rounded-xl">
                 <div className="rounded-xl border border-gray-100 dark:border-gray-800 h-full flex flex-col">
@@ -288,7 +334,7 @@ export default function UserSettingsPage() {
                                                     <Button 
                                                         variant="destructive" 
                                                         size="icon"
-                                                        onClick={() => handleDeleteUser(user.id)}
+                                                        onClick={() => setUserToDelete(user.id)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>

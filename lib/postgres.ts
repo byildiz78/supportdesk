@@ -4,6 +4,12 @@ import { Pool, PoolClient } from 'pg';
 let pool: Pool | null = null;
 
 export const getPool = (): Pool => {
+  // Tarayıcı ortamında çalışırken boş bir nesne döndür
+  if (typeof window !== 'undefined') {
+    console.warn('PostgreSQL connections are not supported in browser environment');
+    return {} as Pool;
+  }
+
   if (!pool) {
     pool = new Pool({
       user: process.env.POSTGRES_USER,
@@ -32,6 +38,12 @@ interface QueryOptions {
 }
 
 export const executeQuery = async <T>(options: QueryOptions): Promise<T> => {
+  // Tarayıcı ortamında çalışırken boş bir dizi döndür
+  if (typeof window !== 'undefined') {
+    console.warn('PostgreSQL queries are not supported in browser environment');
+    return [] as unknown as T;
+  }
+
   const { query, params = [], tenantId } = options;
   const client = await getPool().connect();
   
@@ -56,6 +68,12 @@ export const executeTransaction = async <T>(
   callback: (client: PoolClient) => Promise<T>,
   tenantId?: string
 ): Promise<T> => {
+  // Tarayıcı ortamında çalışırken boş bir nesne döndür
+  if (typeof window !== 'undefined') {
+    console.warn('PostgreSQL transactions are not supported in browser environment');
+    return {} as T;
+  }
+
   const client = await getPool().connect();
   
   try {

@@ -16,6 +16,8 @@ export function UserForm({ user, onSubmit }: UserFormProps) {
     const [formData, setFormData] = useState({
         id: user?.id || "",
         name: user?.name || "",
+        username: user?.username || "",
+        password_hash: user?.password_hash || "",
         email: user?.email || "",
         role: user?.role || "agent",
         department: user?.department || "",
@@ -78,98 +80,122 @@ export function UserForm({ user, onSubmit }: UserFormProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="name">Ad Soyad</Label>
-                    <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                        placeholder="Ad Soyad"
-                    />
-                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Kişisel Bilgiler - Sol Sütun */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Kişisel Bilgiler</h3>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Ad Soyad</Label>
+                        <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => handleChange("name", e.target.value)}
+                            placeholder="Ad Soyad"
+                        />
+                        {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="email">E-posta</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => handleChange("email", e.target.value)}
+                            placeholder="ornek@firma.com"
+                        />
+                        {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="department">Departman</Label>
+                        <Input
+                            id="department"
+                            value={formData.department}
+                            onChange={(e) => handleChange("department", e.target.value)}
+                            placeholder="Departman"
+                        />
+                        {errors.department && <p className="text-sm text-red-500">{errors.department}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="profileImageUrl">Profil Resmi URL</Label>
+                        <Input
+                            id="profileImageUrl"
+                            value={formData.profileImageUrl}
+                            onChange={(e) => handleChange("profileImageUrl", e.target.value)}
+                            placeholder="/images/avatars/default.png"
+                        />
+                    </div>
                 </div>
                 
-                <div className="space-y-2">
-                    <Label htmlFor="email">E-posta</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        placeholder="ornek@firma.com"
-                    />
-                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="profileImageUrl">Profil Resmi URL</Label>
-                    <Input
-                        id="profileImageUrl"
-                        value={formData.profileImageUrl}
-                        onChange={(e) => handleChange("profileImageUrl", e.target.value)}
-                        placeholder="/images/avatars/default.png"
-                    />
-                </div>
-                
-                <div className="space-y-2">
-                    <Label htmlFor="role">Rol</Label>
-                    <Select
-                        value={formData.role}
-                        onValueChange={(value) => handleChange("role", value)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Rol seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="admin">Yönetici</SelectItem>
-                            <SelectItem value="manager">Müdür</SelectItem>
-                            <SelectItem value="agent">Destek Ekibi</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                
-                <div className="space-y-2">
-                    <Label htmlFor="department">Departman</Label>
-                    <Input
-                        id="department"
-                        value={formData.department}
-                        onChange={(e) => handleChange("department", e.target.value)}
-                        placeholder="Departman"
-                    />
-                    {errors.department && <p className="text-sm text-red-500">{errors.department}</p>}
-                </div>
-                
-                <div className="space-y-2">
-                    <Label htmlFor="status">Durum</Label>
-                    <Select
-                        value={formData.status}
-                        onValueChange={(value) => handleChange("status", value as "active" | "inactive")}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Durum seçin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="active">Aktif</SelectItem>
-                            <SelectItem value="inactive">Pasif</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="flowID">Flow ID</Label>
-                    <Input
-                        id="flowID"
-                        value={formData.flowID}
-                        onChange={(e) => handleChange("flowID", e.target.value)}
-                        placeholder="flow-xxx"
-                    />
+                {/* Hesap Bilgileri - Sağ Sütun */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Hesap Bilgileri</h3>
+                    <div className="space-y-2">
+                        <Label htmlFor="password_hash">Parola</Label>
+                        <Input
+                            id="password_hash"
+                            value={formData.password_hash}
+                            onChange={(e) => handleChange("password_hash", e.target.value)}
+                            placeholder={user ? "Değiştirmek için yeni şifre girin" : "Parola girin"}
+                            type="password"
+                        />
+                        {user && (
+                            <p className="text-xs text-gray-500">Şifreyi değiştirmek istemiyorsanız boş bırakın</p>
+                        )}
+                        {errors.password_hash && <p className="text-sm text-red-500">{errors.password_hash}</p>}
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="role">Rol</Label>
+                        <Select
+                            value={formData.role}
+                            onValueChange={(value) => handleChange("role", value)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Rol seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="admin">Yönetici</SelectItem>
+                                <SelectItem value="manager">Müdür</SelectItem>
+                                <SelectItem value="agent">Destek Ekibi</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="status">Durum</Label>
+                        <Select
+                            value={formData.status}
+                            onValueChange={(value) => handleChange("status", value as "active" | "inactive")}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Durum seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="active">Aktif</SelectItem>
+                                <SelectItem value="inactive">Pasif</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="flowID">Flow ID</Label>
+                        <Input
+                            id="flowID"
+                            value={formData.flowID}
+                            onChange={(e) => handleChange("flowID", e.target.value)}
+                            placeholder="flow-xxx"
+                        />
+                    </div>
                 </div>
             </div>
             
-            <div className="flex justify-end gap-2">
-                <Button type="submit">
+            <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button type="submit" className="px-6">
                     {user ? "Güncelle" : "Ekle"}
                 </Button>
             </div>

@@ -133,6 +133,9 @@ export default function LoginPage() {
                         username: response.data.username,
                         usercategory: response.data.userCategory,
                     }));
+                    
+                    // Global olarak userId'yi de kaydet
+                    localStorage.setItem('userId', response.data.userId);
                 } catch (error) {
                     localStorage.setItem(`userData_${tenantId}`, JSON.stringify({
                         name: response.data.name,
@@ -141,6 +144,9 @@ export default function LoginPage() {
                         username: response.data.username,
                         usercategory: response.data.usercategory,
                     }));
+                    
+                    // Global olarak userId'yi de kaydet
+                    localStorage.setItem('userId', response.data.userId);
                 }
 
                 // Yönlendirme animasyonu

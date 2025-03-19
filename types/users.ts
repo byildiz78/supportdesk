@@ -1,6 +1,8 @@
 export interface User {
     id: string;
     name: string;
+    username: string;
+    password_hash: string;
     email: string;
     role: 'admin' | 'manager' | 'agent';
     department: string;
