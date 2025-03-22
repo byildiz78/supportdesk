@@ -83,18 +83,24 @@ export default async function handler(
           pass: process.env.GMAIL_APP_PASSWORD,
         },
         debug: true, // Hata ayıklama modunu etkinleştir
-        logger: true // Günlük kaydını etkinleştir
+        logger: true, // Günlük kaydını etkinleştir
+        connectionTimeout: 60000, // 60 saniye bağlantı zaman aşımı
+        greetingTimeout: 30000, // 30 saniye karşılama zaman aşımı
+        socketTimeout: 60000 // 60 saniye soket zaman aşımı
       });
       console.log('Nodemailer transporter oluşturuldu');
 
       // Transporter'ın bağlantısını test et
-      transporter.verify(function(error, success) {
-        if (error) {
-          console.error('SMTP bağlantı hatası:', error);
-        } else {
-          console.log('SMTP sunucusuna bağlantı başarılı:', success);
-        }
-      });
+      try {
+        const verifyResult = await transporter.verify();
+        console.log('SMTP sunucusuna bağlantı başarılı:', verifyResult);
+      } catch (verifyError) {
+        console.error('SMTP bağlantı hatası:', verifyError);
+        return res.status(500).json({
+          success: false,
+          message: 'E-posta sunucusuna bağlantı kurulamadı: ' + (verifyError as Error).message,
+        });
+      }
 
       // Ticket numarasını kontrol et ve ekle
       let emailSubject = subject || 'Re: Destek Talebiniz Hakkında';
@@ -166,11 +172,47 @@ export default async function handler(
       // E-postayı gönder
       if (!isInternal) {
         try {
-          const info = await transporter.sendMail(mailOptions);
-          console.log('E-posta gönderildi:', info);
+          console.log('E-posta gönderme işlemi başlatılıyor...');
+          
+          // Zaman aşımı için Promise ile sarmalama
+          const sendMailPromise = new Promise<any>((resolve, reject) => {
+            // Zaman aşımı için 30 saniye
+            const timeout = setTimeout(() => {
+              reject(new Error('E-posta gönderme işlemi zaman aşımına uğradı (30 saniye)'));
+            }, 30000);
+            
+            transporter.sendMail(mailOptions)
+              .then(info => {
+                clearTimeout(timeout);
+                resolve(info);
+              })
+              .catch(err => {
+                clearTimeout(timeout);
+                reject(err);
+              });
+          });
+          
+          const info = await sendMailPromise;
+          console.log('E-posta başarıyla gönderildi:', info);
+          
+          // E-posta ID'sini kaydet
+          if (info && info.messageId) {
+            console.log('E-posta ID:', info.messageId);
+          }
         } catch (error) {
           console.error('E-posta gönderme hatası:', error);
-          // E-posta gönderilemese bile yorumu kaydetmeye devam et
+          
+          // Hata detaylarını günlüğe kaydet
+          if (error instanceof Error) {
+            console.error('Hata mesajı:', error.message);
+            console.error('Hata stack:', error.stack);
+          }
+          
+          // E-posta gönderilemese bile yorumu kaydetmeye devam et, ancak kullanıcıya bildir
+          return res.status(500).json({
+            success: false,
+            message: 'E-posta gönderme hatası: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'),
+          });
         }
       } else {
         console.log('Dahili yorum, e-posta gönderilmiyor');
