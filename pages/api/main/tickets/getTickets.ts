@@ -43,8 +43,6 @@ export default async function handler(
   }
 
   try {
-    console.log('Biletler API çağrıldı');
-
     // Veritabanı sorgusu - tenant ID'yi req.body içine ekliyoruz
     req.body = {
       ...req.body,
@@ -89,16 +87,12 @@ export default async function handler(
       ORDER BY t.created_at DESC
     `;
 
-    console.log('Biletler sorgusu çalıştırılıyor:', query);
-
     try {
       const result = await db.executeQuery<Ticket[]>({
         query,
         params: [],
         req
       });
-      
-      console.log('Biletler sorgu sonucu:', result ? result.length : 0);
       
       // Kişi bilgilerini kontrol et ve eksikse tamamla
       if (result && result.length > 0) {
@@ -107,8 +101,6 @@ export default async function handler(
         );
         
         if (ticketsWithContactIds.length > 0) {
-          console.log('Bazı biletlerde kişi bilgileri eksik, contacts tablosundan sorgulanıyor...');
-          
           // Tüm eksik contact_id'leri topla
           const contactIds = Array.from(new Set(ticketsWithContactIds.map(t => t.contact_id).filter(Boolean) as string[]));
           

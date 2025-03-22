@@ -10,6 +10,10 @@ interface Group {
   createdBy: string | null;
   updatedAt: string | null;
   updatedBy: string | null;
+  mesaiSaatleriSla: number;
+  mesaiDisiSla: number;
+  haftaSonuMesaiSla: number;
+  haftaSonuMesaiDisiSla: number;
 }
 
 export default async function handler(
@@ -22,8 +26,6 @@ export default async function handler(
 
   try {
     const { subcategoryId } = req.query;
-    console.log('Gruplar API çağrıldı, subcategoryId:', subcategoryId);
-
     if (!subcategoryId) {
       return res.status(400).json({
         success: false,
@@ -46,7 +48,11 @@ export default async function handler(
         created_at as "createdAt",
         created_by as "createdBy",
         updated_at as "updatedAt",
-        updated_by as "updatedBy"
+        updated_by as "updatedBy",
+        mesai_saatleri_sla as "mesaiSaatleriSla",
+        mesai_disi_sla as "mesaiDisiSla",
+        hafta_sonu_mesai_sla as "haftaSonuMesaiSla",
+        hafta_sonu_mesai_disi_sla as "haftaSonuMesaiDisiSla"
       FROM groups
       WHERE subcategory_id = $1 AND is_deleted = false
       ORDER BY name ASC
@@ -57,8 +63,6 @@ export default async function handler(
       params: [subcategoryId],
       req
     });
-    
-    console.log(`${result.length} grup bulundu`);
     
     return res.status(200).json({
       success: true,

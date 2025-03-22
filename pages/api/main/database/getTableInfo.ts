@@ -19,8 +19,6 @@ export default async function handler(
   try {
     const { tableName } = req.query;
     
-    console.log('Tablo bilgisi sorgulanıyor:', tableName);
-
     if (!tableName) {
       return res.status(400).json({
         success: false,

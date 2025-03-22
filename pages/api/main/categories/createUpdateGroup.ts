@@ -15,6 +15,11 @@ export default async function handler(
       name,
       description,
       subcategoryId,
+      mesai_saatleri_sla,
+      mesai_disi_sla,
+      hafta_sonu_mesai_sla,
+      hafta_sonu_mesai_disi_sla,
+      sla_next_day_start,
       isUpdate,
       ...otherFields
     } = req.body;
@@ -44,7 +49,12 @@ export default async function handler(
     const params = [
       name,
       description || null,
-      subcategoryId
+      subcategoryId,
+      mesai_saatleri_sla || 60,
+      mesai_disi_sla || 120,
+      hafta_sonu_mesai_sla || 180,
+      hafta_sonu_mesai_disi_sla || 240,
+      sla_next_day_start || false
     ];
 
     let query;
@@ -59,9 +69,14 @@ export default async function handler(
             name = $1,
             description = $2,
             subcategory_id = $3,
+            mesai_saatleri_sla = $4,
+            mesai_disi_sla = $5,
+            hafta_sonu_mesai_sla = $6,
+            hafta_sonu_mesai_disi_sla = $7,
+            sla_next_day_start = $8,
             updated_at = CURRENT_TIMESTAMP,
-            updated_by = $4
-          WHERE id = $5
+            updated_by = $9
+          WHERE id = $10
           RETURNING *;
         `;
 
@@ -82,6 +97,11 @@ export default async function handler(
         const group = {
           ...result.rows[0],
           subcategoryId: result.rows[0].subcategory_id,
+          mesai_saatleri_sla: result.rows[0].mesai_saatleri_sla,
+          mesai_disi_sla: result.rows[0].mesai_disi_sla,
+          hafta_sonu_mesai_sla: result.rows[0].hafta_sonu_mesai_sla,
+          hafta_sonu_mesai_disi_sla: result.rows[0].hafta_sonu_mesai_disi_sla,
+          sla_next_day_start: result.rows[0].sla_next_day_start,
           createdAt: result.rows[0].created_at,
           createdBy: result.rows[0].created_by,
           updatedAt: result.rows[0].updated_at,
@@ -109,27 +129,37 @@ export default async function handler(
             name,
             description,
             subcategory_id,
+            mesai_saatleri_sla,
+            mesai_disi_sla,
+            hafta_sonu_mesai_sla,
+            hafta_sonu_mesai_disi_sla,
+            sla_next_day_start,
             created_at,
             created_by,
             updated_at,
             is_deleted
           )
           VALUES (
-            $1, $2, $3,
-            CURRENT_TIMESTAMP, $4, CURRENT_TIMESTAMP, false
+            $1, $2, $3, $4, $5, $6, $7,
+            CURRENT_TIMESTAMP, $8, CURRENT_TIMESTAMP, false 
           )
           RETURNING *;
         `;
 
         const result = await client.query(query, [
           ...params,
-          req.body.created_by || null
+          req.body.created_by || null,
         ]);
 
         // Format the response
         const group = {
           ...result.rows[0],
           subcategoryId: result.rows[0].subcategory_id,
+          mesai_saatleri_sla: result.rows[0].mesai_saatleri_sla,
+          mesai_disi_sla: result.rows[0].mesai_disi_sla,
+          hafta_sonu_mesai_sla: result.rows[0].hafta_sonu_mesai_sla,
+          hafta_sonu_mesai_disi_sla: result.rows[0].hafta_sonu_mesai_disi_sla,
+          sla_next_day_start: result.rows[0].sla_next_day_start,
           createdAt: result.rows[0].created_at,
           createdBy: result.rows[0].created_by,
           updatedAt: result.rows[0].updated_at,

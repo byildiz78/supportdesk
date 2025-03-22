@@ -19,6 +19,18 @@ export default async function handler(
     const { id, ...companyData } = req.body;
     const tenantId = extractTenantFromBody(req);
 
+    // Tarih alanlarını düzgün formata dönüştür
+    const formatDateForDB = (dateString: string | undefined) => {
+      if (!dateString) return null;
+      // Tarih geçerli mi kontrol et
+      const date = new Date(dateString);
+      return isNaN(date.getTime()) ? null : date.toISOString();
+    };
+
+    // Flow tarih alanlarını formatlı
+    const flow_ba_starting_date = formatDateForDB(companyData.flow_ba_starting_date);
+    const flow_ba_end_date = formatDateForDB(companyData.flow_ba_end_date);
+
     // Eğer id varsa güncelleme, yoksa yeni kayıt
     if (id) {
       // Güncelleme işlemi
@@ -41,8 +53,13 @@ export default async function handler(
           website = $13,
           industry = $14,
           company_type = $15,
-          is_active = $16
-        WHERE id = $17
+          is_active = $16,
+          flow_ba_starting_date = $17,
+          flow_ba_end_date = $18,
+          flow_ba_notes = $19,
+          flow_support_notes = $20,
+          flow_licence_notes = $21
+        WHERE id = $22
         RETURNING id;
       `;
 
@@ -65,6 +82,11 @@ export default async function handler(
           companyData.industry || null,
           companyData.companyType || null,
           companyData.isActive !== undefined ? companyData.isActive : true,
+          flow_ba_starting_date,
+          flow_ba_end_date,
+          companyData.flow_ba_notes || null,
+          companyData.flow_support_notes || null,
+          companyData.flow_licence_notes || null,
           id
         ],
         req
@@ -97,12 +119,18 @@ export default async function handler(
           industry, 
           company_type, 
           is_active,
-          is_deleted
+          is_deleted,
+          flow_ba_starting_date,
+          flow_ba_end_date,
+          flow_ba_notes,
+          flow_support_notes,
+          flow_licence_notes
         ) 
         VALUES (
           $1, $2, $3, $4, $5, $6, 
           CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 
-          $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, false
+          $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, false,
+          $17, $18, $19, $20, $21
         )
         RETURNING id;
       `;
@@ -125,7 +153,12 @@ export default async function handler(
           companyData.website || null,
           companyData.industry || null,
           companyData.companyType || null,
-          companyData.isActive !== undefined ? companyData.isActive : true
+          companyData.isActive !== undefined ? companyData.isActive : true,
+          flow_ba_starting_date,
+          flow_ba_end_date,
+          companyData.flow_ba_notes || null,
+          companyData.flow_support_notes || null,
+          companyData.flow_licence_notes || null
         ],
         req
       });

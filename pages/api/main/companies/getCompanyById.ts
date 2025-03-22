@@ -11,6 +11,11 @@ interface Company {
   website?: string;
   tax_number?: string;
   tax_office?: string;
+  flow_ba_starting_date?: string;
+  flow_ba_end_date?: string;
+  flow_ba_notes?: string;
+  flow_support_notes?: string;
+  flow_licence_notes?: string;
 }
 
 export default async function handler(
@@ -24,8 +29,6 @@ export default async function handler(
   try {
     const { companyId } = req.query;
     
-    console.log('getCompanyById API çağrıldı, companyId:', companyId);
-
     if (!companyId) {
       return res.status(400).json({
         success: false,
@@ -49,7 +52,12 @@ export default async function handler(
         c.email,
         c.website,
         c.tax_number,
-        c.tax_office
+        c.tax_office,
+        c.flow_ba_starting_date,
+        c.flow_ba_end_date,
+        c.flow_ba_notes,
+        c.flow_support_notes,
+        c.flow_licence_notes
       FROM companies c
       WHERE c.is_deleted = false AND c.id = $1
     `;
@@ -68,8 +76,6 @@ export default async function handler(
         message: 'Firma bulunamadı'
       });
     }
-    
-    console.log('Firma bilgisi döndürülüyor:', result[0]);
     
     return res.status(200).json({
       success: true,

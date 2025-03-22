@@ -1,0 +1,96 @@
+{
+  "template": {
+    "id": "1742253090268",
+    "name": "Varsayılan Eşleştirme",
+    "isDefault": true,
+    "createdAt": "2025-03-17T23:11:01.833Z",
+    "updatedAt": "2025-03-20T11:50:19.455Z"
+  },
+  "mappings": [
+    {
+      "sourceField": "TITLE",
+      "targetField": "name",
+      "description": "Firma Adı"
+    },
+    {
+      "sourceField": "UF_CRM_1730540437",
+      "targetField": "address",
+      "description": "Adres"
+    },
+    {
+      "sourceField": "PHONE",
+      "targetField": "phone",
+      "description": "Telefon"
+    },
+    {
+      "sourceField": "EMAIL",
+      "targetField": "email",
+      "description": "E-posta"
+    },
+    {
+      "sourceField": "UF_CRM_1730540424",
+      "targetField": "city",
+      "description": "Şehir"
+    },
+    {
+      "sourceField": "UF_CRM_1730540414",
+      "targetField": "state",
+      "description": "Bölge"
+    },
+    {
+      "sourceField": "ID",
+      "targetField": "id",
+      "description": ""
+    },
+    {
+      "sourceField": "DATE_CREATE",
+      "targetField": "created_at",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1730540403",
+      "targetField": "country",
+      "description": ""
+    },
+    {
+      "sourceField": "WEB",
+      "targetField": "website",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1727121653111",
+      "targetField": "flow_ba_starting_date",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1727121670364",
+      "targetField": "flow_ba_end_date",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1730539280973",
+      "targetField": "created_by",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1730539145622",
+      "targetField": "flow_ba_notes",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1730539055531",
+      "targetField": "flow_licence_notes",
+      "description": ""
+    },
+    {
+      "sourceField": "COMPANY_TYPE",
+      "targetField": "company_type",
+      "description": ""
+    },
+    {
+      "sourceField": "UF_CRM_1730539162032",
+      "targetField": "flow_support_notes",
+      "description": ""
+    }
+  ]
+}

@@ -7,16 +7,22 @@ import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Download, FileIcon, FileText, Image, Paperclip } from "lucide-react"
+import DOMPurify from 'dompurify';
+import { useEffect, useRef } from "react"
+import { processHtmlContent, decodeHtml, normalizeNewlines } from "@/utils/text-utils"
+import { EmailCommentView } from "./email-comment-view"
 
 interface CommentTimelineProps {
-    comments: TicketComment[]
+    comments: TicketComment[];
+    onReplyToEmail?: (comment: TicketComment, replyAll: boolean) => void;
 }
 
 function FilePreview({ file }: { file: FileAttachment }) {
-    const isImage = file.type.startsWith('image/')
-    const isPDF = file.type === 'application/pdf'
-    const isDoc = file.type.includes('word') || file.type.includes('doc')
-    const isSpreadsheet = file.type.includes('excel') || file.type.includes('sheet')
+    const fileType = file.type || file.mimeType || '';
+    const isImage = fileType.startsWith('image/')
+    const isPDF = fileType === 'application/pdf'
+    const isDoc = fileType.includes('word') || fileType.includes('doc')
+    const isSpreadsheet = fileType.includes('excel') || fileType.includes('sheet')
 
     return (
         <a 
@@ -44,63 +50,110 @@ function FilePreview({ file }: { file: FileAttachment }) {
     )
 }
 
-export function CommentTimeline({ comments }: CommentTimelineProps) {
+function CommentContent({ content }: { content: string }) {
+    const contentRef = useRef<HTMLDivElement>(null);
+    
+    // Use our enhanced processHtmlContent function to handle all text processing
+    const processedContent = processHtmlContent(content);
+    
+    useEffect(() => {
+        if (contentRef.current) {
+            // Find all link tags
+            const links = contentRef.current.querySelectorAll('a');
+            
+            // Set target and rel attributes for each link
+            links.forEach(link => {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+                link.classList.add('text-blue-600', 'hover:text-blue-800', 'hover:underline');
+            });
+        }
+    }, [content]);
+    
+    return (
+        <div 
+            ref={contentRef}
+            className="text-sm text-foreground/90 ticket-description"
+        >
+            {processedContent}
+        </div>
+    );
+}
+
+export function CommentTimeline({ comments, onReplyToEmail }: CommentTimelineProps) {
     return (
         <div className="space-y-4">
             {comments.map((comment) => (
-                <Card 
-                    key={comment.id} 
-                    className={cn(
-                        "p-4",
-                        comment.isInternal 
-                            ? "bg-amber-50/50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30"
-                            : "bg-white/50 dark:bg-gray-900/50"
-                    )}
-                >
-                    <div className="flex items-start gap-4">
-                        <Avatar className="h-10 w-10">
-                            <AvatarFallback className={cn(
-                                "text-white",
-                                comment.isInternal 
-                                    ? "bg-amber-500 dark:bg-amber-700"
-                                    : "bg-blue-500 dark:bg-blue-700"
-                            )}>
-                                {comment.createdByName.split(' ').map(n => n[0]).join('').toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex-1 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div className="font-medium">
-                                    {comment.createdByName}
-                                    {comment.isInternal && (
-                                        <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
-                                            İç Not
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    {formatDistanceToNow(new Date(comment.createdAt), { 
-                                        addSuffix: true,
-                                        locale: tr 
-                                    })}
-                                </div>
-                            </div>
+                // If comment has email_id, render it as an email comment
+                comment.email_id ? (
+                    <EmailCommentView 
+                        key={comment.id} 
+                        comment={comment} 
+                        onReply={(comment, replyAll) => {
+                            if (onReplyToEmail) {
+                                try {
+                                    onReplyToEmail(comment, replyAll);
+                                } catch (error) {
+                                    console.error(error);
+                                }
+                            }
+                        }} 
+                    />
+                ) : (
+                    <Card 
+                        key={comment.id} 
+                        className={cn(
+                            "p-4",
+                            comment.is_internal 
+                                ? "bg-amber-50/50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30"
+                                : "bg-white/50 dark:bg-gray-900/50"
+                        )}
+                    >
+                        <div className="flex items-start gap-4">
+                            <Avatar className="h-10 w-10">
+                                <AvatarFallback className={cn(
+                                    "text-white",
+                                    comment.is_internal 
+                                        ? "bg-amber-500 dark:bg-amber-700"
+                                        : "bg-blue-500 dark:bg-blue-700"
+                                )}>
+                                    {comment.created_by_name 
+                                        ? comment.created_by_name.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+                                        : 'U'}
+                                </AvatarFallback>
+                            </Avatar>
                             
-                            <div className="text-sm text-foreground/90">
-                                {comment.content}
-                            </div>
-
-                            {comment.attachments && comment.attachments.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                    {comment.attachments.map((file, index) => (
-                                        <FilePreview key={file.id} file={file} />
-                                    ))}
+                            <div className="flex-1 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="font-medium">
+                                        {comment.created_by_name || 'Unknown User'}
+                                        {comment.is_internal && (
+                                            <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
+                                                İç Not
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        {formatDistanceToNow(new Date(comment.created_at), { 
+                                            addSuffix: true,
+                                            locale: tr 
+                                        })}
+                                    </div>
                                 </div>
-                            )}
+                                
+                                <CommentContent content={comment.content} />
+
+                                {comment.attachments && comment.attachments.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        {comment.attachments.map((file, index) => (
+                                            <FilePreview key={file.id} file={file} />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
+                )
             ))}
         </div>
     )

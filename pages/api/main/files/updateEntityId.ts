@@ -16,8 +16,6 @@ export default async function handler(
   try {
     const { fileIds, entityType, entityId } = req.body;
 
-    console.log('Updating file entity IDs:', { fileIds, entityType, entityId });
-
     if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
       return res.status(400).json({ 
         success: false, 
@@ -43,9 +41,6 @@ export default async function handler(
       RETURNING id;
     `;
 
-    console.log('Executing update query:', updateQuery);
-    console.log('Query params:', [entityType, entityId, fileIds]);
-
     const result = await db.executeQuery<QueryResult>({
       query: updateQuery,
       params: [
@@ -56,7 +51,6 @@ export default async function handler(
       req
     });
 
-    console.log('Update query result:', result);
     const updatedCount = result.rows.length;
 
     return res.status(200).json({

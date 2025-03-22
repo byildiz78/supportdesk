@@ -22,7 +22,15 @@ export type Company = {
   createdBy?: string;
   updatedAt: Date;
   updatedBy?: string;
-  isDeleted: boolean;
+  isDeleted?: boolean;
+  // Flow fields
+  flow_id?: string;
+  flow_ba_starting_date?: string;
+  flow_ba_end_date?: string;
+  flow_ba_notes?: string;
+  flow_support_notes?: string;
+  flow_licence_notes?: string;
+  flow_last_update_date?: string;
 };
 
 import { create } from 'zustand';

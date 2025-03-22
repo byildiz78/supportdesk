@@ -43,7 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        console.log('Dashboard API çağrıldı', req.body);
         const { date1, date2 } = req.body;
 
         if (!date1 || !date2) {
@@ -198,8 +197,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ORDER BY day
         `;
 
-        console.log('Dashboard sorguları çalıştırılıyor...');
-
         // Tüm sorguları çalıştır
         const [
             totalTicketsResult,
@@ -231,23 +228,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             db.executeQuery<any[]>({ query: avgResolutionTimeQuery, params: [], req })
         ]);
 
-        console.log('Dashboard sorguları tamamlandı');
-        console.log('Sorgu sonuçları:', {
-            totalTickets: totalTicketsResult,
-            currentMonth: currentMonthTicketsResult,
-            previousMonth: previousMonthTicketsResult,
-            openTickets: openTicketsResult,
-            pendingTickets: pendingTicketsResult,
-            resolvedToday: resolvedTodayResult,
-            totalToday: totalTodayTicketsResult,
-            activeAgents: activeAgentsResult,
-            availableAgents: availableAgentsResult,
-            recentTickets: recentTicketsResult?.length,
-            openedStats: openedStatsResult?.length,
-            resolvedStats: resolvedStatsResult?.length,
-            avgResolutionTime: avgResolutionTimeResult?.length
-        });
-
         // Değişim yüzdesini hesapla
         const currentMonthTickets = parseInt(currentMonthTicketsResult?.[0]?.current_month_tickets || 0);
         const previousMonthTickets = parseInt(previousMonthTicketsResult?.[0]?.previous_month_tickets || 0);
@@ -267,22 +247,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (totalToday > 0) {
             resolutionRate = (resolvedToday / totalToday) * 100;
         }
-
-        // Sorgu sonuçlarını detaylı olarak logla
-        console.log('Detaylı sonuçlar:');
-        console.log('totalTicketsResult:', JSON.stringify(totalTicketsResult));
-        console.log('currentMonthTicketsResult:', JSON.stringify(currentMonthTicketsResult));
-        console.log('previousMonthTicketsResult:', JSON.stringify(previousMonthTicketsResult));
-        console.log('openTicketsResult:', JSON.stringify(openTicketsResult));
-        console.log('pendingTicketsResult:', JSON.stringify(pendingTicketsResult));
-        console.log('resolvedTodayResult:', JSON.stringify(resolvedTodayResult));
-        console.log('totalTodayTicketsResult:', JSON.stringify(totalTodayTicketsResult));
-        console.log('activeAgentsResult:', JSON.stringify(activeAgentsResult));
-        console.log('availableAgentsResult:', JSON.stringify(availableAgentsResult));
-        console.log('recentTicketsResult:', JSON.stringify(recentTicketsResult?.slice(0, 1)));
-        console.log('openedStatsResult:', JSON.stringify(openedStatsResult?.slice(0, 1)));
-        console.log('resolvedStatsResult:', JSON.stringify(resolvedStatsResult?.slice(0, 1)));
-        console.log('avgResolutionTimeResult:', JSON.stringify(avgResolutionTimeResult?.slice(0, 1)));
 
         // Talep istatistiklerini birleştir
         const dailyStats: Record<string, {
@@ -402,7 +366,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ticketStats: Object.values(dailyStats)
         };
 
-        console.log('Dashboard verileri hazırlandı');
         return res.status(200).json(dashboardData);
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);

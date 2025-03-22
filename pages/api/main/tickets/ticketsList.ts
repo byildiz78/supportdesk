@@ -10,9 +10,6 @@ export default async function handler(
   }
 
   try {
-    console.log('Tickets API request received:', req.body);
-    console.log('Filters received:', req.body.filters);
-    
     // Extract tenant ID from request body
     const { date1 , date2 } = req.body;
     
@@ -38,15 +35,18 @@ export default async function handler(
         t.company_id as "companyId",
         t.contact_position as "contactPosition",
         t.due_date as "dueDate",
+        t.sla_breach as "slaBreach",
         t.resolution_time as "resolutionTime",
         t.created_at as "createdAt",
         t.created_by as "createdBy",
         t.updated_at as "updatedAt",
-        t.updated_by as "updatedBy"
+        t.updated_by as "updatedBy",
+        t.callcount as "callcount"
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)
       AND t.created_at BETWEEN $1 AND $2
+      AND t.status not in ('resolved','closed')
     `;
 
     const params = [date1, date2];
@@ -58,12 +58,6 @@ export default async function handler(
       req
     });
 
-    // Debug: Log the first few tickets to check their status
-    if (tickets.length > 0) {
-      console.log('Sample ticket data:', tickets.slice(0, 2));
-    }
-    
-    // Skip tag fetching for now to simplify troubleshooting
     // Return results directly
     return res.status(200).json(tickets);
   } catch (error: any) {

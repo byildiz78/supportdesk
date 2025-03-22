@@ -1,4 +1,11 @@
 /** @type {import('next').NextConfig} */
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES modules equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const nextConfig = {
     basePath: process.env.NEXT_PUBLIC_BASEPATH,
     assetPrefix: process.env.NEXT_PUBLIC_BASEPATH,
@@ -25,6 +32,8 @@ const nextConfig = {
         pagesBufferLength: 2,
     },
     webpack: (config, { isServer }) => {
+        // Resolve pg-native to our mock implementation
+        config.resolve.alias['pg-native'] = path.resolve(__dirname, './lib/pg-native-mock.js'); 
         // Node.js modüllerini tarayıcı tarafında kullanmamak için
         if (!isServer) {
             config.resolve.fallback = {

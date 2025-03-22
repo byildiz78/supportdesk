@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { motion } from "framer-motion"
-import { Save, Building, Building2, Mail, Phone, Hash, FileText, Globe, MapPin, Briefcase } from "lucide-react"
+import { Save, Building, Building2, Mail, Phone, Hash, FileText, Globe, MapPin, Briefcase, Calendar, FileCheck } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { useCompaniesStore } from "@/stores/main/companies-store"
@@ -47,7 +47,12 @@ export default function CreateCompany({ companyId }: CreateCompanyProps) {
     industry: "",
     companyType: "",
     notes: "",
-    isActive: true
+    isActive: true,
+    flow_ba_starting_date: "",
+    flow_ba_end_date: "",
+    flow_ba_notes: "",
+    flow_support_notes: "",
+    flow_licence_notes: ""
   })
 
   // Eğer düzenleme modu ise, mevcut şirket verilerini form'a doldur
@@ -57,8 +62,28 @@ export default function CreateCompany({ companyId }: CreateCompanyProps) {
       const companyToEdit = companies.find(c => c.id === companyId)
       
       if (companyToEdit) {
+        // ISO tarih formatını YYYY-MM-DD formatına dönüştür
+        const formatDateForInput = (dateString: string | undefined) => {
+          if (!dateString) return "";
+          
+          try {
+            const date = new Date(dateString);
+            
+            // Geçersiz tarih kontrolü
+            if (isNaN(date.getTime())) return "";
+            
+            // YYYY-MM-DD formatına dönüştür
+            return date.toISOString().split('T')[0];
+          } catch (error) {
+            console.error("Date formatting error:", error);
+            return "";
+          }
+        };
+
         setCompanyData({
-          ...companyToEdit
+          ...companyToEdit,
+          flow_ba_starting_date: formatDateForInput(companyToEdit.flow_ba_starting_date),
+          flow_ba_end_date: formatDateForInput(companyToEdit.flow_ba_end_date)
         })
       }
     }
@@ -398,6 +423,92 @@ export default function CreateCompany({ companyId }: CreateCompanyProps) {
                       value={companyData.notes || ""}
                       onChange={(e) => setCompanyData(prev => ({ ...prev, notes: e.target.value }))}
                       placeholder="Özel notlar"
+                      className="min-h-[100px] pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Flow Bilgileri */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            <Card className="p-6 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                  <FileCheck className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-indigo-600 dark:text-indigo-400">
+                    Flow Bilgileri
+                  </h3>
+                  <p className="text-sm text-indigo-600/80 dark:text-indigo-400/80">
+                    Flow entegrasyonu için gerekli bilgiler
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>BA Başlangıç Tarihi</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      type="date"
+                      value={companyData.flow_ba_starting_date || ""}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, flow_ba_starting_date: e.target.value }))}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>BA Bitiş Tarihi</Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      type="date"
+                      value={companyData.flow_ba_end_date || ""}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, flow_ba_end_date: e.target.value }))}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>BA Notları</Label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                    <Textarea
+                      value={companyData.flow_ba_notes || ""}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, flow_ba_notes: e.target.value }))}
+                      placeholder="BA ile ilgili notlar"
+                      className="min-h-[100px] pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Destek Notları</Label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                    <Textarea
+                      value={companyData.flow_support_notes || ""}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, flow_support_notes: e.target.value }))}
+                      placeholder="Destek ile ilgili notlar"
+                      className="min-h-[100px] pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Lisans Notları</Label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                    <Textarea
+                      value={companyData.flow_licence_notes || ""}
+                      onChange={(e) => setCompanyData(prev => ({ ...prev, flow_licence_notes: e.target.value }))}
+                      placeholder="Lisans ile ilgili notlar"
                       className="min-h-[100px] pl-10"
                     />
                   </div>

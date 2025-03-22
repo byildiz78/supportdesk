@@ -122,11 +122,7 @@ export function TicketFilters({
                                             <Select
                                                 value={filters.assigned_to?.[0] || ""}
                                                 onValueChange={(value) => {
-                                                    console.log('Kullanıcı seçildi:', value);
-                                                    // Eğer değer boşsa, boş bir dizi gönder
-                                                    // Değilse, değeri bir dizi içinde gönder
                                                     const newValue = value ? [value] : [];
-                                                    console.log('Gönderilen değer:', newValue);
                                                     onFilterChange({ assigned_to: newValue });
                                                 }}
                                             >

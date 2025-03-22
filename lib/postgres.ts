@@ -19,7 +19,7 @@ export const getPool = (): Pool => {
       database: process.env.POSTGRES_DB,
       ssl: process.env.POSTGRES_SSL === 'true' 
         ? { rejectUnauthorized: false } 
-        : false
+        : false,
     });
 
     // Log pool errors

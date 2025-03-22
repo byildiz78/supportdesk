@@ -4,13 +4,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CustomLoader } from "@/components/ui/custom-loader"
-import { MoreHorizontal, Eye, Edit, Trash2, Building, Mail, Phone, Hash, Building2, AlertCircle } from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash2, Building, Mail, Phone, Hash, Building2, AlertCircle, Calendar, FileText } from "lucide-react"
 import { Company } from "@/stores/main/companies-store"
 import { useTabStore } from "@/stores/tab-store"
 import { useState } from "react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import axios from "@/lib/axios"
 import { toast } from "@/components/ui/toast/use-toast"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatDate } from "@/lib/formatters"
 
 interface CompanyListProps {
     companies: Company[]
@@ -74,6 +76,12 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
         }
     }
 
+    // Helper function to truncate text
+    const truncateText = (text: string | undefined, maxLength: number = 30) => {
+        if (!text) return "-";
+        return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+    };
+
     if (error) {
         return (
             <div className="flex-1 flex items-center justify-center">
@@ -96,10 +104,11 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700/50
                 hover:[&::-webkit-scrollbar-thumb]:bg-gray-300/80
                 dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-700/80">
+                <TooltipProvider>
                 <Table>
                     <TableHeader className="sticky top-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10">
                         <TableRow>
-                            <TableHead className="w-[20%]">
+                            <TableHead className="w-[10%]">
                                 <div className="flex items-center gap-2">
                                     <span className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                                         <Building className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -107,7 +116,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     Firma Adı
                                 </div>
                             </TableHead>
-                            <TableHead className="w-[20%]">
+                            <TableHead className="w-[10%]">
                                 <div className="flex items-center gap-2">
                                     <span className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                                         <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -115,7 +124,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     Ana Firma
                                 </div>
                             </TableHead>
-                            <TableHead className="w-[20%]">
+                            <TableHead className="w-[10%]">
                                 <div className="flex items-center gap-2">
                                     <span className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                                         <Mail className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -123,7 +132,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     E-posta
                                 </div>
                             </TableHead>
-                            <TableHead className="w-[15%]">
+                            <TableHead className="w-[10%]">
                                 <div className="flex items-center gap-2">
                                     <span className="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center">
                                         <Phone className="h-4 w-4 text-rose-600 dark:text-rose-400" />
@@ -131,12 +140,44 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     Telefon
                                 </div>
                             </TableHead>
-                            <TableHead className="w-[15%]">
+                            <TableHead className="w-[10%]">
                                 <div className="flex items-center gap-2">
                                     <span className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                                         <Hash className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                                     </span>
                                     Vergi No
+                                </div>
+                            </TableHead>
+                            <TableHead className="w-[10%]">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                                        <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                    </span>
+                                    Başlangıç Tarihi
+                                </div>
+                            </TableHead>
+                            <TableHead className="w-[10%]">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
+                                        <Calendar className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                                    </span>
+                                    Bitiş Tarihi
+                                </div>
+                            </TableHead>
+                            <TableHead className="w-[10%]">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
+                                        <FileText className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                                    </span>
+                                    BA Notları
+                                </div>
+                            </TableHead>
+                            <TableHead className="w-[10%]">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/50 flex items-center justify-center">
+                                        <FileText className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                                    </span>
+                                    Lisans Notları
                                 </div>
                             </TableHead>
                             <TableHead className="w-[5%] text-right">İşlemler</TableHead>
@@ -145,7 +186,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-[400px]">
+                                <TableCell colSpan={11} className="h-[400px]">
                                     <CustomLoader
                                         message="Yükleniyor"
                                         description="Firma verileri hazırlanıyor..."
@@ -154,7 +195,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                             </TableRow>
                         ) : companies.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-[400px] text-center">
+                                <TableCell colSpan={11} className="h-[400px] text-center">
                                     <div className="flex flex-col items-center justify-center gap-2">
                                         <Building className="h-8 w-8 text-gray-400" />
                                         <h3 className="font-semibold text-lg">Firma Bulunamadı</h3>
@@ -170,6 +211,40 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     <TableCell>{company.email || "-"}</TableCell>
                                     <TableCell>{company.phone || "-"}</TableCell>
                                     <TableCell>{company.taxId || "-"}</TableCell>
+                                    <TableCell>{formatDate(company.flow_ba_starting_date) || "-"}</TableCell>
+                                    <TableCell>{formatDate(company.flow_ba_end_date) || "-"}</TableCell>
+                                    <TableCell>
+                                        {company.flow_ba_notes ? (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="cursor-help underline decoration-dotted">
+                                                        {truncateText(company.flow_ba_notes, 20)}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-sm bg-secondary text-secondary-foreground">
+                                                    <p className="text-sm">{company.flow_ba_notes}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ) : (
+                                            "-"
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {company.flow_licence_notes ? (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <span className="cursor-help underline decoration-dotted">
+                                                        {truncateText(company.flow_licence_notes, 20)}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-sm bg-secondary text-secondary-foreground">
+                                                    <p className="text-sm">{company.flow_licence_notes}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ) : (
+                                            "-"
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -178,9 +253,6 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleViewCompany(company)}>
-                                                    <Eye className="h-4 w-4 mr-2" /> Görüntüle
-                                                </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleEditCompany(company)}>
                                                     <Edit className="h-4 w-4 mr-2" /> Düzenle
                                                 </DropdownMenuItem>
@@ -198,6 +270,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                         )}
                     </TableBody>
                 </Table>
+                </TooltipProvider>
             </div>
 
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

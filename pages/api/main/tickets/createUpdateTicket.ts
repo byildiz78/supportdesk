@@ -23,15 +23,9 @@ export default async function handler(
   }
 
   try {
-    console.log('API çağrısı alındı - Request body:', JSON.stringify(req.body, null, 2));
-    
     const { id, tags, ...ticketData } = req.body;
     const tenantId = extractTenantFromBody(req);
     
-    console.log('Tenant ID:', tenantId);
-    console.log('Ticket data:', JSON.stringify(ticketData, null, 2));
-    console.log('Tags:', tags);
-
     // UUID alanlarını doğrula
     const safeTicketData = {
       ...ticketData,
@@ -40,14 +34,15 @@ export default async function handler(
       groupId: isValidUUID(ticketData.groupId) ? ticketData.groupId : null,
       assignedTo: isValidUUID(ticketData.assignedTo) ? ticketData.assignedTo : null,
       parent_company_id: isValidUUID(ticketData.parent_company_id) ? ticketData.parent_company_id : null,
-      contact_id: isValidUUID(ticketData.contact_id) ? ticketData.contact_id : null
+      contact_id: isValidUUID(ticketData.contact_id) ? ticketData.contact_id : null,
+      // Status değerini doğrula
+      status: ['open', 'in_progress', 'waiting', 'pending', 'resolved', 'closed'].includes(ticketData.status) ? ticketData.status : 'open'
     };
-
-    console.log('Güvenli ticket verileri:', JSON.stringify(safeTicketData, null, 2));
 
     // Use a transaction to ensure data consistency
     return await db.executeTransaction(req, async (client) => {
       let ticketId: string;
+      let ticketNo: string;
 
       if (id) {
         // Update existing ticket
@@ -77,34 +72,8 @@ export default async function handler(
             updated_at = CURRENT_TIMESTAMP,
             updated_by = $21
           WHERE id = $22
-          RETURNING id;
+          RETURNING id, ticketno;
         `;
-
-        console.log('Update query:', updateQuery);
-        console.log('Update parameters:', [
-          safeTicketData.title,
-          safeTicketData.description,
-          safeTicketData.status,
-          safeTicketData.priority,
-          safeTicketData.source,
-          safeTicketData.categoryId,
-          safeTicketData.subcategoryId,
-          safeTicketData.groupId,
-          safeTicketData.assignedTo,
-          safeTicketData.customer_name,
-          safeTicketData.customer_email,
-          safeTicketData.customer_phone,
-          safeTicketData.company_name,
-          safeTicketData.company_id,
-          safeTicketData.contact_position,
-          safeTicketData.due_date,
-          safeTicketData.resolution_time,
-          safeTicketData.parent_company_id,
-          safeTicketData.contact_id,
-          safeTicketData.sla_breach !== undefined ? safeTicketData.sla_breach : false,
-          safeTicketData.updatedBy,
-          id
-        ]);
 
         const result = await client.query(updateQuery, [
           safeTicketData.title,
@@ -135,8 +104,29 @@ export default async function handler(
           return res.status(404).json({ success: false, message: 'Ticket not found' });
         }
 
-        ticketId = id;
+        ticketId = result.rows[0].id;
+        ticketNo = result.rows[0].ticketno;
       } else {
+        // Check for duplicate tickets with the same title and company_id
+        const checkDuplicateQuery = `
+          SELECT id FROM tickets 
+          WHERE title = $1 
+          AND company_id = $2
+          AND (is_deleted = false OR is_deleted IS NULL)
+        `;
+        
+        const duplicateResult = await client.query(checkDuplicateQuery, [
+          safeTicketData.title,
+          safeTicketData.company_id
+        ]);
+        
+        if (duplicateResult.rows.length > 0) {
+          return res.status(409).json({ 
+            success: false, 
+            message: 'A ticket with the same title already exists for this company' 
+          });
+        }
+        
         // Create new ticket
         const insertQuery = `
           INSERT INTO tickets (
@@ -169,33 +159,8 @@ export default async function handler(
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
             CURRENT_TIMESTAMP, $21, CURRENT_TIMESTAMP, false
           )
-          RETURNING id;
+          RETURNING id, ticketno;
         `;
-
-        console.log('Insert query:', insertQuery);
-        console.log('Insert parameters:', [
-          safeTicketData.title,
-          safeTicketData.description,
-          safeTicketData.status,
-          safeTicketData.priority,
-          safeTicketData.source,
-          safeTicketData.categoryId,
-          safeTicketData.subcategoryId,
-          safeTicketData.groupId,
-          safeTicketData.assignedTo,
-          safeTicketData.customer_name,
-          safeTicketData.customer_email,
-          safeTicketData.customer_phone,
-          safeTicketData.company_name,
-          safeTicketData.company_id,
-          safeTicketData.contact_position,
-          safeTicketData.due_date,
-          safeTicketData.resolution_time,
-          safeTicketData.parent_company_id,
-          safeTicketData.contact_id,
-          safeTicketData.sla_breach !== undefined ? safeTicketData.sla_breach : false,
-          safeTicketData.createdBy
-        ]);
 
         try {
           const result = await client.query(insertQuery, [
@@ -222,13 +187,12 @@ export default async function handler(
             safeTicketData.createdBy
           ]);
 
-          console.log('Insert result:', result);
-
           if (result.rows.length === 0) {
             return res.status(500).json({ success: false, message: 'Error creating ticket' });
           }
 
           ticketId = result.rows[0].id;
+          ticketNo = result.rows[0].ticketno;
         } catch (queryError: any) {
           console.error('SQL query error:', queryError);
           return res.status(500).json({ 
@@ -288,11 +252,11 @@ export default async function handler(
         }
       }
 
-      console.log('Ticket created/updated successfully with ID:', ticketId);
       return res.status(id ? 200 : 201).json({ 
         success: true, 
         message: id ? 'Ticket updated successfully' : 'Ticket created successfully', 
-        id: ticketId 
+        id: ticketId,
+        ticketno: ticketNo 
       });
     });
   } catch (error: any) {

@@ -61,7 +61,6 @@ export default function FlowCompaniesPage() {
         setCompanies(response.data.result);
         setTotalRecords(response.data.total || 0);
         setNextStart(response.data.next || null);
-        console.log("API Response:", response.data);
       } else {
         setError("Veri formatı beklendiği gibi değil");
       }

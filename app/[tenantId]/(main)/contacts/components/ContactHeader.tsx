@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Plus, FileSpreadsheet } from "lucide-react"
+import { Plus, UserRound, Download } from "lucide-react"
 
 interface ContactHeaderProps {
     onNewContact: () => void;
@@ -10,30 +10,28 @@ interface ContactHeaderProps {
 
 export function ContactHeader({ onNewContact, onExportToExcel }: ContactHeaderProps) {
     return (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
             <div className="space-y-1">
-                <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-                    Kişiler
-                </h2>
-                <p className="text-[0.925rem] text-muted-foreground">
-                    Kişi kayıtlarını yönetin
+                <div className="flex items-center gap-2">
+                    <UserRound className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                    <h1 className="text-2xl font-bold tracking-tight">Kişiler</h1>
+                </div>
+                <p className="text-muted-foreground">
+                    Kişi kayıtlarını görüntüleyin ve yönetin
                 </p>
             </div>
             <div className="flex gap-2">
-                <Button
-                    onClick={onExportToExcel}
+                <Button 
                     variant="outline"
-                    className="shadow-sm"
+                    onClick={onExportToExcel}
                 >
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Excel
+                    <Download className="mr-2 h-4 w-4" /> Excel'e Aktar
                 </Button>
-                <Button
+                <Button 
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
                     onClick={onNewContact}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 dark:shadow-blue-900/30 transition-all duration-200 hover:scale-[1.02]"
                 >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Kişi
+                    <Plus className="mr-2 h-4 w-4" /> Yeni Kişi
                 </Button>
             </div>
         </div>

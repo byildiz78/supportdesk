@@ -54,7 +54,7 @@ export function FileUpload({ ticketId, onUploadComplete }: FileUploadProps) {
             formData.append('createdBy', getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9');
             
             // Upload the files
-            const uploadResponse = await axios.post('/supportdesk/api/main/files/uploadFile', formData);
+            const uploadResponse = await axios.post('/api/main/files/uploadFile', formData);
             
             if (!uploadResponse.data.success) {
                 throw new Error('Dosya yükleme başarısız');

@@ -53,11 +53,6 @@ export default async function handler(
       req
     });
 
-    // Debug: Log the first few tickets to check their status
-    if (tickets.length > 0) {
-      console.log('Sample ticket data:', tickets.slice(0, 2));
-    }
-    
     // Return results directly
     return res.status(200).json(tickets);
   } catch (error: any) {

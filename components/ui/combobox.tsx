@@ -39,24 +39,16 @@ export function Combobox({
   disabled = false,
   className,
 }: ComboboxProps) {
-  console.log("Combobox rendered with options:", options);
-  console.log("Combobox value:", value);
-  console.log("Combobox options type:", typeof options);
-  console.log("Is options an array:", Array.isArray(options));
-  
   const [open, setOpen] = React.useState(false)
   
   // Ensure options is always an array of valid objects
   const safeOptions = React.useMemo(() => {
-    console.log("Computing safeOptions from:", options);
     
     if (!options) {
-      console.log("Options is falsy:", options);
       return [];
     }
     
     if (!Array.isArray(options)) {
-      console.log("Options is not an array:", options);
       return [];
     }
     
@@ -67,14 +59,8 @@ export function Combobox({
                      'value' in option && 
                      'label' in option;
       
-      if (!isValid) {
-        console.log("Invalid option found:", option);
-      }
-      
       return isValid;
     });
-    
-    console.log("Filtered options:", filteredOptions);
     
     const mappedOptions = filteredOptions.map(option => {
       const result = {
@@ -84,48 +70,36 @@ export function Combobox({
       return result;
     });
     
-    console.log("Final safeOptions:", mappedOptions);
     return mappedOptions;
   }, [options]);
   
   // Find the selected option safely
   const selectedOption = React.useMemo(() => {
-    console.log("Finding selectedOption with value:", value);
-    console.log("safeOptions length:", safeOptions.length);
-    
     if (!value || value === "") {
-      console.log("Value is empty or undefined");
       return undefined;
     }
     
     if (safeOptions.length === 0) {
-      console.log("No options available");
       return undefined;
     }
     
     const found = safeOptions.find((option) => option.value === value);
-    console.log("Selected option found:", found);
     return found;
   }, [safeOptions, value]);
 
   // Handle errors safely
   const handleSelect = React.useCallback((selectedValue: string) => {
-    console.log("handleSelect called with:", selectedValue);
     try {
       onChange(selectedValue === value ? "" : selectedValue);
-      console.log("onChange completed successfully");
     } catch (error) {
-      console.error("Error in combobox selection:", error);
     }
     setOpen(false);
   }, [onChange, value, setOpen]);
 
   // Log when popover state changes
   const handleOpenChange = React.useCallback((isOpen: boolean) => {
-    console.log("Popover open state changing to:", isOpen);
     try {
       setOpen(isOpen);
-      console.log("Popover state changed successfully");
     } catch (error) {
       console.error("Error changing popover state:", error);
     }
@@ -141,7 +115,6 @@ export function Combobox({
         className={cn("w-full justify-between", className)}
         disabled={disabled}
         onClick={() => {
-          console.log("Button clicked, current open state:", open);
           handleOpenChange(!open);
         }}
       >
@@ -162,13 +135,11 @@ export function Combobox({
           {safeOptions.length > 0 ? (
             <div className="max-h-[200px] overflow-auto p-1">
               {safeOptions.map((option, index) => {
-                console.log("Rendering option:", option, "at index:", index);
                 return (
                   <div
                     key={`${option.value || "empty"}-${index}`}
                     className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                     onClick={() => {
-                      console.log("Option clicked:", option);
                       handleSelect(option.value);
                     }}
                   >

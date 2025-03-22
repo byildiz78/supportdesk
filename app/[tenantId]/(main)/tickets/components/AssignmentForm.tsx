@@ -3,19 +3,18 @@
 import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
-import { Users, Loader2 } from "lucide-react"
+import { Users, Loader2, CalendarIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import ReactDatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
-import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useUsers } from "@/providers/users-provider"
+import ReactSelect from "react-select"
 
 interface AssignmentFormProps {
   assignedTo: string
@@ -65,53 +64,76 @@ export default function AssignmentForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label>Atanan Kişi</Label>
-            <Select
-              value={assignedTo}
-              onValueChange={onAssignedToChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Kişi seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Atanmadı</SelectItem>
-                {isLoading ? (
-                  <SelectItem value="" disabled>
+            <ReactSelect
+              value={assignedTo ? { 
+                value: assignedTo, 
+                label: users.find(user => user.id === assignedTo)?.name || "Kişi seçin" 
+              } : { value: "", label: "Atanmadı" }}
+              onChange={(option: any) => {
+                onAssignedToChange(option?.value || "");
+              }}
+              options={[
+                { value: "", label: "Atanmadı" },
+                ...users.map(user => ({
+                  value: user.id,
+                  label: user.name
+                }))
+              ]}
+              isDisabled={isLoading}
+              placeholder="Kişi seçin"
+              noOptionsMessage={() => error || "Kullanıcı bulunamadı"}
+              loadingMessage={() => "Yükleniyor..."}
+              isLoading={isLoading}
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+              components={{
+                LoadingIndicator: () => (
+                  <div className="flex items-center">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  </SelectItem>
-                ) : error ? (
-                  <SelectItem value="" disabled>
-                    {error}
-                  </SelectItem>
-                ) : users.length === 0 ? (
-                  <SelectItem value="" disabled>
-                    Kullanıcı bulunamadı
-                  </SelectItem>
-                ) : (
-                  users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  </div>
+                )
+              }}
+            />
           </div>
           <div>
             <Label>Kaynak</Label>
-            <Select
-              value={source}
-              onValueChange={onSourceChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Kaynak seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="email">E-posta</SelectItem>
-                <SelectItem value="phone">Telefon</SelectItem>
-                <SelectItem value="web">Web Sitesi</SelectItem>
-                <SelectItem value="chat">Canlı Destek</SelectItem>
-              </SelectContent>
-            </Select>
+            <ReactSelect
+              value={source ? {
+                value: source,
+                label: source === "email" ? "E-posta" :
+                       source === "phone" ? "Telefon" :
+                       source === "web" ? "Web Sitesi" :
+                       source === "chat" ? "Canlı Destek" : "Kaynak seçin"
+              } : null}
+              onChange={(option: any) => {
+                onSourceChange(option?.value || "");
+              }}
+              options={[
+                { value: "email", label: "E-posta" },
+                { value: "phone", label: "Telefon" },
+                { value: "web", label: "Web Sitesi" },
+                { value: "chat", label: "Canlı Destek" }
+              ]}
+              placeholder="Kaynak seçin"
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+            />
           </div>
           <div>
             <Label>Son Tarih</Label>
@@ -141,18 +163,28 @@ export default function AssignmentForm({
           </div>
           <div>
             <Label>SLA İhlali</Label>
-            <Select
-              value={slaBreach ? "true" : "false"}
-              onValueChange={(value) => onSlaBreachChange(value === "true")}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="false">Hayır</SelectItem>
-                <SelectItem value="true">Evet</SelectItem>
-              </SelectContent>
-            </Select>
+            <ReactSelect
+              value={{
+                value: slaBreach ? "true" : "false",
+                label: slaBreach ? "Evet" : "Hayır"
+              }}
+              onChange={(option: any) => {
+                onSlaBreachChange(option?.value === "true");
+              }}
+              options={[
+                { value: "false", label: "Hayır" },
+                { value: "true", label: "Evet" }
+              ]}
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+            />
           </div>
         </div>
       </Card>

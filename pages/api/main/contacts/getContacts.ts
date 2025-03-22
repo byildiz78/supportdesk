@@ -24,9 +24,6 @@ export default async function handler(
   try {
     const { companyId } = req.query;
     
-    console.log('İletişim Kişileri API çağrıldı, companyId:', companyId);
-
-    // Veritabanı sorgusu - tenant ID'yi req.body içine ekliyoruz
     req.body = {
       ...req.body,
       tenantId: req.headers['x-tenant-id'] || req.query.tenantId || 'public'
@@ -81,8 +78,6 @@ export default async function handler(
     });
     
     // Veritabanından gelen verileri kullan
-    console.log('İletişim kişileri döndürülüyor:', result);
-    
     return res.status(200).json({
       success: true,
       data: result || []

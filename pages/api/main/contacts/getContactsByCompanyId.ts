@@ -24,8 +24,6 @@ export default async function handler(
   try {
     const { companyId } = req.query;
     
-    console.log('getContactsByCompanyId API çağrıldı, companyId:', companyId);
-
     if (!companyId) {
       return res.status(400).json({
         success: false,
@@ -63,8 +61,6 @@ export default async function handler(
       params,
       req
     });
-    
-    console.log('Firmaya ait iletişim kişileri döndürülüyor:', result);
     
     return res.status(200).json({
       success: true,

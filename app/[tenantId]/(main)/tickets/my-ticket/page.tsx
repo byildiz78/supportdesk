@@ -11,7 +11,6 @@ import { TicketHeader } from "../components/TicketHeader"
 import { TicketFilters } from "../components/TicketFilters"
 import { TicketList } from "../components/TicketList"
 import { TicketPagination } from "../components/TicketPagination"
-import { Ticket } from "@/types/tickets"
 
 // Window nesnesine refreshTicketList fonksiyonunu eklemek için TypeScript tanımlaması
 declare global {
@@ -26,10 +25,10 @@ export default function MyTicketsPage() {
     const { selectedFilter } = useFilterStore()
     const { 
         getTickets, 
+        getFilters,
         setTickets, 
         isLoading, 
         setIsLoading, 
-        filters, 
         setFilters, 
         clearTickets,
         isTabLoaded,
@@ -48,6 +47,7 @@ export default function MyTicketsPage() {
     
     // Veri
     const tickets = getTickets(TAB_NAME)
+    const filters = getFilters(TAB_NAME)
     
     // Component ilk mount olduğunda çalışır
     useEffect(() => {
@@ -97,8 +97,6 @@ export default function MyTicketsPage() {
             if (response.data) {
                 // API'den gelen verileri doğrudan kullan, tekrar filtreleme yapma
                 setTickets(response.data, TAB_NAME)
-                console.log("Benim Taleplerim yüklendi:", response.data)
-                // Son yenileme zamanını güncelle (setTickets içinde zaten yapılıyor)
             }
         } catch (err: any) {
             console.error('Error loading tickets:', err)
@@ -139,7 +137,7 @@ export default function MyTicketsPage() {
     // Filtre değişikliklerini işle
     const handleFilterChange = (newFilters: any) => {
         const updatedFilters = { ...filters, ...newFilters };
-        setFilters(updatedFilters);
+        setFilters(updatedFilters, TAB_NAME);
         setCurrentPage(1); // Reset to first page when filters change
         // Filtreler değiştiğinde verileri tekrar yükleme, sadece filtreleri uygula
         // clearTickets(TAB_NAME);

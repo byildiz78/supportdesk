@@ -34,6 +34,7 @@ export default async function handler(
         t.company_id as "companyId",
         t.contact_position as "contactPosition",
         t.due_date as "dueDate",
+        t.sla_breach as "slaBreach",
         t.resolution_time as "resolutionTime",
         t.created_at as "createdAt",
         t.created_by as "createdBy",

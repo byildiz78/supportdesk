@@ -5,28 +5,19 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Save, Upload, X } from "lucide-react"
-import { useRouter, useParams } from "next/navigation"
+import { FileAttachment, Ticket } from "@/types/tickets"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import axios from "@/lib/axios"
 import { getUserId } from "@/utils/user-utils"
+import { useCategories } from "@/providers/categories-provider"
 import { useTicketStore } from "@/stores/ticket-store"
 import { useTabStore } from "@/stores/tab-store"
-import { useCategories } from "@/providers/categories-provider"
-import { useToast } from "@/components/ui/toast/use-toast"
-
-// Import form components
+import { useUsers } from "@/providers/users-provider"
 import TicketInfoForm from "../components/TicketInfoForm"
-import ParentCompanyForm from "../components/ParentCompanyForm"
 import CompanyForm from "../components/CompanyForm"
 import ContactForm from "../components/ContactForm"
 import AssignmentForm from "../components/AssignmentForm"
 import { toast } from "@/components/ui/toast/use-toast"
-
-// Kategori, alt kategori ve grup için tip tanımlamaları
-interface Category {
-  id: string;
-  name: string;
-  description?: string;
-}
 
 interface Subcategory {
   id: string;
@@ -40,7 +31,6 @@ interface Group {
   description?: string;
 }
 
-// Props tipini tanımla
 interface NewTicketPageProps {
   ticketId?: string;
 }
@@ -49,9 +39,7 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
   const router = useRouter()
   const params = useParams<{ tenantId: string }>()
   const tenantId = params?.tenantId || ""
-  const { removeTab, setActiveTab } = useTabStore()
-  const { addTicket, updateTicket } = useTicketStore()
-  const { toast } = useToast()
+  
   
   // CategoriesProvider'dan kategorileri al
   const { 
@@ -62,10 +50,19 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
     getGroupsBySubcategoryId
   } = useCategories();
 
+  const { users } = useUsers() // Kullanıcı listesini al
+  const { addTicket, updateTicket } = useTicketStore()
+  const { setActiveTab, removeTab } = useTabStore()
+
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // EKLENEN SATIR: Veri yükleme durumu için flag
+  const [isInitialDataLoading, setIsInitialDataLoading] = useState(false)
+  
+  // Dosya işleme fonksiyonları
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
@@ -83,6 +80,11 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
   const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false)
   const [isLoadingGroups, setIsLoadingGroups] = useState(false)
 
+  // Kategori, alt kategori ve grup adlarını saklamak için state'ler
+  const [categoryName, setCategoryName] = useState<string>("");
+  const [subcategoryName, setSubcategoryName] = useState<string>("");
+  const [groupName, setGroupName] = useState<string>("");
+
   const [ticketData, setTicketData] = useState({
     // Ticket info
     title: "",
@@ -90,25 +92,26 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
     category: "",
     subcategory: "",
     group: "",
+    group_name: "", // API'den gelen grup adı
     priority: "medium",
-
+    
     // Company info
     companyId: "",
     companyName: "",
-
+    
     // Contact info
     contactId: "",
     contactName: "",
     contactEmail: "",
     contactPhone: "",
     contactPosition: "",
-
+    
     // Assignment info
     source: "web",
     assignedTo: "",
     dueDate: null as string | null,
     slaBreach: false,
-
+    
     // Tags
     tags: [] as string[]
   })
@@ -119,10 +122,12 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
     setError("")
 
     try {
+      // Validate required fields
       if (!ticketData.title.trim()) {
         throw new Error("Talep başlığı zorunludur")
       }
 
+      // Prepare ticket data for API - veritabanı şemasına uygun olarak düzenlendi
       const ticketPayload = {
         id: ticketId || undefined, // Eğer ticketId varsa, güncelleme işlemi yapılacak
         title: ticketData.title,
@@ -151,98 +156,55 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
         createdBy: getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9', // getUserId() fonksiyonu ile kullanıcı ID'sini alıyoruz
         tenantId: tenantId
       }
-
+      
       try {
         const response = await axios.post('/api/main/tickets/createUpdateTicket', ticketPayload)
+        
         if (response.data.success) {
-          // Oluşturulan ticket ID'sini al
-          const createdTicketId = response.data.id;
-
-          // Yeni oluşturulan ticket'ı store'a ekle (sadece yeni oluşturma durumunda)
-          if (!ticketId && createdTicketId) {
-            // API'den tam ticket verisi dönmüyor, sadece ID dönüyor
-            // Bu yüzden gönderdiğimiz verileri kullanarak bir ticket objesi oluşturalım
-            const newTicket = {
-              id: createdTicketId,
-              ticketno: 0, // Backend otomatik atayacak, bu sadece geçici bir değer
-              title: ticketPayload.title,
-              description: ticketPayload.description,
-              status: ticketPayload.status,
-              priority: ticketPayload.priority,
-              source: ticketPayload.source,
-
-              // Veritabanı alanları
-              category_id: ticketPayload.categoryId,
-              category_name: null, // Şu an için bilinmiyor
-              subcategory_id: ticketPayload.subcategoryId,
-              group_id: ticketPayload.groupId,
-              assigned_to: ticketPayload.assignedTo,
-              assignedUserName: null, // Şu an için bilinmiyor
-              customer_name: ticketPayload.customer_name,
-              customer_email: ticketPayload.customer_email,
-              customer_phone: ticketPayload.customer_phone,
-              company_name: ticketPayload.company_name,
-              company_id: ticketPayload.company_id,
-              contact_id: ticketPayload.contact_id,
-              contact_name: null,
-              contact_first_name: null,
-              contact_last_name: null,
-              contact_email: null,
-              contact_phone: null,
-              contact_position: ticketPayload.contact_position,
-              due_date: ticketPayload.due_date,
-              resolution_time: null,
-              parent_company_id: ticketPayload.parent_company_id,
-              sla_breach: ticketPayload.sla_breach,
-
-              // Ek alanlar
-              tags: [],
-              attachments: [],
-              comments: [],
-              created_at: new Date().toISOString(),
-              created_by: getUserId() || null,
-              updated_at: new Date().toISOString(),
-              updated_by: getUserId() || null,
-              is_deleted: false,
-
-              // Frontend uyumluluğu için camelCase versiyonlar
-              createdAt: new Date().toISOString(),
-              createdBy: getUserId() || null,
-              updatedAt: new Date().toISOString(),
-              updatedBy: getUserId() || null
-            };
-            addTicket(newTicket, 'Tüm Talepler');
-          }
-
           // If there are files, upload them as attachments
           if (files.length > 0) {
             try {
-              if (!createdTicketId) {
-                throw new Error('Ticket ID bulunamadı, dosya yüklenemedi');
-              }
-
+              // Ticket ID'yi API yanıtından al
+              const ticketId = response.data.id;
+              
+              // FormData oluştur
               const formData = new FormData();
+              
+              // Dosyaları FormData'ya ekle
               files.forEach(file => {
                 formData.append('file', file);
               });
-
+              
+              // Metadata ekle
               formData.append('entityType', 'ticket');
-              formData.append('entityId', createdTicketId);
-              formData.append('createdBy', getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9');
-
+              formData.append('entityId', ticketId);
+              formData.append('createdBy', getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9'); // getUserId() fonksiyonu ile kullanıcı ID'sini alıyoruz
+              
               // Dosyaları yükle
               const uploadResponse = await axios.post('/api/main/files/uploadFile', formData);
-
-              if (!uploadResponse.data.success) {
-                throw new Error('Dosya yükleme başarısız');
+              
+              if (uploadResponse.data.success) {
+                toast({
+                    title: "Dosya Yüklendi",
+                    description: `Dosya başarıyla yüklendi: ${files[0].name}`,
+                    variant: "default",
+                    className: "bg-green-100 border-green-500 text-green-800",
+                });
+              } else {
+                console.error('Dosya yükleme başarısız:', uploadResponse.data);
+                throw new Error(uploadResponse.data.message || 'Dosya yükleme başarısız');
               }
-
-              toast({
-                title: "Başarılı",
-                description: `Talep ${ticketId ? 'güncellendi' : 'oluşturuldu'} ve ${files.length} dosya başarıyla yüklendi`,
-              });
             } catch (error: any) {
               console.error('Dosya yükleme hatası:', error);
+              
+              // Hata detaylarını logla
+              if (error.response) {
+                console.error('Hata yanıtı:', error.response.data);
+                console.error('Hata durumu:', error.response.status);
+              } else if (error.request) {
+                console.error('Yanıt alınamadı, istek:', error.request);
+              }
+              
               toast({
                 title: "Uyarı",
                 description: `Talep ${ticketId ? 'güncellendi' : 'oluşturuldu'} ancak dosya yüklemede hata oluştu: ` + (error.message || "Bilinmeyen hata"),
@@ -250,12 +212,113 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
               });
             }
           }
+
+          const tabId = ticketId ? `edit-ticket-${ticketId}` : "new-ticket";
+          removeTab(tabId)
+          const newTicket: Ticket = {
+            id: ticketId || response.data.id, // Ensure ID is set when updating
+            ticketno: response.data.ticketno, // Veritabanından gelen ticket numarasını kullan
+            title: ticketData.title,
+            description: ticketData.description,
+            status: "open",
+            priority: ticketData.priority,
+            source: ticketData.source || null,
+            
+            // Hem snake_case hem de camelCase versiyonlarını ekleyelim
+            category_id: ticketData.category || null,
+            categoryId: ticketData.category || null,
+            category_name: categoryName,
+            subcategory_id: ticketData.subcategory || null,
+            subcategoryId: ticketData.subcategory || null,
+            subcategory_name: subcategoryName,
+            group_id: ticketData.group || null,
+            groupId: ticketData.group || null,
+            group_name: groupName,
+            assigned_to: ticketData.assignedTo || null,
+            assignedTo: ticketData.assignedTo || null,
+            customer_name: ticketData.contactName || null,
+            customerName: ticketData.contactName || null,
+            customer_email: ticketData.contactEmail || null,
+            customerEmail: ticketData.contactEmail || null,
+            customer_phone: ticketData.contactPhone || null,
+            customerPhone: ticketData.contactPhone || null,
+            company_name: ticketData.companyName || null,
+            companyName: ticketData.companyName || null,
+            company_id: ticketData.companyId || null,
+            companyId: ticketData.companyId || null,
+            contact_id: ticketData.contactId || null,
+            contactId: ticketData.contactId || null,
+            contact_name: ticketData.contactName || null,
+            contactName: ticketData.contactName || null,
+            contact_first_name: null,
+            contact_last_name: null,
+            contact_email: ticketData.contactEmail || null,
+            contact_phone: ticketData.contactPhone || null,
+            contact_position: ticketData.contactPosition || null,
+            contactPosition: ticketData.contactPosition || null,
+            due_date: ticketData.dueDate || null,
+            dueDate: ticketData.dueDate || null,
+            resolution_time: null,
+            resolutionTime: null,
+            parent_company_id: null,
+            parentCompanyId: null,
+            sla_breach: false,
+            slaBreach: false,
+            
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            created_by: null,
+            createdBy: null,
+            updated_at: null,
+            updatedAt: null,
+            updated_by: null,
+            updatedBy: null,
+            is_deleted: false
+          };
+          if (ticketData.assignedTo) {
+            const assignedUser = users.find(user => user.id === ticketData.assignedTo);
+            if (assignedUser) {
+              newTicket.assignedUserName = assignedUser.name;
+            }
+          }
+          
+          // Eğer ticketId varsa güncelleme, yoksa yeni ekleme yap
+          if (ticketId) {
+            // Mevcut talebi güncelle
+            updateTicket(newTicket);
+            setActiveTab('Tüm Talepler');
+            
+            // Başarı bildirimi göster
+            toast({
+              title: "Başarılı",
+              description: "Talep başarıyla güncellendi.",
+              variant: "default",
+            });
+          } else {
+            // Yeni talep ekle
+            const ticketAdded = addTicket(newTicket, 'Tüm Talepler');
+            
+            if (ticketAdded) {
+              setActiveTab('Tüm Talepler');
+              
+              // Başarı bildirimi göster
+              toast({
+                title: "Başarılı",
+                description: "Talep başarıyla oluşturuldu.",
+                variant: "default",
+              });
+            } else {
+              // Mükerrer talep hatası göster
+              toast({
+                title: "Hata",
+                description: "Bu başlık ve şirket için zaten bir talep bulunmaktadır.",
+                variant: "destructive",
+              });
+            }
+          }
         } else {
           throw new Error(response.data.message || 'Talep oluşturulurken bir hata oluştu')
         }
-        const tabId = ticketId ? `edit-ticket-${ticketId}` : 'new-ticket'
-        removeTab(tabId)
-        setActiveTab('Tüm Talepler')
       } catch (apiError: any) {
         throw new Error(apiError.response?.data?.message || apiError.message || 'API isteği başarısız oldu');
       }
@@ -266,11 +329,15 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
     }
   }
 
-  // Kategori değiştiğinde alt kategorileri yükle
+  // DÜZENLENEN: Kategori değiştiğinde alt kategorileri yükle
   useEffect(() => {
     if (!ticketData.category) {
-      setSubcategories([]);
-      setTicketData(prev => ({ ...prev, subcategory: '' }));
+      // Sadece başlangıç yüklemesi sırasında değilse, alt kategoriyi sıfırla
+      if (!isInitialDataLoading) {
+        setSubcategories([]);
+        setTicketData(prev => ({ ...prev, subcategory: '' }));
+        setSubcategoryName('');
+      }
       return;
     }
 
@@ -278,15 +345,28 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
     setIsLoadingSubcategories(true);
     const subcats = getSubcategoriesByCategoryId(ticketData.category);
     setSubcategories(subcats);
+    
+    // Eğer düzenleme modunda ve alt kategori ID'si varsa, adını güncelle
+    if (isInitialDataLoading && ticketData.subcategory) {
+      const subcatName = subcats.find(sc => sc.id === ticketData.subcategory)?.name;
+      if (subcatName) {
+        setSubcategoryName(subcatName);
+      }
+    }
+    
     setIsLoadingSubcategories(false);
     
-  }, [ticketData.category, getSubcategoriesByCategoryId]);
+  }, [ticketData.category, getSubcategoriesByCategoryId, isInitialDataLoading, ticketData.subcategory]);
 
-  // Alt kategori değiştiğinde grupları yükle
+  // DÜZENLENEN: Alt kategori değiştiğinde grupları yükle
   useEffect(() => {
     if (!ticketData.subcategory) {
-      setGroups([]);
-      setTicketData(prev => ({ ...prev, group: '' }));
+      // Sadece başlangıç yüklemesi sırasında değilse, grup bilgisini sıfırla
+      if (!isInitialDataLoading) {
+        setGroups([]);
+        setTicketData(prev => ({ ...prev, group: '' }));
+        setGroupName('');
+      }
       return;
     }
 
@@ -294,59 +374,94 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
     setIsLoadingGroups(true);
     const groupsData = getGroupsBySubcategoryId(ticketData.subcategory);
     setGroups(groupsData);
+    
+    // Eğer düzenleme modunda ve grup ID'si varsa, adını güncelle
+    if (isInitialDataLoading && ticketData.group) {
+      const groupName = groupsData.find(g => g.id === ticketData.group)?.name;
+      if (groupName) {
+        setGroupName(groupName);
+        setTicketData(prev => ({ ...prev, group_name: groupName }));
+      }
+    }
+    
     setIsLoadingGroups(false);
     
-  }, [ticketData.subcategory, getGroupsBySubcategoryId]);
+  }, [ticketData.subcategory, getGroupsBySubcategoryId, isInitialDataLoading, ticketData.group]);
 
-  // Eğer ticketId varsa, mevcut ticket verilerini yükle
+  // DÜZENLENEN: Eğer ticketId varsa, mevcut ticket verilerini yükle
   useEffect(() => {
     if (!ticketId) return;
 
     const fetchTicketDetails = async () => {
       try {
         setIsSubmitting(true); // Yükleme durumunu göster
-        const response = await axios.get(`/api/main/tickets/getTicketById`, { params: { ticketId: ticketId } });
+        setIsInitialDataLoading(true); // Başlangıç veri yüklemesi aktif
 
+        const response = await axios.get(`/api/main/tickets/getTicketById`, { params: { ticketId: ticketId } });
+        
         if (response.data.success) {
           const ticketData = response.data.data;
-          console.log('Yüklenen ticket verileri:', ticketData);
-
-          // Ticket verilerini forma doldur
+          
+          // Önce kategori, alt kategori ve grup verilerini hazırla
+          const categoryId = ticketData.category_id || "";
+          const subcategoryId = ticketData.subcategory_id || "";
+          const groupId = ticketData.group_id || "";
+          
+          // Kategori, alt kategori ve grup adlarını sakla
+          const catName = ticketData.category_name || "";
+          const subcatName = ticketData.subcategory_name || "";
+          const grpName = ticketData.group_name || "";
+          
+          setCategoryName(catName);
+          setSubcategoryName(subcatName);
+          setGroupName(grpName);
+          
+          // Kategori varsa, alt kategorileri yükle
+          if (categoryId) {
+            setIsLoadingSubcategories(true);
+            const subcats = getSubcategoriesByCategoryId(categoryId);
+            setSubcategories(subcats);
+            setIsLoadingSubcategories(false);
+            
+            // Alt kategori varsa, grupları yükle
+            if (subcategoryId) {
+              setIsLoadingGroups(true);
+              const groupsData = getGroupsBySubcategoryId(subcategoryId);
+              setGroups(groupsData);
+              setIsLoadingGroups(false);
+            }
+          }
+          
+          // Veri yükleme tamamlandıktan sonra ticket verilerini state'e yükle
           setTicketData({
             title: ticketData.title || "",
             description: ticketData.description || "",
-            category: ticketData.category_id || "",
-            subcategory: ticketData.subcategory_id || "",
-            group: ticketData.group_id || "",
+            category: categoryId,
+            subcategory: subcategoryId,
+            group: groupId,
+            group_name: grpName, // API'den gelen grup adı
             priority: ticketData.priority || "medium",
-
+            
             // Şirket bilgileri
             companyId: ticketData.company_id || "",
             companyName: ticketData.company_name || "",
-
-            // İletişim bilgileri
+            
+            // İletişim bilgileri - Burada customer_* alanlarını kullanıyoruz
             contactId: ticketData.contact_id || "",
             contactName: ticketData.customer_name || "",
             contactEmail: ticketData.customer_email || "",
             contactPhone: ticketData.customer_phone || "",
             contactPosition: ticketData.contact_position || "",
-
+            
             // Atama bilgileri
             source: ticketData.source || "web",
             assignedTo: ticketData.assigned_to || "",
             dueDate: ticketData.due_date || null,
             slaBreach: ticketData.sla_breach || false,
-
+            
             // Etiketler
             tags: ticketData.tags || []
           });
-
-          // Eğer dosya ekleri varsa, onları da yükle
-          if (ticketData.attachments && ticketData.attachments.length > 0) {
-            // Burada dosya eklerini göstermek için bir işlem yapılabilir
-            // Ancak dosyaları direkt olarak File nesnelerine dönüştüremeyiz
-            // Bu nedenle sadece mevcut dosyaları göstermek için bir UI eklenmesi gerekebilir
-          }
         } else {
           throw new Error(response.data.message || 'Ticket verileri yüklenemedi');
         }
@@ -355,11 +470,15 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
         setError(error.message || 'Ticket verileri yüklenemedi');
       } finally {
         setIsSubmitting(false);
+        // Tüm state güncellemeleri işlendikten sonra loading flag'i kaldır
+        setTimeout(() => {
+          setIsInitialDataLoading(false);
+        }, 100);
       }
     };
 
     fetchTicketDetails();
-  }, [ticketId]);
+  }, [ticketId, getSubcategoriesByCategoryId, getGroupsBySubcategoryId]);
 
   // UUID formatını doğrulama fonksiyonu
   const isValidUUID = (uuid: string | undefined | null): boolean => {
@@ -381,7 +500,7 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-6 pb-24">
             {/* Ticket Information Form */}
-            <TicketInfoForm
+            <TicketInfoForm 
               title={ticketData.title}
               description={ticketData.description}
               category={ticketData.category}
@@ -391,9 +510,68 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
               files={files}
               onTitleChange={(value) => setTicketData(prev => ({ ...prev, title: value }))}
               onDescriptionChange={(value) => setTicketData(prev => ({ ...prev, description: value }))}
-              onCategoryChange={(value) => setTicketData(prev => ({ ...prev, category: value }))}
-              onSubcategoryChange={(value) => setTicketData(prev => ({ ...prev, subcategory: value }))}
-              onGroupChange={(value) => setTicketData(prev => ({ ...prev, group: value }))}
+              onCategoryChange={(value) => {
+                // Kategori değiştiğinde, kategori adını da güncelle
+                const selectedCategory = categories.find(cat => cat.id === value);
+                setCategoryName(selectedCategory?.name || "");
+                
+                if (isInitialDataLoading) {
+                  // Başlangıç yüklemesi sırasında sadece kategori değerini güncelle
+                  // alt kategori ve grup değerlerini koruyarak
+                  setTicketData(prev => ({ 
+                    ...prev, 
+                    category: value
+                  }));
+                } else {
+                  // Normal kullanımda kategori değiştiğinde alt kategori ve grup bilgilerini sıfırla
+                  setTicketData(prev => ({ 
+                    ...prev, 
+                    category: value,
+                    subcategory: "",
+                    group: ""
+                  }));
+                  
+                  // Alt kategori ve grup adlarını da sıfırla
+                  setSubcategoryName("");
+                  setGroupName("");
+                }
+              }}
+              onSubcategoryChange={(value) => {
+                // Alt kategori değiştiğinde, alt kategori adını da güncelle
+                const selectedSubcategory = subcategories.find(subcat => subcat.id === value);
+                setSubcategoryName(selectedSubcategory?.name || "");
+                
+                if (isInitialDataLoading) {
+                  // Başlangıç yüklemesi sırasında sadece alt kategori değerini güncelle
+                  // grup değerini koruyarak
+                  setTicketData(prev => ({ 
+                    ...prev, 
+                    subcategory: value
+                  }));
+                } else {
+                  // Normal kullanımda alt kategori değiştiğinde grup bilgisini sıfırla
+                  setTicketData(prev => ({ 
+                    ...prev, 
+                    subcategory: value,
+                    group: ""
+                  }));
+                  
+                  // Grup adını da sıfırla
+                  setGroupName("");
+                }
+              }}
+              onGroupChange={(value) => {
+                // Grup değiştiğinde, grup adını da güncelle
+                const selectedGroup = groups.find(grp => grp.id === value);
+                setGroupName(selectedGroup?.name || "");
+                
+                // Grup değişikliğini state'e yansıt
+                setTicketData(prev => ({ 
+                  ...prev, 
+                  group: value,
+                  group_name: selectedGroup?.name || ""
+                }));
+              }}
               onPriorityChange={(value) => setTicketData(prev => ({ ...prev, priority: value }))}
               onFileChange={handleFileChange}
               onFileRemove={handleRemoveFile}
@@ -403,10 +581,14 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
               isLoadingCategories={isLoadingCategories}
               isLoadingSubcategories={isLoadingSubcategories}
               isLoadingGroups={isLoadingGroups}
+              categoryName={categoryName}
+              subcategoryName={subcategoryName}
+              groupName={groupName}
+              group_name={ticketData.group_name}
             />
 
             {/* Company Form */}
-            <CompanyForm
+            <CompanyForm 
               companyId={ticketData.companyId}
               companyName={ticketData.companyName}
               contactId={ticketData.contactId}
@@ -414,8 +596,8 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
               contactEmail={ticketData.contactEmail}
               contactPhone={ticketData.contactPhone}
               contactPosition={ticketData.contactPosition}
-              onCompanyIdChange={(value) => setTicketData(prev => ({
-                ...prev,
+              onCompanyIdChange={(value) => setTicketData(prev => ({ 
+                ...prev, 
                 companyId: value,
                 // Reset contact when company changes
                 contactId: "",
@@ -433,7 +615,7 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
             />
 
             {/* Contact Form */}
-            <ContactForm
+            <ContactForm 
               companyId={ticketData.companyId}
               contactId={ticketData.contactId}
               contactName={ticketData.contactName}
@@ -448,7 +630,7 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
             />
 
             {/* Assignment Form */}
-            <AssignmentForm
+            <AssignmentForm 
               assignedTo={ticketData.assignedTo}
               source={ticketData.source}
               dueDate={ticketData.dueDate}
@@ -464,9 +646,9 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
               <h2 className="text-xl font-semibold">Dosya Ekle</h2>
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
+                  <Button 
+                    type="button" 
+                    variant="outline" 
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isSubmitting}
                   >
@@ -481,7 +663,7 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
                     multiple
                   />
                 </div>
-
+                
                 {files.length > 0 && (
                   <div className="border rounded-md p-3">
                     <p className="text-sm text-gray-500 mb-2">Seçilen Dosyalar ({files.length})</p>
@@ -496,10 +678,10 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
                               ({Math.round(file.size / 1024)} KB)
                             </span>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
                             onClick={() => handleRemoveFile(index)}
                             disabled={isSubmitting}
                           >
@@ -523,7 +705,7 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
           >
             İptal
           </Button>
-          <Button
+          <Button 
             type="submit"
             disabled={isSubmitting || !ticketData.title.trim()}
             className="bg-blue-600 hover:bg-blue-700 text-white"

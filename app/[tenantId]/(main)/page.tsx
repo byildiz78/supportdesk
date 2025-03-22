@@ -1,6 +1,5 @@
 "use client";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/header";
 import { useTabStore } from "@/stores/tab-store";
 import dynamic from 'next/dynamic';
@@ -8,6 +7,12 @@ import { memo } from 'react';
 import { Home as HomeIcon } from 'lucide-react';
 import MobilePage from "@/app/[tenantId]/(main)/mobile/page";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+    CustomTabs, 
+    CustomTabsList, 
+    CustomTabsTrigger, 
+    CustomTabsCSS 
+} from "@/components/custom-tabs";
 
 const DashboardPage = memo(dynamic(() => import('@/app/[tenantId]/(main)/dashboard/page'), {
     loading: () => <div>Loading...</div>,
@@ -42,25 +47,26 @@ export default function MainPage() {
                 <main className="flex-1 overflow-hidden bg-background/80 backdrop-blur-sm border-2 border-border/40/">
                     <div className="h-full p-4 flex gap-2">
                         <div className="flex-1 bg-background/60 backdrop-blur-sm rounded-lg border-2 border-border/40 shadow-lg dark:shadow-slate-900/20 p-4">
-                            <Tabs
+                            <CustomTabsCSS />
+                            <CustomTabs
                                 value={activeTab}
                                 onValueChange={setActiveTab}
                                 className="h-full flex flex-col"
                             >
-                                <TabsList className="w-full justify-start" onCloseAll={removeAllTabs}>
-                                    <TabsTrigger value="dashboard" icon={<HomeIcon className="w-4 h-4" />}>
+                                <CustomTabsList className="w-full justify-start" onCloseAll={removeAllTabs}>
+                                    <CustomTabsTrigger value="dashboard" icon={<HomeIcon className="w-4 h-4" />}>
                                         Dashboard
-                                    </TabsTrigger>
+                                    </CustomTabsTrigger>
                                     {tabs.map((tab) => (
-                                        <TabsTrigger
+                                        <CustomTabsTrigger
                                             key={tab.id}
                                             value={tab.id}
                                             onClose={() => handleCloseTab(tab.id)}
                                         >
                                             {tab.title}
-                                        </TabsTrigger>
+                                        </CustomTabsTrigger>
                                     ))}
-                                </TabsList>
+                                </CustomTabsList>
 
                                 <div className="flex-1 mt-4 overflow-hidden">
                                     <div 
@@ -95,7 +101,7 @@ export default function MainPage() {
                                         );
                                     })}
                                 </div>
-                            </Tabs>
+                            </CustomTabs>
                         </div>
                     </div>
                 </main>

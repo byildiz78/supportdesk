@@ -46,7 +46,6 @@ export function UsersProvider({ children }: UsersProviderProps) {
             setError(null)
             
             const response = await axios.get('/api/main/users/getUsers')
-            console.log('Users API response:', response.data)
             
             if (response.data) {
                 // Farklı yanıt formatlarını işleme

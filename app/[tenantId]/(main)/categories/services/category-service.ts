@@ -1,14 +1,11 @@
-import axios from "axios";
+import axios from "@/lib/axios";
 import { Category, Subcategory, Group } from "@/types/categories";
 
 export const CategoryService = {
   // Categories
   getCategories: async (): Promise<Category[]> => {
     try {
-      console.log('CategoryService.getCategories çağrıldı');
-      const response = await axios.get('/supportdesk/api/main/categories/getCategories');
-      
-      console.log('CategoryService.getCategories yanıtı:', response.data);
+      const response = await axios.get('/api/main/categories/getCategories');
       
       if (response.data.success) {
         return response.data.data || [];
@@ -23,14 +20,10 @@ export const CategoryService = {
 
   createUpdateCategory: async (category: Partial<Category>, isUpdate: boolean = false): Promise<Category> => {
     try {
-      console.log(`CategoryService.${isUpdate ? 'updateCategory' : 'createCategory'} çağrıldı:`, category);
-      
-      const response = await axios.post('/supportdesk/api/main/categories/createUpdateCategory', {
+      const response = await axios.post('/api/main/categories/createUpdateCategory', {
         ...category,
         isUpdate
       });
-      
-      console.log(`CategoryService.${isUpdate ? 'updateCategory' : 'createCategory'} yanıtı:`, response.data);
       
       if (response.data.success) {
         return response.data.data;
@@ -45,11 +38,7 @@ export const CategoryService = {
 
   deleteCategory: async (categoryId: string): Promise<void> => {
     try {
-      console.log('CategoryService.deleteCategory çağrıldı, categoryId:', categoryId);
-      
-      const response = await axios.delete(`/supportdesk/api/main/categories/deleteCategory?categoryId=${categoryId}`);
-      
-      console.log('CategoryService.deleteCategory yanıtı:', response.data);
+      const response = await axios.delete(`/api/main/categories/deleteCategory?categoryId=${categoryId}`);
       
       if (!response.data.success) {
         throw new Error(response.data.message || "Kategori silinemedi");
@@ -63,10 +52,7 @@ export const CategoryService = {
   // Subcategories
   getSubcategories: async (categoryId: string): Promise<Subcategory[]> => {
     try {
-      console.log('CategoryService.getSubcategories çağrıldı, categoryId:', categoryId);
-      const response = await axios.get(`/supportdesk/api/main/categories/getSubcategories?categoryId=${categoryId}`);
-      
-      console.log('CategoryService.getSubcategories yanıtı:', response.data);
+      const response = await axios.get(`/api/main/categories/getSubcategories?categoryId=${categoryId}`);
       
       if (response.data.success) {
         return response.data.data || [];
@@ -81,14 +67,12 @@ export const CategoryService = {
 
   createUpdateSubcategory: async (subcategory: Partial<Subcategory>, isUpdate: boolean = false): Promise<Subcategory> => {
     try {
-      console.log(`CategoryService.${isUpdate ? 'updateSubcategory' : 'createSubcategory'} çağrıldı:`, subcategory);
       
-      const response = await axios.post('/supportdesk/api/main/categories/createUpdateSubcategory', {
+      const response = await axios.post('/api/main/categories/createUpdateSubcategory', {
         ...subcategory,
         isUpdate
       });
       
-      console.log(`CategoryService.${isUpdate ? 'updateSubcategory' : 'createSubcategory'} yanıtı:`, response.data);
       
       if (response.data.success) {
         return response.data.data;
@@ -103,11 +87,9 @@ export const CategoryService = {
 
   deleteSubcategory: async (subcategoryId: string): Promise<void> => {
     try {
-      console.log('CategoryService.deleteSubcategory çağrıldı, subcategoryId:', subcategoryId);
       
-      const response = await axios.delete(`/supportdesk/api/main/categories/deleteSubcategory?subcategoryId=${subcategoryId}`);
+      const response = await axios.delete(`/api/main/categories/deleteSubcategory?subcategoryId=${subcategoryId}`);
       
-      console.log('CategoryService.deleteSubcategory yanıtı:', response.data);
       
       if (!response.data.success) {
         throw new Error(response.data.message || "Alt kategori silinemedi");
@@ -121,10 +103,7 @@ export const CategoryService = {
   // Groups
   getGroups: async (subcategoryId: string): Promise<Group[]> => {
     try {
-      console.log('CategoryService.getGroups çağrıldı, subcategoryId:', subcategoryId);
-      const response = await axios.get(`/supportdesk/api/main/categories/getGroups?subcategoryId=${subcategoryId}`);
-      
-      console.log('CategoryService.getGroups yanıtı:', response.data);
+      const response = await axios.get(`/api/main/categories/getGroups?subcategoryId=${subcategoryId}`);
       
       if (response.data.success) {
         return response.data.data || [];
@@ -139,14 +118,10 @@ export const CategoryService = {
 
   createUpdateGroup: async (group: Partial<Group>, isUpdate: boolean = false): Promise<Group> => {
     try {
-      console.log(`CategoryService.${isUpdate ? 'updateGroup' : 'createGroup'} çağrıldı:`, group);
-      
-      const response = await axios.post('/supportdesk/api/main/categories/createUpdateGroup', {
+      const response = await axios.post('/api/main/categories/createUpdateGroup', {
         ...group,
         isUpdate
       });
-      
-      console.log(`CategoryService.${isUpdate ? 'updateGroup' : 'createGroup'} yanıtı:`, response.data);
       
       if (response.data.success) {
         return response.data.data;
@@ -161,11 +136,7 @@ export const CategoryService = {
 
   deleteGroup: async (groupId: string): Promise<void> => {
     try {
-      console.log('CategoryService.deleteGroup çağrıldı, groupId:', groupId);
-      
-      const response = await axios.delete(`/supportdesk/api/main/categories/deleteGroup?groupId=${groupId}`);
-      
-      console.log('CategoryService.deleteGroup yanıtı:', response.data);
+      const response = await axios.delete(`/api/main/categories/deleteGroup?groupId=${groupId}`);
       
       if (!response.data.success) {
         throw new Error(response.data.message || "Grup silinemedi");

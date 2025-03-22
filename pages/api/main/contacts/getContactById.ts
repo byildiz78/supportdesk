@@ -24,8 +24,6 @@ export default async function handler(
   try {
     const { contactId } = req.query;
     
-    console.log('getContactById API çağrıldı, contactId:', contactId);
-
     if (!contactId) {
       return res.status(400).json({
         success: false,
@@ -69,8 +67,6 @@ export default async function handler(
         message: 'Kişi bulunamadı'
       });
     }
-    
-    console.log('İletişim kişisi döndürülüyor:', result[0]);
     
     return res.status(200).json({
       success: true,

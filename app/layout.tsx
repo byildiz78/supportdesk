@@ -7,6 +7,7 @@ import { CategoriesProvider } from "@/providers/categories-provider";
 import { Toaster } from "@/components/ui/toast/toaster";
 import "./globals.css";
 import { Metadata, Viewport } from "next";
+import { FlowFieldsProvider } from "@/providers/flow-field-provider";
 
 
 export const viewport: Viewport = {
@@ -52,8 +53,10 @@ export default function RootLayout({
                             <CompaniesProvider>
                                 <ContactsProvider>
                                     <CategoriesProvider>
-                                        {children}
-                                        <Toaster />
+                                        <FlowFieldsProvider>
+                                            {children}
+                                            <Toaster />
+                                        </FlowFieldsProvider>
                                     </CategoriesProvider>
                                 </ContactsProvider>
                             </CompaniesProvider>

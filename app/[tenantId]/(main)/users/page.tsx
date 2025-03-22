@@ -24,6 +24,7 @@ import { PlusCircle, Edit, Trash2, User, Mail, Clock, Loader2, AlertTriangle } f
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { UserService } from "./services/user-service"
 import { useToast } from "@/hooks/use-toast"
+import { getUserId } from "@/utils/user-utils"
 
 export default function UserSettingsPage() {
     const [searchTerm, setSearchTerm] = useState("")
@@ -80,21 +81,28 @@ export default function UserSettingsPage() {
     const handleAddUser = async (userData: any) => {
         setIsSubmitting(true)
         try {
-            // API üzerinden kullanıcı oluştur
-            const newUser = await UserService.createUpdateUser({
+            // Oturumdaki kullanıcının ID'sini al
+            const currentUserId = getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9'
+            
+            // API üzerinden kullanıcı ekle
+            const result = await UserService.createUpdateUser({
                 ...userData,
-                created_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
-            }, false)
-            
-            // Store'a ekle
-            addUser(newUser)
-            setIsAddUserOpen(false)
-            
-            toast({
-                title: "Başarılı",
-                description: "Kullanıcı başarıyla eklendi",
-                variant: "default",
+                created_by: currentUserId
             })
+            
+            if (result.success && result.data) {
+                // Store'a ekle
+                addUser(result.data)
+                setIsAddUserOpen(false)
+                
+                toast({
+                    title: "Başarılı",
+                    description: "Kullanıcı başarıyla eklendi",
+                    variant: "default",
+                })
+            }
+            
+            return result
         } catch (error: any) {
             console.error('Kullanıcı eklenirken hata oluştu:', error)
             toast({
@@ -102,6 +110,11 @@ export default function UserSettingsPage() {
                 description: error.message || "Kullanıcı eklenirken bir hata oluştu",
                 variant: "destructive",
             })
+            
+            return {
+                success: false,
+                message: error.message || "Kullanıcı eklenirken bir hata oluştu"
+            }
         } finally {
             setIsSubmitting(false)
         }
@@ -110,21 +123,28 @@ export default function UserSettingsPage() {
     const handleUpdateUser = async (userData: any) => {
         setIsSubmitting(true)
         try {
+            // Oturumdaki kullanıcının ID'sini al
+            const currentUserId = getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9'
+            
             // API üzerinden kullanıcı güncelle
-            const updatedUser = await UserService.createUpdateUser({
+            const result = await UserService.createUpdateUser({
                 ...userData,
-                updated_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
+                updated_by: currentUserId
             }, true)
             
-            // Store'u güncelle
-            updateUser(updatedUser)
-            setEditingUser(null)
+            if (result.success && result.data) {
+                // Store'u güncelle
+                updateUser(result.data)
+                setEditingUser(null)
+                
+                toast({
+                    title: "Başarılı",
+                    description: "Kullanıcı başarıyla güncellendi",
+                    variant: "default",
+                })
+            }
             
-            toast({
-                title: "Başarılı",
-                description: "Kullanıcı başarıyla güncellendi",
-                variant: "default",
-            })
+            return result
         } catch (error: any) {
             console.error('Kullanıcı güncellenirken hata oluştu:', error)
             toast({
@@ -132,6 +152,11 @@ export default function UserSettingsPage() {
                 description: error.message || "Kullanıcı güncellenirken bir hata oluştu",
                 variant: "destructive",
             })
+            
+            return {
+                success: false,
+                message: error.message || "Kullanıcı güncellenirken bir hata oluştu"
+            }
         } finally {
             setIsSubmitting(false)
         }
@@ -200,7 +225,7 @@ export default function UserSettingsPage() {
                             Yeni Kullanıcı
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px]">
+                    <DialogContent className="sm:max-w-[700px]">
                         <DialogHeader>
                             <DialogTitle>Yeni Kullanıcı Ekle</DialogTitle>
                         </DialogHeader>
@@ -323,7 +348,7 @@ export default function UserSettingsPage() {
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                         </DialogTrigger>
-                                                        <DialogContent className="sm:max-w-[500px]">
+                                                        <DialogContent className="sm:max-w-[700px]">
                                                             <DialogHeader>
                                                                 <DialogTitle>Kullanıcı Düzenle</DialogTitle>
                                                             </DialogHeader>

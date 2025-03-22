@@ -11,6 +11,8 @@ import { TicketFilters } from "./components/TicketFilters"
 import { TicketList } from "./components/TicketList"
 import { TicketPagination } from "./components/TicketPagination"
 import { Ticket } from "@/types/tickets"
+import { useEventSource } from "@/hooks/useEventSource"
+import { toast } from "@/components/ui/toast/use-toast"
 
 // Window nesnesine refreshTicketList fonksiyonunu eklemek için TypeScript tanımlaması
 declare global {
@@ -25,14 +27,16 @@ export default function AllTicketsPage() {
     const { selectedFilter } = useFilterStore()
     const { 
         getTickets, 
+        getFilters,
         setTickets, 
         isLoading, 
         setIsLoading, 
-        filters, 
         setFilters, 
         clearTickets,
         isTabLoaded,
-        shouldRefreshTab
+        shouldRefreshTab,
+        addTicket,
+        updateTicket
     } = useTicketStore()
     
     // UI State
@@ -45,8 +49,65 @@ export default function AllTicketsPage() {
     const hasInitializedRef = useRef(false)
     const appliedAtRef = useRef(selectedFilter.appliedAt)
     
+    // SSE bağlantısı
+    const { isConnected, addEventListener, removeEventListener } = useEventSource()
+    
     // Veri
     const tickets = getTickets(TAB_NAME)
+    const filters = getFilters(TAB_NAME)
+
+    // SSE olaylarını dinle
+    useEffect(() => {
+        if (!isConnected) {
+            return;
+        }
+        
+        const handleTicketUpdate = (data: any) => {
+            if (!data || !data.ticket) {
+                console.error('Geçersiz ticket verisi:', data);
+                return;
+            }
+            
+            if (data.action === 'create') {
+                toast({
+                    title: "Yeni Talep",
+                    description: `Yeni talep oluşturuldu: #${data.ticket.ticketno || data.ticket.id}`,
+                    variant: "default",
+                    className: "bg-green-100 border-green-500 text-green-800",
+                });
+                
+                addTicket(data.ticket, TAB_NAME);
+            } else if (data.action === 'update') {
+                // Eğer callcount güncellemesi ise özel bir mesaj göster
+                if (data.updateType === 'callcount') {
+                    toast({
+                        title: "Aranma Sayısı Güncellendi",
+                        description: `Talep #${data.ticket.ticketno}: Aranma sayısı ${data.ticket.callcount} olarak güncellendi`,
+                        variant: "default",
+                        className: "bg-blue-100 border-blue-500 text-blue-800",
+                    });
+                } else {
+                    toast({
+                        title: "Talep Güncellendi",
+                        description: `Talep güncellendi: #${data.ticket.ticketno || data.ticket.id}`,
+                        variant: "default",
+                        className: "bg-blue-100 border-blue-500 text-blue-800",
+                    });
+                }
+                
+                // Her durumda ticket'ı güncelle
+                updateTicket(data.ticket);
+            }
+        };
+        
+        // Event listener'ı ekle
+        addEventListener('ticket-update', handleTicketUpdate);
+        
+        // Cleanup
+        return () => {
+            removeEventListener('ticket-update', handleTicketUpdate);
+        };
+    }, [isConnected, addEventListener, removeEventListener, addTicket, updateTicket, TAB_NAME]);
 
     // Component ilk mount olduğunda çalışır
     useEffect(() => {
@@ -61,7 +122,7 @@ export default function AllTicketsPage() {
         // Status filtrelerini sıfırla
         if (filters.status && filters.status.length > 0) {
             const { status, ...otherFilters } = filters;
-            setFilters(otherFilters);
+            setFilters(otherFilters, TAB_NAME);
         }
         
         // Sadece bir kez çalışacak
@@ -99,7 +160,6 @@ export default function AllTicketsPage() {
             
             if (response.data) {
                 setTickets(response.data, TAB_NAME)
-                // Son yenileme zamanını güncelle (setTickets içinde zaten yapılıyor)
             }
         } catch (err: any) {
             console.error('Error loading tickets:', err)
@@ -109,19 +169,17 @@ export default function AllTicketsPage() {
         }
     }, [activeTab, tickets.length, TAB_NAME])
 
-    // Sadece filtre değişikliklerini izle
-    useEffect(() => {
-        // Filtre değişikliği kontrolü
-        if (activeTab === TAB_NAME && selectedFilter.appliedAt !== appliedAtRef.current) {
-            appliedAtRef.current = selectedFilter.appliedAt
-            clearTickets(TAB_NAME)
-            fetchTickets()
-        }
-    }, [selectedFilter.appliedAt])
-
     // Verileri filtrele
     const applyFilters = (tickets: Ticket[]) => {
         let filtered = [...tickets];
+        
+        // Tickets'ları sırala - en son eklenenler en üstte
+        filtered.sort((a, b) => {
+            // Eğer created_at veya createdAt varsa, bunları kullanarak sırala (en yeni en üstte)
+            const aDate = a.created_at || a.createdAt || '';
+            const bDate = b.created_at || b.createdAt || '';
+            return new Date(bDate).getTime() - new Date(aDate).getTime();
+        });
         
         // Status filter
         if (filters.status && filters.status.length > 0) {
@@ -211,7 +269,11 @@ export default function AllTicketsPage() {
                 (ticket.company_name && ticket.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (ticket.companyName && ticket.companyName.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (ticket.customer_name && ticket.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customerName && ticket.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
+                (ticket.customerName && ticket.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (ticket.customer_email && ticket.customer_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (ticket.customerEmail && ticket.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (ticket.customer_phone && ticket.customer_phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (ticket.customerPhone && ticket.customerPhone.toLowerCase().includes(searchTerm.toLowerCase()))
             );
         }
         
@@ -232,7 +294,7 @@ export default function AllTicketsPage() {
     // Filtre değişikliklerini işle
     const handleFilterChange = (newFilters: any) => {
         const updatedFilters = { ...filters, ...newFilters };
-        setFilters(updatedFilters);
+        setFilters(updatedFilters, TAB_NAME);
         setCurrentPage(1); // Reset to first page when filters change
     }
 
@@ -245,6 +307,16 @@ export default function AllTicketsPage() {
             return fetchTickets()
         };
     }, [fetchTickets]);
+
+    // Sadece filtre değişikliklerini izle
+    useEffect(() => {
+        // Filtre değişikliği kontrolü
+        if (activeTab === TAB_NAME && selectedFilter.appliedAt !== appliedAtRef.current) {
+            appliedAtRef.current = selectedFilter.appliedAt
+            clearTickets(TAB_NAME)
+            fetchTickets()
+        }
+    }, [selectedFilter.appliedAt])
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">

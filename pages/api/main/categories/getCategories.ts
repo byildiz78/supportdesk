@@ -20,8 +20,6 @@ export default async function handler(
   }
 
   try {
-    console.log('Kategoriler API çağrıldı');
-    
     // Veritabanı sorgusu - tenant ID'yi req.body içine ekliyoruz
     req.body = {
       ...req.body,
@@ -47,8 +45,6 @@ export default async function handler(
       params: [],
       req
     });
-    
-    console.log(`${result.length} kategori bulundu`);
     
     return res.status(200).json({
       success: true,

@@ -25,10 +25,10 @@ export default function ResolvedTicketsPage() {
     const { selectedFilter } = useFilterStore()
     const { 
         getTickets, 
+        getFilters,
         setTickets, 
         isLoading, 
         setIsLoading, 
-        filters, 
         setFilters, 
         clearTickets,
         isTabLoaded,
@@ -47,6 +47,7 @@ export default function ResolvedTicketsPage() {
     
     // Veri
     const tickets = getTickets(TAB_NAME)
+    const filters = getFilters(TAB_NAME)
     
     // Component ilk mount olduğunda çalışır
     useEffect(() => {
@@ -62,7 +63,7 @@ export default function ResolvedTicketsPage() {
         setFilters({
             ...filters,
             status: ['resolved', 'closed']
-        });
+        }, TAB_NAME);
         
         // Sadece bir kez çalışacak
         if (!hasInitializedRef.current) {
@@ -100,8 +101,6 @@ export default function ResolvedTicketsPage() {
             if (response.data) {
                 // API'den gelen verileri doğrudan kullan, tekrar filtreleme yapma
                 setTickets(response.data, TAB_NAME)
-                console.log("Çözülen Talepler yüklendi:", response.data)
-                // Son yenileme zamanını güncelle (setTickets içinde zaten yapılıyor)
             }
         } catch (err: any) {
             console.error('Error loading tickets:', err)
@@ -146,7 +145,7 @@ export default function ResolvedTicketsPage() {
             ...newFilters,
             status: ['resolved', 'closed'] // Status filtresini her zaman çözülen olarak tut
         };
-        setFilters(updatedFilters);
+        setFilters(updatedFilters, TAB_NAME);
         setCurrentPage(1); // Reset to first page when filters change
         // Filtreler değiştiğinde verileri tekrar yükleme, sadece filtreleri uygula
         // clearTickets(TAB_NAME);

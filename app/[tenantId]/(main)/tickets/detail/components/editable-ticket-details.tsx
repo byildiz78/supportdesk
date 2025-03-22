@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { User, Edit, Check, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { TicketService } from "../services/ticket-service"
+import { processHtmlContent, normalizeNewlines } from "@/utils/text-utils"
 
 interface EditableTicketDetailsProps {
     ticket: {
@@ -43,7 +44,10 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
     const [isSubmitting, setIsSubmitting] = useState(false)
     const { toast } = useToast()
 
+    // Process the description when entering edit mode to ensure consistent display
     const handleEdit = () => {
+        // Make sure we're using the raw description from the ticket
+        setDescription(ticket.description)
         setIsEditing(true)
     }
 
@@ -169,7 +173,7 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     placeholder="Bilet başlığı"
-                                    className="font-medium"
+                                    className="font-medium text-lg"
                                     disabled={isSubmitting}
                                 />
                             </div>
@@ -178,8 +182,8 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="Bilet açıklaması"
-                                    rows={5}
-                                    className="resize-none"
+                                    rows={10}
+                                    className="resize-none min-h-[200px]"
                                     disabled={isSubmitting}
                                 />
                             </div>
@@ -187,8 +191,8 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                     ) : (
                         <>
                             <div className="font-medium text-lg">{title}</div>
-                            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                {description}
+                            <div className="text-gray-700 dark:text-gray-300 ticket-description">
+                                {processHtmlContent(ticket.description)}
                             </div>
                         </>
                     )}

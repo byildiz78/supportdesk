@@ -3,30 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from '@/lib/axios';
 import { usePathname } from 'next/navigation';
-
-// Tip tanımlamaları
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  [key: string]: any;
-}
-
-export interface Subcategory {
-  id: string;
-  name: string;
-  categoryId?: string;
-  description?: string;
-  [key: string]: any;
-}
-
-export interface Group {
-  id: string;
-  name: string;
-  subcategoryId?: string;
-  description?: string;
-  [key: string]: any;
-}
+import { Category, Subcategory, Group } from '@/types/categories';
 
 interface CategoriesContextType {
   categories: Category[];
@@ -37,6 +14,15 @@ interface CategoriesContextType {
   refreshCategories: () => Promise<void>;
   getSubcategoriesByCategoryId: (categoryId: string) => Subcategory[];
   getGroupsBySubcategoryId: (subcategoryId: string) => Group[];
+  addCategory: (category: Category) => void;
+  updateCategory: (category: Category) => void;
+  deleteCategory: (categoryId: string) => void;
+  addSubcategory: (subcategory: Subcategory) => void;
+  updateSubcategory: (subcategory: Subcategory) => void;
+  deleteSubcategory: (subcategoryId: string) => void;
+  addGroup: (group: Group) => void;
+  updateGroup: (group: Group) => void;
+  deleteGroup: (groupId: string) => void;
 }
 
 const CategoriesContext = createContext<CategoriesContextType | undefined>(undefined);
@@ -58,42 +44,16 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
       
-      // Kategorileri getir
-      const categoriesResponse = await axios.get('/api/main/categories/getCategories');
-      if (categoriesResponse.data.success) {
-        const fetchedCategories = categoriesResponse.data.data;
+      // Tek bir API çağrısı ile tüm verileri al
+      const response = await axios.get('/api/main/categories/getAllCategoriesWithSubcategoriesAndGroups');
+      
+      if (response.data.success) {
+        const { categories: fetchedCategories, subcategories: fetchedSubcategories, groups: fetchedGroups } = response.data.data;
+        
+        // Verileri state'e kaydet
         setCategories(fetchedCategories);
-        
-        // Her kategori için alt kategorileri getir
-        const subcategoriesMap: Record<string, Subcategory[]> = {};
-        const groupsMap: Record<string, Group[]> = {};
-        
-        for (const category of fetchedCategories) {
-          try {
-            const subcategoriesResponse = await axios.get(`/api/main/categories/getSubcategories?categoryId=${category.id}`);
-            if (subcategoriesResponse.data.success) {
-              const fetchedSubcategories = subcategoriesResponse.data.data;
-              subcategoriesMap[category.id] = fetchedSubcategories;
-              
-              // Her alt kategori için grupları getir
-              for (const subcategory of fetchedSubcategories) {
-                try {
-                  const groupsResponse = await axios.get(`/api/main/categories/getGroups?subcategoryId=${subcategory.id}`);
-                  if (groupsResponse.data.success) {
-                    groupsMap[subcategory.id] = groupsResponse.data.data;
-                  }
-                } catch (error) {
-                  console.error(`Grup verileri alınırken hata: subcategoryId=${subcategory.id}`, error);
-                }
-              }
-            }
-          } catch (error) {
-            console.error(`Alt kategori verileri alınırken hata: categoryId=${category.id}`, error);
-          }
-        }
-        
-        setSubcategories(subcategoriesMap);
-        setGroups(groupsMap);
+        setSubcategories(fetchedSubcategories);
+        setGroups(fetchedGroups);
       } else {
         setError('Kategoriler yüklenirken bir hata oluştu');
       }
@@ -123,6 +83,130 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
     return groups[subcategoryId] || [];
   };
 
+  // Yerel state'i güncelleyen fonksiyonlar
+  const addCategory = (category: Category) => {
+    setCategories(prev => [...prev, category]);
+  };
+
+  const updateCategory = (category: Category) => {
+    setCategories(prev => prev.map(c => c.id === category.id ? category : c));
+  };
+
+  const deleteCategory = (categoryId: string) => {
+    setCategories(prev => prev.filter(c => c.id !== categoryId));
+    
+    // İlgili alt kategorileri ve grupları da temizle
+    const categorySubcategories = subcategories[categoryId] || [];
+    const subcategoryIds = categorySubcategories.map(s => s.id);
+    
+    // Alt kategorileri sil
+    setSubcategories(prev => {
+      const newSubcategories = { ...prev };
+      delete newSubcategories[categoryId];
+      return newSubcategories;
+    });
+    
+    // İlgili grupları sil
+    setGroups(prev => {
+      const newGroups = { ...prev };
+      subcategoryIds.forEach(id => {
+        delete newGroups[id];
+      });
+      return newGroups;
+    });
+  };
+
+  const addSubcategory = (subcategory: Subcategory) => {
+    setSubcategories(prev => {
+      const newSubcategories = { ...prev };
+      const categoryId = subcategory.categoryId;
+      newSubcategories[categoryId] = [...(newSubcategories[categoryId] || []), subcategory];
+      return newSubcategories;
+    });
+  };
+
+  const updateSubcategory = (subcategory: Subcategory) => {
+    setSubcategories(prev => {
+      const newSubcategories = { ...prev };
+      const categoryId = subcategory.categoryId;
+      if (newSubcategories[categoryId]) {
+        newSubcategories[categoryId] = newSubcategories[categoryId].map(s => 
+          s.id === subcategory.id ? subcategory : s
+        );
+      }
+      return newSubcategories;
+    });
+  };
+
+  const deleteSubcategory = (subcategoryId: string) => {
+    // Önce hangi kategoriye ait olduğunu bul
+    let categoryId = '';
+    for (const [catId, subs] of Object.entries(subcategories)) {
+      if (subs.some(s => s.id === subcategoryId)) {
+        categoryId = catId;
+        break;
+      }
+    }
+    
+    if (categoryId) {
+      // Alt kategoriyi sil
+      setSubcategories(prev => {
+        const newSubcategories = { ...prev };
+        newSubcategories[categoryId] = newSubcategories[categoryId].filter(s => s.id !== subcategoryId);
+        return newSubcategories;
+      });
+      
+      // İlgili grupları sil
+      setGroups(prev => {
+        const newGroups = { ...prev };
+        delete newGroups[subcategoryId];
+        return newGroups;
+      });
+    }
+  };
+
+  const addGroup = (group: Group) => {
+    setGroups(prev => {
+      const newGroups = { ...prev };
+      const subcategoryId = group.subcategoryId;
+      newGroups[subcategoryId] = [...(newGroups[subcategoryId] || []), group];
+      return newGroups;
+    });
+  };
+
+  const updateGroup = (group: Group) => {
+    setGroups(prev => {
+      const newGroups = { ...prev };
+      const subcategoryId = group.subcategoryId;
+      if (newGroups[subcategoryId]) {
+        newGroups[subcategoryId] = newGroups[subcategoryId].map(g => 
+          g.id === group.id ? group : g
+        );
+      }
+      return newGroups;
+    });
+  };
+
+  const deleteGroup = (groupId: string) => {
+    // Önce hangi alt kategoriye ait olduğunu bul
+    let subcategoryId = '';
+    for (const [subId, grps] of Object.entries(groups)) {
+      if (grps.some(g => g.id === groupId)) {
+        subcategoryId = subId;
+        break;
+      }
+    }
+    
+    if (subcategoryId) {
+      // Grubu sil
+      setGroups(prev => {
+        const newGroups = { ...prev };
+        newGroups[subcategoryId] = newGroups[subcategoryId].filter(g => g.id !== groupId);
+        return newGroups;
+      });
+    }
+  };
+
   return (
     <CategoriesContext.Provider 
       value={{ 
@@ -133,7 +217,16 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
         error, 
         refreshCategories,
         getSubcategoriesByCategoryId,
-        getGroupsBySubcategoryId
+        getGroupsBySubcategoryId,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        addSubcategory,
+        updateSubcategory,
+        deleteSubcategory,
+        addGroup,
+        updateGroup,
+        deleteGroup
       }}
     >
       {children}
@@ -148,3 +241,6 @@ export function useCategories() {
   }
   return context;
 }
+
+// Tip tanımlamalarını yeniden dışa aktar
+export type { Category, Subcategory, Group };

@@ -17,7 +17,76 @@ export default async function handler(
 
   try {
     const { id, ...contactData } = req.body;
-    const tenantId = extractTenantFromBody(req);
+
+    // Önce e-posta veya mobil numaranın var olup olmadığını kontrol et
+    if (contactData.email || contactData.mobile) {
+      // Sorgu parametrelerini hazırla
+      const params = [];
+      let paramIndex = 1;
+      
+      // Dinamik sorgu oluştur
+      let emailCondition = "FALSE";
+      let mobileCondition = "FALSE";
+      
+      if (contactData.email) {
+        params.push(contactData.email);
+        emailCondition = `email = $${paramIndex}`;
+        paramIndex++;
+      }
+      
+      if (contactData.mobile) {
+        params.push(contactData.mobile);
+        mobileCondition = `mobile = $${paramIndex}`;
+        paramIndex++;
+      }
+      
+      // ID parametresini ekle
+      params.push(id || null);
+      
+      const checkQuery = `
+        SELECT id, first_name, last_name, email, mobile 
+        FROM contacts 
+        WHERE (
+          ${emailCondition} 
+          OR 
+          ${mobileCondition}
+        )
+        AND (id != $${paramIndex} OR $${paramIndex} IS NULL)
+        AND (is_deleted = false OR is_deleted IS NULL)
+      `;
+
+      const existingContacts = await db.executeQuery<DbResult[]>({
+        query: checkQuery,
+        params,
+        req
+      });
+
+      if (existingContacts && existingContacts.length > 0) {
+        // Var olan kişi bilgilerini hazırla
+        const existingContact = existingContacts[0];
+        const fullName = `${existingContact.first_name || ''} ${existingContact.last_name || ''}`.trim();
+        
+        // Hangi alanın çakıştığını belirle
+        let conflictField = '';
+        if (contactData.email && existingContact.email === contactData.email) {
+          conflictField = 'e-posta adresi';
+        }
+        if (contactData.mobile && existingContact.mobile === contactData.mobile) {
+          conflictField = conflictField ? 'e-posta adresi ve telefon numarası' : 'telefon numarası';
+        }
+
+        return res.status(409).json({ 
+          success: false, 
+          message: `Bu ${conflictField} ile kayıtlı bir kişi zaten mevcut: ${fullName}`,
+          existingContact: {
+            id: existingContact.id,
+            name: fullName,
+            email: existingContact.email,
+            mobile: existingContact.mobile
+          }
+        });
+      }
+    }
 
     // If id exists, update, otherwise create new
     if (id) {

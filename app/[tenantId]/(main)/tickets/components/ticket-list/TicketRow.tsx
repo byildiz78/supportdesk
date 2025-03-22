@@ -13,12 +13,13 @@ import {
     Eye, 
     Edit, 
     Trash, 
-    MoreHorizontal
+    MoreHorizontal,
+    Phone
 } from "lucide-react"
 import { Ticket } from "@/types/tickets"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { statusConfig, priorityConfig, sourceConfig, calculateElapsedTime } from "../config/ticket-config"
+import { statusConfig, priorityConfig, sourceConfig, calculateElapsedTime, calculateSlaTime } from "../config/ticket-config"
 
 // Define types for status and priority
 type TicketStatus = keyof typeof statusConfig
@@ -84,13 +85,21 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
             <TableCell>
                 <div className="flex flex-col">
                     <span className="truncate font-medium">
-                        {ticket.customerName || "-"}
+                        {ticket.customerName || ticket.customer_name || "-"}
                     </span>
-                    {ticket.contactPosition && (
+                    {(ticket.contactPosition || ticket.contact_position) && (
                         <span className="text-xs text-muted-foreground truncate">
-                            {ticket.contactPosition}
+                            {ticket.contactPosition || ticket.contact_position}
                         </span>
                     )}
+                </div>
+            </TableCell>
+            <TableCell>
+                <div className="flex items-center gap-1">
+                    <Phone className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <span className="truncate font-medium">
+                        {ticket.callcount || 0}
+                    </span>
                 </div>
             </TableCell>
             <TableCell>
@@ -164,7 +173,7 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
                                 ? "text-red-600 dark:text-red-400" 
                                 : "text-green-600 dark:text-green-400"
                         )}>
-                            {ticket.slaBreach ? 'Aşıldı' : 'İçinde'}
+                            {calculateSlaTime(ticket.dueDate, !!ticket.slaBreach)}
                         </span>
                     </div>
                 )}

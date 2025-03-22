@@ -23,13 +23,21 @@ export function formatCurrency(value: number | undefined | null): string {
 export function formatDate(dateString: string | Date | undefined | null): string {
     if (!dateString) return "-";
     
-    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    
-    return new Intl.DateTimeFormat('tr-TR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    }).format(date);
+    try {
+        const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+        
+        // Geçersiz tarih kontrolü
+        if (isNaN(date.getTime())) return "-";
+        
+        return new Intl.DateTimeFormat('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        }).format(date);
+    } catch (error) {
+        console.error("Date formatting error:", error);
+        return "-";
+    }
 }
 
 /**

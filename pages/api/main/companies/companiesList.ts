@@ -38,7 +38,14 @@ export default async function handler(
           created_by as "createdBy",
           updated_at as "updatedAt",
           updated_by as "updatedBy",
-          is_deleted as "isDeleted"
+          is_deleted as "isDeleted",
+          flow_ba_starting_date,
+          flow_ba_end_date,
+          flow_ba_notes,
+          flow_support_notes,
+          flow_licence_notes,
+          flow_id,
+          flow_last_update_date
       FROM companies
       WHERE is_deleted = false
       ORDER BY name ASC;
@@ -49,7 +56,6 @@ export default async function handler(
       query,
       req
     });
-    console.log('companies', companies);
     // Return results
     return res.status(200).json(companies);
   } catch (error: any) {

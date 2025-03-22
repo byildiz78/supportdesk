@@ -1,108 +1,88 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
-import { Card } from "@/components/ui/card"
-import { useContactsStore } from "@/stores/main/contacts-store"
-import { ContactList } from "./components/ContactList"
-import { ContactHeader } from "./components/ContactHeader"
-import { ContactFilters } from "./components/ContactFilters"
-import { ContactPagination } from "./components/ContactPagination"
+import React, { useState, useEffect, useCallback } from 'react'
 import { useFilterStore } from "@/stores/filters-store"
 import { useTabStore } from '@/stores/tab-store'
+import { useContactsStore } from '@/stores/main/contacts-store'
+import { useCompanies } from '@/providers/companies-provider'
+
+// Components
+
 import axios from '@/lib/axios'
 import { createExcelExportHandler } from '@/lib/export-utils'
+import { Card } from '@/components/ui/card'
+import { ContactHeader } from './components/ContactHeader'
+import { ContactFilters } from './components/ContactFilters'
+import { ContactList } from './components/ContactList'
+import { ContactPagination } from './components/ContactPagination'
 
 export default function ContactsPage() {
     const { selectedFilter } = useFilterStore()
     const { addTab, setActiveTab, tabs, activeTab } = useTabStore()
-    const { contacts, setContacts, setLoading, isLoading } = useContactsStore()
-    const [searchTerm, setSearchTerm] = useState("")
+    const { contacts, setContacts, setLoading: setStoreLoading } = useContactsStore()
+    const { companies } = useCompanies()
+    const [searchTerm, setSearchTerm] = useState('')
     const [currentPage, setCurrentPage] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(10)
-    const [hasFetched, setHasFetched] = useState(false)
-    const [localBranchFilter, setLocalBranchFilter] = useState(selectedFilter.branches)
+    const [loading, setLoading] = useState(true)
+    const [hasFetched, setHasFetched] = React.useState(false)
     const hasInitializedRef = React.useRef(false)
     const appliedAtRef = React.useRef(selectedFilter.appliedAt)
     const [error, setError] = useState<string | null>(null)
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null)
 
-    // Fetch contacts from API
+    // Kişileri API'den çek
     const fetchContacts = useCallback(async (isInitial = false) => {
-        // Check active tab
+        // Aktif tab kontrolü
         if (activeTab !== "Kişiler") {
             return
         }
 
         try {
             setLoading(true)
-            // Handle selected branches
-            let branchParam = selectedFilter.selectedBranches.length > 0
-                ? selectedFilter.selectedBranches
-                : selectedFilter.branches
-
-            // Prepare value for API
-            if (!branchParam || (Array.isArray(branchParam) && branchParam.length === 0)) {
-                // Send empty array, not null
-                branchParam = []
-            }
-            
+            setStoreLoading(true)
             const response = await axios.post('/api/main/contacts/contactsList', {
-                tenantId: branchParam,
-                companyId: selectedCompanyId
+                companyId: selectedFilter.selectedCompany
             })
-            
             if (response.data) {
                 setContacts(response.data)
             }
         } catch (err) {
-            console.error('Error loading contacts:', err)
+            console.error('Kişiler yüklenirken hata:', err)
             setError('Kişiler yüklenemedi')
         } finally {
             setLoading(false)
+            setStoreLoading(false)
         }
-    }, [selectedFilter.selectedBranches, setContacts, activeTab, setLoading, selectedCompanyId])
+    }, [selectedFilter.selectedCompany, setContacts, activeTab, setStoreLoading])
 
-    // Run once on component mount
+    // Component ilk mount olduğunda bir kez çalışır
     useEffect(() => {
-        // Only run once
+        // Sadece bir kez çalışacak
         if (!hasInitializedRef.current) {
             hasInitializedRef.current = true
             fetchContacts(true)
         }
-    }, []) // Empty dependency array to run once
+    }, []) // Boş dependency array ile sadece bir kez çalışır
 
-    // Watch for filter changes
+    // Filtre değişikliklerini izle
     useEffect(() => {
-        // Check if filter has changed
+        // Filtre değişikliği kontrolü
         if (selectedFilter.appliedAt !== appliedAtRef.current) {
             appliedAtRef.current = selectedFilter.appliedAt
             fetchContacts(false)
         }
-    }, [selectedFilter.appliedAt, fetchContacts]) // Only run when appliedAt changes
+    }, [selectedFilter.appliedAt, fetchContacts]) // Sadece appliedAt değiştiğinde çalışır
 
-    // Watch for selectedBranches changes
+    // selectedCompany değişikliklerini izle
     useEffect(() => {
         if (hasFetched) {
             fetchContacts(false)
         }
-    }, [selectedFilter.selectedBranches, fetchContacts, hasFetched])
-
-    useEffect(() => {
-        if (selectedFilter.branches !== localBranchFilter) {
-            setLocalBranchFilter(selectedFilter.branches)
-        }
-    }, [selectedFilter.branches, localBranchFilter])
-
-    // Watch for company filter changes
-    useEffect(() => {
-        if (selectedCompanyId !== null) {
-            fetchContacts(false)
-        }
-    }, [selectedCompanyId, fetchContacts])
+    }, [fetchContacts, hasFetched])
 
     const handleNewContact = () => {
         const tabId = "Yeni Kişi"
-        // Check if tab is already open
+        // Sekme zaten açık mı kontrol et
         const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId)
 
         if (!isTabAlreadyOpen) {
@@ -110,7 +90,7 @@ export default function ContactsPage() {
                 id: tabId,
                 title: "Yeni Kişi",
                 lazyComponent: () => import('@/app/[tenantId]/(main)/contacts/crud-components/CreateContact').then(module => ({
-                    default: (props: any) => <module.default {...props} companyId={selectedCompanyId} />
+                    default: (props: any) => <module.default {...props} />
                 }))
             })
         }
@@ -119,7 +99,7 @@ export default function ContactsPage() {
 
     const handleSearchChange = (value: string) => {
         setSearchTerm(value)
-        setCurrentPage(1) // Reset to first page on search
+        setCurrentPage(1) // Arama yapıldığında ilk sayfaya dön
     }
 
     const handlePageChange = (page: number) => {
@@ -128,32 +108,35 @@ export default function ContactsPage() {
 
     const handleItemsPerPageChange = (value: number) => {
         setItemsPerPage(value)
-        setCurrentPage(1) // Reset to first page when items per page changes
+        setCurrentPage(1) // Sayfa başına öğe sayısı değiştiğinde ilk sayfaya dön
     }
 
-    const handleContactDeleted = () => {
-        // Refresh list after contact is deleted
+    const handleContactDeleted = (contactId: string) => {
+        // Kişi silindikten sonra listeyi güncelle
         fetchContacts(false)
     }
 
-    const handleCompanyFilterChange = (companyId: string | null) => {
-        setSelectedCompanyId(companyId)
-        setCurrentPage(1) // Reset to first page when filter changes
-    }
+    const filteredContacts = contacts.filter(contact => {
+        // Firma adını bul
+        let companyName = "-";
+        if (contact.companyId) {
+            const company = companies.find((c) => c.id === contact.companyId);
+            companyName = company ? company.name : "-";
+        }
 
-    // Filter contacts based on search term
-    const filteredContacts = contacts.filter(contact => 
-        contact.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.position?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+        const matchesSearch =
+            `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contact.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contact.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contact.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            contact.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            companyName.toLowerCase().includes(searchTerm.toLowerCase())
 
-    // Calculate pagination
-    const totalContacts = filteredContacts.length
-    const totalPages = Math.ceil(totalContacts / itemsPerPage)
+        return matchesSearch
+    })
+
+    const total = filteredContacts.length
     const paginatedContacts = filteredContacts.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
@@ -161,36 +144,34 @@ export default function ContactsPage() {
 
     const handleExportToExcel = createExcelExportHandler(
         paginatedContacts,
-        'Kişiler'
+        'Kişiler2'
     )
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">
-            <ContactHeader 
+            <ContactHeader
                 onNewContact={handleNewContact}
                 onExportToExcel={handleExportToExcel}
             />
-            
-            <ContactFilters 
+            <ContactFilters
                 searchTerm={searchTerm}
                 onSearchChange={handleSearchChange}
-                selectedCompanyId={selectedCompanyId}
-                onCompanyFilterChange={handleCompanyFilterChange}
             />
 
+            {/* Contact List Table */}
             <Card className="border-0 shadow-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm flex-1 overflow-hidden rounded-xl">
                 <div className="rounded-xl border border-gray-100 dark:border-gray-800 h-full flex flex-col">
-                    <ContactList 
+                    <ContactList
                         contacts={paginatedContacts}
-                        isLoading={isLoading}
+                        isLoading={loading}
                         error={error}
                         onContactDeleted={handleContactDeleted}
                     />
-                    
-                    <ContactPagination 
+                    {/* Pagination */}
+                    <ContactPagination
                         currentPage={currentPage}
                         itemsPerPage={itemsPerPage}
-                        totalItems={totalContacts}
+                        totalItems={total}
                         onPageChange={handlePageChange}
                         onItemsPerPageChange={handleItemsPerPageChange}
                     />

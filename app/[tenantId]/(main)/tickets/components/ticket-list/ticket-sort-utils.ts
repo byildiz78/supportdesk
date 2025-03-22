@@ -19,6 +19,9 @@ export function sortTickets(tickets: Ticket[], sortField: SortField, sortDirecti
             // Geçen süre için createdAt tarihini kullan
             aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0
             bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        } else if (sortField === 'callcount') {
+            aValue = a.callcount || 0
+            bValue = b.callcount || 0
         } else {
             aValue = a[sortField as keyof Ticket]
             bValue = b[sortField as keyof Ticket]
@@ -29,7 +32,7 @@ export function sortTickets(tickets: Ticket[], sortField: SortField, sortDirecti
         if (bValue === null || bValue === undefined) bValue = ''
         
         // For numeric fields
-        if (sortField === 'ticketno') {
+        if (sortField === 'ticketno' || sortField === 'callcount') {
             return sortDirection === 'asc' 
                 ? Number(aValue) - Number(bValue)
                 : Number(bValue) - Number(aValue)

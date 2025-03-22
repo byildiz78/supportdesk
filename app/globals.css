@@ -214,3 +214,64 @@
 .no-transition * {
   transition: none !important;
 }
+
+/* Ticket description styling */
+.ticket-description {
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  unicode-bidi: embed;
+}
+
+.ticket-description a {
+  color: #0070f3;
+  text-decoration: underline;
+}
+
+.ticket-description a:hover {
+  text-decoration: none;
+}
+
+.ticket-description p {
+  margin-bottom: 1rem;
+}
+
+.ticket-description ul, 
+.ticket-description ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.ticket-description ul {
+  list-style-type: disc;
+}
+
+.ticket-description ol {
+  list-style-type: decimal;
+}
+
+.ticket-description pre {
+  background-color: #f1f1f1;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.dark .ticket-description pre {
+  background-color: #2d2d2d;
+}
+
+.ticket-description img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+}
+
+/* Ensure proper character encoding display */
+.ticket-description * {
+  text-rendering: optimizeLegibility;
+}

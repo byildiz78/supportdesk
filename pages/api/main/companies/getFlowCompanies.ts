@@ -1,128 +1,106 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/database';
 
-interface Company {
+interface DbResult {
   id: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-  tax_id?: string;
-  tax_office?: string;
-  city?: string;
-  state?: string;
-  postal_code?: string;
-  country?: string;
-  website?: string;
-  industry?: string;
-  company_type?: string;
-  is_active: boolean;
+  [key: string]: any;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Sadece GET isteklerine izin ver
   if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
   try {
-    const { page = '1', limit = '10', search = '' } = req.query;
+    // Sayfalama parametrelerini al
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search = req.query.search as string || '';
     
-    const pageNumber = parseInt(page as string, 10);
-    const limitNumber = parseInt(limit as string, 10);
-    const offset = (pageNumber - 1) * limitNumber;
-    
-    // Arama terimi varsa WHERE koşulunu oluştur
-    const searchCondition = search 
-      ? `AND (name ILIKE $3 OR email ILIKE $3 OR phone ILIKE $3 OR notes ILIKE $3)` 
-      : '';
-    
-    // Toplam kayıt sayısını al
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM companies
-      WHERE is_deleted = false
-      AND notes LIKE '%Flow''dan içe aktarıldı%'
-      ${search ? 'AND (name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR notes ILIKE $1)' : ''}
-    `;
-    
-    const countParams = search ? [`%${search}%`] : [];
-    
-    const countResult = await db.executeQuery<{total: string}[]>({
-      query: countQuery,
-      params: countParams,
-      req
-    });
-    
-    const total = countResult?.[0]?.total || 0;
-    
-    // Firmaları getir
-    const query = `
-      SELECT 
-        id,
-        name,
-        address,
-        phone,
-        email,
-        notes,
-        created_at,
-        updated_at,
-        tax_id,
-        tax_office,
-        city,
-        state,
-        postal_code,
-        country,
-        website,
-        industry,
-        company_type,
-        is_active
-      FROM companies
-      WHERE is_deleted = false
-      AND notes LIKE '%Flow''dan içe aktarıldı%'
-      ${searchCondition}
-      ORDER BY created_at DESC
-      LIMIT $1 OFFSET $2
-    `;
-    
-    const params = search 
-      ? [limitNumber, offset, `%${search}%`] 
-      : [limitNumber, offset];
-    
-    // Veritabanı sorgusu - tenant ID'yi req.body içine ekliyoruz
-    req.body = {
-      ...req.body,
-      tenantId: req.headers['x-tenant-id'] || req.query.tenantId || 'public'
-    };
+    // Atlanacak kayıt sayısını hesapla
+    const skip = (page - 1) * limit;
 
-    const result = await db.executeQuery<Company[]>({
-      query,
-      params,
-      req
+    // Toplam kayıt sayısını al
+    let countQuery = `
+      SELECT COUNT(*) as total 
+      FROM companies 
+      WHERE flow_id IS NOT NULL AND is_deleted = false
+    `;
+    
+    let queryParams: any[] = [];
+    
+    // Arama filtresi ekle
+    if (search) {
+      countQuery += ` AND (
+        name ILIKE $1 OR
+        email ILIKE $1 OR
+        phone ILIKE $1 OR
+        address ILIKE $1 OR
+        city ILIKE $1 OR
+        country ILIKE $1
+      )`;
+      queryParams.push(`%${search}%`);
+    }
+    
+    const countResult = await db.executeQuery<{total: number}[]>({
+      query: countQuery,
+      params: queryParams,
+      req: req
     });
     
-    // Veritabanından gelen verileri kullan
+    const total = countResult[0]?.total || 0;
+
+    // Firmaları getir
+    let companiesQuery = `
+      SELECT * 
+      FROM companies 
+      WHERE flow_id IS NOT NULL AND is_deleted = false
+    `;
+    
+    let companyParams = [...queryParams];
+    
+    // Arama filtresi ekle
+    if (search) {
+      companiesQuery += ` AND (
+        name ILIKE $1 OR
+        email ILIKE $1 OR
+        phone ILIKE $1 OR
+        address ILIKE $1 OR
+        city ILIKE $1 OR
+        country ILIKE $1
+      )`;
+    }
+    
+    // Sıralama ve sayfalama ekle
+    companiesQuery += ` ORDER BY created_at DESC LIMIT $${companyParams.length + 1} OFFSET $${companyParams.length + 2}`;
+    companyParams.push(limit, skip);
+    
+    const companies = await db.executeQuery<DbResult[]>({
+      query: companiesQuery,
+      params: companyParams,
+      req: req
+    });
+
+    // Toplam sayfa sayısını hesapla
+    const totalPages = Math.ceil(total / limit);
+
     return res.status(200).json({
       success: true,
-      data: result || [],
+      data: companies,
       pagination: {
-        total: parseInt(total as string, 10),
-        page: pageNumber,
-        limit: limitNumber,
-        totalPages: Math.ceil(parseInt(total as string, 10) / limitNumber)
+        total,
+        page,
+        limit,
+        totalPages
       }
     });
-  } catch (error: any) {
-    console.error('Get flow companies API error:', error);
+  } catch (error) {
+    console.error('Error fetching flow companies:', error);
     return res.status(500).json({
       success: false,
-      message: 'Veritabanından flow firma bilgileri alınırken bir hata oluştu',
-      details: error.message
+      message: 'Flow firmaları alınırken bir hata oluştu',
+      error: (error as Error).message
     });
   }
 }

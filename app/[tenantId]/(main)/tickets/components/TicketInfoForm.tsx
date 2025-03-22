@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
 import { MessageSquare, Paperclip, X } from "lucide-react"
+import ReactSelect from "react-select"
 
 interface Category {
   id: string;
@@ -49,6 +49,10 @@ interface TicketInfoFormProps {
   isLoadingCategories: boolean
   isLoadingSubcategories: boolean
   isLoadingGroups: boolean
+  categoryName?: string
+  subcategoryName?: string
+  groupName?: string
+  group_name?: string
 }
 
 export default function TicketInfoForm({
@@ -72,8 +76,13 @@ export default function TicketInfoForm({
   groups = [],
   isLoadingCategories = false,
   isLoadingSubcategories = false,
-  isLoadingGroups = false
+  isLoadingGroups = false,
+  categoryName,
+  subcategoryName,
+  groupName,
+  group_name
 }: TicketInfoFormProps) {
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -115,103 +124,126 @@ export default function TicketInfoForm({
           </div>
           <div>
             <Label>Kategori</Label>
-            <Select
-              value={category}
-              onValueChange={onCategoryChange}
-              disabled={isLoadingCategories}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Kategori seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="" disabled>
-                    {isLoadingCategories ? "Yükleniyor..." : "Kategori bulunamadı"}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            <ReactSelect
+              value={category ? { value: category, label: categoryName || "" } : null}
+              onChange={(option: any) => {
+                if (option) {
+                  onCategoryChange(option.value);
+                }
+              }}
+              options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+              isDisabled={isLoadingCategories}
+              placeholder="Kategori seçin"
+              noOptionsMessage={() => "Kategori bulunamadı"}
+              loadingMessage={() => "Yükleniyor..."}
+              isLoading={isLoadingCategories}
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+            />
           </div>
           <div>
             <Label>Alt Kategori</Label>
-            <Select
-              value={subcategory}
-              onValueChange={onSubcategoryChange}
-              disabled={!category || isLoadingSubcategories}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Alt kategori seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                {subcategories.length > 0 ? (
-                  subcategories.map((subcat) => (
-                    <SelectItem key={subcat.id} value={subcat.id}>
-                      {subcat.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="" disabled>
-                    {isLoadingSubcategories 
-                      ? "Yükleniyor..." 
-                      : category 
-                        ? "Alt kategori bulunamadı" 
-                        : "Önce kategori seçin"}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            <ReactSelect
+              value={subcategory ? { value: subcategory, label: subcategoryName || "" } : null}
+              onChange={(option: any) => {
+                if (option) {
+                  onSubcategoryChange(option.value);
+                }
+              }}
+              options={subcategories.map(subcat => ({ value: subcat.id, label: subcat.name }))}
+              isDisabled={!category || isLoadingSubcategories}
+              placeholder="Alt kategori seçin"
+              noOptionsMessage={() => 
+                !category 
+                  ? "Önce kategori seçin" 
+                  : "Alt kategori bulunamadı"
+              }
+              loadingMessage={() => "Yükleniyor..."}
+              isLoading={isLoadingSubcategories}
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+            />
           </div>
           <div>
             <Label>Grup</Label>
-            <Select
-              value={group}
-              onValueChange={onGroupChange}
-              disabled={!subcategory || isLoadingGroups}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Grup seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                {groups.length > 0 ? (
-                  groups.map((grp) => (
-                    <SelectItem key={grp.id} value={grp.id}>
-                      {grp.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="" disabled>
-                    {isLoadingGroups 
-                      ? "Yükleniyor..." 
-                      : subcategory 
-                        ? "Grup bulunamadı" 
-                        : "Önce alt kategori seçin"}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+            <ReactSelect
+              value={group ? { value: group, label: group_name || groupName || "" } : null}
+              onChange={(option: any) => {
+                if (option) {
+                  onGroupChange(option.value);
+                }
+              }}
+              options={groups.map(grp => ({ value: grp.id, label: grp.name }))}
+              isDisabled={!subcategory || isLoadingGroups}
+              placeholder="Grup seçin"
+              noOptionsMessage={() => 
+                !subcategory 
+                  ? "Önce alt kategori seçin" 
+                  : "Grup bulunamadı"
+              }
+              loadingMessage={() => "Yükleniyor..."}
+              isLoading={isLoadingGroups}
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+            />
           </div>
           <div>
             <Label>Öncelik</Label>
-            <Select
-              value={priority}
-              onValueChange={onPriorityChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Öncelik seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Düşük</SelectItem>
-                <SelectItem value="medium">Orta</SelectItem>
-                <SelectItem value="high">Yüksek</SelectItem>
-                <SelectItem value="urgent">Acil</SelectItem>
-              </SelectContent>
-            </Select>
+            <ReactSelect
+              value={priority ? { 
+                value: priority, 
+                label: priority === "low" ? "Düşük" : 
+                       priority === "medium" ? "Orta" : 
+                       priority === "high" ? "Yüksek" : 
+                       priority === "urgent" ? "Acil" : "Öncelik seçin"
+              } : null}
+              onChange={(option: any) => {
+                if (option) {
+                  onPriorityChange(option.value);
+                }
+              }}
+              options={[
+                { value: "low", label: "Düşük" },
+                { value: "medium", label: "Orta" },
+                { value: "high", label: "Yüksek" },
+                { value: "urgent", label: "Acil" }
+              ]}
+              placeholder="Öncelik seçin"
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+            />
           </div>
           <div className="md:col-span-2">
             <Label>Dosya Ekle</Label>
@@ -238,7 +270,7 @@ export default function TicketInfoForm({
               {files.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {files.map((file, index) => (
-                    <div 
+                    <div
                       key={index}
                       className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-md group"
                     >

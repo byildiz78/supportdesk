@@ -22,15 +22,30 @@ import {
     Tag,
     Loader2
 } from "lucide-react"
-import { useCategoryStore } from "@/stores/category-store"
-import { CategoryService } from "./services/category-service"
 import { useToast } from "@/hooks/use-toast"
 import CategoryHeader from "../components/CategoryHeader"
 import CategoryForm from "../components/CategoryForm"
 import SubcategoryForm from "../components/SubcategoryForm"
 import GroupForm from "../components/GroupForm"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Category, Subcategory, Group } from "@/types/categories"
+import { Category, Subcategory, Group, useCategories } from "@/providers/categories-provider"
+import { CategoryService } from "./services/category-service"
+
+// API'den dönen grup tipini tanımla
+interface ApiGroup {
+    id: string;
+    name: string;
+    description?: string;
+    subcategoryId?: string;
+    mesai_saatleri_sla?: number;
+    mesai_disi_sla?: number;
+    hafta_sonu_mesai_sla?: number;
+    hafta_sonu_mesai_disi_sla?: number;
+    sla_next_day_start?: boolean;
+    created_at?: string;
+    updated_at?: string;
+    [key: string]: any;
+}
 
 export default function CategoryManagementPage() {
     const [searchTerm, setSearchTerm] = useState("")
@@ -41,167 +56,32 @@ export default function CategoryManagementPage() {
     const [editingSubcategory, setEditingSubcategory] = useState<string | null>(null)
     const [editingGroup, setEditingGroup] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+    const [selectedSubcategory, setSelectedSubcategory] = useState<Subcategory | null>(null)
+    const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
     
+    // CategoriesProvider'dan verileri al
     const { 
         categories, 
-        setCategories, 
-        selectedCategory,
-        setSelectedCategory,
-        selectedSubcategory,
-        setSelectedSubcategory,
-        selectedGroup,
-        setSelectedGroup,
+        subcategories,
+        groups,
+        loading, 
+        error,
+        refreshCategories,
+        getSubcategoriesByCategoryId,
+        getGroupsBySubcategoryId,
+        addGroup,
+        updateGroup,
+        deleteGroup,
         addCategory,
         updateCategory,
         deleteCategory,
         addSubcategory,
         updateSubcategory,
-        deleteSubcategory,
-        addGroup,
-        updateGroup,
-        deleteGroup,
-        isLoading,
-        setIsLoading,
-        setError
-    } = useCategoryStore()
+        deleteSubcategory
+    } = useCategories()
 
     const { toast } = useToast()
-
-    // Load categories from database
-    useEffect(() => {
-        const fetchCategories = async () => {
-            setIsLoading(true)
-            try {
-                const categoriesData = await CategoryService.getCategories()
-                
-                // Ensure categoriesData is an array before setting state
-                if (Array.isArray(categoriesData)) {
-                    // Transform the data to include empty subcategories array
-                    const transformedCategories = categoriesData.map(category => ({
-                        ...category,
-                        subcategories: []
-                    }))
-                    
-                    setCategories(transformedCategories)
-                } else {
-                    console.error('Kategoriler bir dizi değil:', categoriesData)
-                    setCategories([]) // Set empty array as fallback
-                    toast({
-                        title: "Hata",
-                        description: "Kategori verileri doğru formatta alınamadı",
-                        variant: "destructive",
-                    })
-                }
-            } catch (error: any) {
-                console.error('Kategoriler alınırken hata oluştu:', error)
-                setError(error.message)
-                setCategories([]) // Set empty array on error
-                toast({
-                    title: "Hata",
-                    description: "Kategoriler alınırken bir hata oluştu",
-                    variant: "destructive",
-                })
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchCategories()
-    }, [setCategories, setIsLoading, setError, toast])
-
-    // Load subcategories when a category is selected
-    useEffect(() => {
-        if (!selectedCategory) return
-        
-        const fetchSubcategories = async () => {
-            setIsLoading(true)
-            try {
-                const subcategoriesData = await CategoryService.getSubcategories(selectedCategory.id)
-                
-                // Transform the data to include empty groups array
-                const transformedSubcategories = subcategoriesData.map(subcategory => ({
-                    ...subcategory,
-                    groups: []
-                }))
-                
-                // Update the selected category with subcategories
-                const updatedCategory = {
-                    ...selectedCategory,
-                    subcategories: transformedSubcategories
-                }
-                
-                // Update the categories array
-                setCategories((prevCategories: Category[]) => 
-                    prevCategories.map((category: Category) => 
-                        category.id === selectedCategory.id ? updatedCategory : category
-                    )
-                )
-                
-                // Update the selected category
-                setSelectedCategory(updatedCategory)
-            } catch (error: any) {
-                console.error('Alt kategoriler alınırken hata oluştu:', error)
-                setError(error.message)
-                toast({
-                    title: "Hata",
-                    description: "Alt kategoriler alınırken bir hata oluştu",
-                    variant: "destructive",
-                })
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchSubcategories()
-    }, [selectedCategory?.id, setCategories, setSelectedCategory, setIsLoading, setError, toast])
-
-    // Load groups when a subcategory is selected
-    useEffect(() => {
-        if (!selectedSubcategory) return
-        
-        const fetchGroups = async () => {
-            setIsLoading(true)
-            try {
-                const groupsData = await CategoryService.getGroups(selectedSubcategory.id)
-                
-                // Update the selected subcategory with groups
-                const updatedSubcategory = {
-                    ...selectedSubcategory,
-                    groups: groupsData
-                }
-                
-                // Update the categories array
-                setCategories((prevCategories: Category[]) => 
-                    prevCategories.map((category: Category) => {
-                        if (category.id === selectedSubcategory.categoryId) {
-                            return {
-                                ...category,
-                                subcategories: (category.subcategories || []).map((subcategory: Subcategory) => 
-                                    subcategory.id === selectedSubcategory.id ? updatedSubcategory : subcategory
-                                )
-                            }
-                        }
-                        return category
-                    })
-                )
-                
-                // Update the selected subcategory
-                setSelectedSubcategory(updatedSubcategory)
-            } catch (error: any) {
-                console.error('Gruplar alınırken hata oluştu:', error)
-                setError(error.message)
-                toast({
-                    title: "Hata",
-                    description: "Gruplar alınırken bir hata oluştu",
-                    variant: "destructive",
-                })
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchGroups()
-    }, [selectedSubcategory?.id, setCategories, setSelectedSubcategory, setIsLoading, setError, toast])
 
     const filteredCategories = categories.filter(category => 
         category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -217,11 +97,8 @@ export default function CategoryManagementPage() {
                 created_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
             }, false)
             
-            // Store'a ekle
-            addCategory({
-                ...newCategory,
-                subcategories: []
-            })
+            // Kategorileri yenile
+            await refreshCategories()
             setIsAddCategoryOpen(false)
             
             toast({
@@ -250,11 +127,8 @@ export default function CategoryManagementPage() {
                 updated_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
             }, true)
             
-            // Store'u güncelle
-            updateCategory({
-                ...updatedCategory,
-                subcategories: selectedCategory?.subcategories || []
-            })
+            // Kategorileri yenile
+            await refreshCategories()
             setEditingCategory(null)
             
             toast({
@@ -280,8 +154,15 @@ export default function CategoryManagementPage() {
                 // API üzerinden kategori sil
                 await CategoryService.deleteCategory(categoryId)
                 
-                // Store'dan sil
-                deleteCategory(categoryId)
+                // Kategorileri yenile
+                await refreshCategories()
+                
+                // Seçili kategori silinen kategoriyse seçimi temizle
+                if (selectedCategory?.id === categoryId) {
+                    setSelectedCategory(null)
+                    setSelectedSubcategory(null)
+                    setSelectedGroup(null)
+                }
                 
                 toast({
                     title: "Başarılı",
@@ -311,11 +192,8 @@ export default function CategoryManagementPage() {
                 created_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
             }, false)
             
-            // Store'a ekle
-            addSubcategory({
-                ...newSubcategory,
-                groups: []
-            })
+            // Kategorileri yenile
+            await refreshCategories()
             setIsAddSubcategoryOpen(false)
             
             toast({
@@ -344,11 +222,8 @@ export default function CategoryManagementPage() {
                 updated_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
             }, true)
             
-            // Store'u güncelle
-            updateSubcategory({
-                ...updatedSubcategory,
-                groups: selectedSubcategory?.groups || []
-            })
+            // Kategorileri yenile
+            await refreshCategories()
             setEditingSubcategory(null)
             
             toast({
@@ -374,8 +249,14 @@ export default function CategoryManagementPage() {
                 // API üzerinden alt kategori sil
                 await CategoryService.deleteSubcategory(subcategoryId)
                 
-                // Store'dan sil
-                deleteSubcategory(subcategoryId)
+                // Kategorileri yenile
+                await refreshCategories()
+                
+                // Seçili alt kategori silinen alt kategoriyse seçimi temizle
+                if (selectedSubcategory?.id === subcategoryId) {
+                    setSelectedSubcategory(null)
+                    setSelectedGroup(null)
+                }
                 
                 toast({
                     title: "Başarılı",
@@ -402,11 +283,37 @@ export default function CategoryManagementPage() {
             const newGroup = await CategoryService.createUpdateGroup({
                 ...groupData,
                 subcategoryId: selectedSubcategory.id,
+                // Alan isimlerini API'nin beklediği formata dönüştür
+                mesai_saatleri_sla: groupData.mesaiSaatleriSla,
+                mesai_disi_sla: groupData.mesaiDisiSla,
+                hafta_sonu_mesai_sla: groupData.haftaSonuMesaiSla,
+                hafta_sonu_mesai_disi_sla: groupData.haftaSonuMesaiDisiSla,
+                sla_next_day_start: groupData.slaNextDayStart,
                 created_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
             }, false)
             
-            // Store'a ekle
-            addGroup(newGroup)
+            // API'den tüm verileri yeniden çekmek yerine yerel state'i güncelle
+            if (newGroup) {
+                // API'den dönen veriyi camelCase formatına dönüştür
+                const apiGroup = newGroup as ApiGroup;
+                const formattedGroup: Group = {
+                    id: apiGroup.id,
+                    name: apiGroup.name,
+                    description: apiGroup.description || "",
+                    subcategoryId: apiGroup.subcategoryId || selectedSubcategory.id,
+                    mesaiSaatleriSla: apiGroup.mesai_saatleri_sla || 0,
+                    mesaiDisiSla: apiGroup.mesai_disi_sla || 0,
+                    haftaSonuMesaiSla: apiGroup.hafta_sonu_mesai_sla || 0,
+                    haftaSonuMesaiDisiSla: apiGroup.hafta_sonu_mesai_disi_sla || 0,
+                    slaNextDayStart: apiGroup.sla_next_day_start || false,
+                    createdAt: apiGroup.created_at || new Date().toISOString(),
+                    updatedAt: apiGroup.updated_at || new Date().toISOString()
+                };
+                
+                // Context'teki yerel state'i güncelle
+                addGroup(formattedGroup);
+            }
+            
             setIsAddGroupOpen(false)
             
             toast({
@@ -432,11 +339,37 @@ export default function CategoryManagementPage() {
             // API üzerinden grup güncelle
             const updatedGroup = await CategoryService.createUpdateGroup({
                 ...groupData,
+                // Alan isimlerini API'nin beklediği formata dönüştür
+                mesai_saatleri_sla: groupData.mesaiSaatleriSla,
+                mesai_disi_sla: groupData.mesaiDisiSla,
+                hafta_sonu_mesai_sla: groupData.haftaSonuMesaiSla,
+                hafta_sonu_mesai_disi_sla: groupData.haftaSonuMesaiDisiSla,
+                sla_next_day_start: groupData.slaNextDayStart,
                 updated_by: "current-user", // Gerçek uygulamada mevcut kullanıcı ID'si ile değiştirilecek
             }, true)
             
-            // Store'u güncelle
-            updateGroup(updatedGroup)
+            // API'den tüm verileri yeniden çekmek yerine yerel state'i güncelle
+            if (updatedGroup) {
+                // API'den dönen veriyi camelCase formatına dönüştür
+                const apiGroup = updatedGroup as ApiGroup;
+                const formattedGroup: Group = {
+                    id: apiGroup.id,
+                    name: apiGroup.name,
+                    description: apiGroup.description || "",
+                    subcategoryId: apiGroup.subcategoryId || "",
+                    mesaiSaatleriSla: apiGroup.mesai_saatleri_sla || 0,
+                    mesaiDisiSla: apiGroup.mesai_disi_sla || 0,
+                    haftaSonuMesaiSla: apiGroup.hafta_sonu_mesai_sla || 0,
+                    haftaSonuMesaiDisiSla: apiGroup.hafta_sonu_mesai_disi_sla || 0,
+                    slaNextDayStart: apiGroup.sla_next_day_start || false,
+                    createdAt: apiGroup.created_at || new Date().toISOString(),
+                    updatedAt: apiGroup.updated_at || new Date().toISOString()
+                };
+                
+                // Context'teki yerel state'i güncelle
+                updateGroup(formattedGroup);
+            }
+            
             setEditingGroup(null)
             
             toast({
@@ -462,8 +395,13 @@ export default function CategoryManagementPage() {
                 // API üzerinden grup sil
                 await CategoryService.deleteGroup(groupId)
                 
-                // Store'dan sil
-                deleteGroup(groupId)
+                // API'den tüm verileri yeniden çekmek yerine yerel state'i güncelle
+                deleteGroup(groupId);
+                
+                // Seçili grup silinen grupsa seçimi temizle
+                if (selectedGroup?.id === groupId) {
+                    setSelectedGroup(null)
+                }
                 
                 toast({
                     title: "Başarılı",
@@ -482,30 +420,30 @@ export default function CategoryManagementPage() {
     }
 
     const handleCategoryClick = (category: Category) => {
-        setSelectedCategory(category)
-        setSelectedSubcategory(null)
-        setSelectedGroup(null)
+        // Gerekli alanları ekleyerek tip uyumluluğunu sağla
+        const safeCategory: Category = {
+            ...category,
+            createdAt: category.createdAt || new Date().toISOString(),
+            updatedAt: category.updatedAt || new Date().toISOString()
+        };
+        setSelectedCategory(safeCategory);
+        setSelectedSubcategory(null);
+        setSelectedGroup(null);
     }
 
     const handleSubcategoryClick = (subcategory: Subcategory) => {
         try {
-            // Create a safe copy with all required properties
-            const safeSubcategory = {
+            // Gerekli alanları ekleyerek tip uyumluluğunu sağla
+            const safeSubcategory: Subcategory = {
                 ...subcategory,
-                id: subcategory.id || '',
-                name: subcategory.name || '',
-                description: subcategory.description || '',
-                categoryId: subcategory.categoryId || '',
-                groups: Array.isArray(subcategory.groups) ? subcategory.groups : [],
                 createdAt: subcategory.createdAt || new Date().toISOString(),
-                updatedAt: subcategory.updatedAt || new Date().toISOString()
+                updatedAt: subcategory.updatedAt || new Date().toISOString(),
+                categoryId: subcategory.categoryId || ''
             };
-            
-            console.log("Setting selected subcategory:", safeSubcategory);
             setSelectedSubcategory(safeSubcategory);
             setSelectedGroup(null);
         } catch (error) {
-            console.error("Error in handleSubcategoryClick:", error);
+            console.error("Error in handleSubcategoryClick:", error)
         }
     }
 
@@ -555,7 +493,7 @@ export default function CategoryManagementPage() {
                         <h3 className="font-semibold">Kategoriler</h3>
                     </div>
                     <div className="overflow-y-auto h-[calc(85vh-16rem)]">
-                        {isLoading ? (
+                        {loading ? (
                             <div className="flex justify-center items-center p-8">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
@@ -648,15 +586,13 @@ export default function CategoryManagementPage() {
                             <div className="p-4 text-center text-muted-foreground">
                                 Lütfen bir kategori seçin
                             </div>
-                        ) : isLoading ? (
+                        ) : loading ? (
                             <div className="flex justify-center items-center p-8">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
-                        ) : !selectedCategory.subcategories || selectedCategory.subcategories.length === 0 ? (
-                            <div className="p-4 text-center">Alt kategori bulunamadı</div>
                         ) : (
                             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {selectedCategory.subcategories.map((subcategory) => (
+                                {getSubcategoriesByCategoryId(selectedCategory.id).map((subcategory) => (
                                     <li key={subcategory.id} className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer ${selectedSubcategory?.id === subcategory.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
                                         <div className="flex items-center justify-between">
                                             <div 
@@ -741,53 +677,75 @@ export default function CategoryManagementPage() {
                             <div className="p-4 text-center text-muted-foreground">
                                 Lütfen bir alt kategori seçin
                             </div>
-                        ) : isLoading ? (
+                        ) : loading ? (
                             <div className="flex justify-center items-center p-8">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             </div>
-                        ) : !selectedSubcategory.groups || selectedSubcategory.groups.length === 0 ? (
-                            <div className="p-4 text-center">Grup bulunamadı</div>
                         ) : (
                             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {selectedSubcategory.groups.map((group) => (
+                                {getGroupsBySubcategoryId(selectedSubcategory.id).map((group) => (
                                     <li key={group.id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 flex-1">
-                                                <span>{group.name}</span>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <span className="font-medium">{group.name}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-8 w-8"
+                                                        onClick={() => setEditingGroup(group.id)}
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    
+                                                    {editingGroup === group.id && (
+                                                        <Dialog open={true} onOpenChange={(open) => {
+                                                            if (!open) setEditingGroup(null);
+                                                        }}>
+                                                            <DialogContent className="sm:max-w-[500px]">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Grup Düzenle</DialogTitle>
+                                                                </DialogHeader>
+                                                                <GroupForm group={group} onSubmit={handleUpdateGroup} />
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    )}
+                                                    
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-500 hover:text-red-700"
+                                                        onClick={() => handleDeleteGroup(group.id)}
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    className="h-8 w-8"
-                                                    onClick={() => setEditingGroup(group.id)}
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                
-                                                {editingGroup === group.id && (
-                                                    <Dialog open={true} onOpenChange={(open) => {
-                                                        if (!open) setEditingGroup(null);
-                                                    }}>
-                                                        <DialogContent className="sm:max-w-[500px]">
-                                                            <DialogHeader>
-                                                                <DialogTitle>Grup Düzenle</DialogTitle>
-                                                            </DialogHeader>
-                                                            <GroupForm group={group} onSubmit={handleUpdateGroup} />
-                                                        </DialogContent>
-                                                    </Dialog>
-                                                )}
-                                                
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-700"
-                                                    onClick={() => handleDeleteGroup(group.id)}
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                            <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                                                <div>
+                                                    <span className="text-muted-foreground">Mesai Saatleri SLA:</span>
+                                                    <span className="ml-2 font-medium">{group.mesaiSaatleriSla || 60} dk</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground">Mesai Dışı SLA:</span>
+                                                    <span className="ml-2 font-medium">{group.mesaiDisiSla || 120} dk</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground">H.Sonu Mesai SLA:</span>
+                                                    <span className="ml-2 font-medium">{group.haftaSonuMesaiSla || 180} dk</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground">H.Sonu Mesai Dışı SLA:</span>
+                                                    <span className="ml-2 font-medium">{group.haftaSonuMesaiDisiSla || 240} dk</span>
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <span className="text-muted-foreground">SLA sonraki gün başlar:</span>
+                                                    <span className="ml-2 font-medium">{group.slaNextDayStart ? 'Evet' : 'Hayır'}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </li>

@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTabStore } from "@/stores/tab-store";
-import axios, { isAxiosError } from "@/lib/axios";
-import { AxiosError } from "axios";
+import axios from "@/lib/axios";
 import { Card } from "@/components/ui/card";
 import { TicketTrendsChart } from "./components/TicketTrendsChart"; // Bu componenti oluşturmanız gerekebilir
 import { toast } from "@/components/ui/toast/use-toast";
@@ -110,7 +109,7 @@ export default function Dashboard() {
             });
             
             const response = await axios.post<DashboardData>(
-                "/supportdesk/api/main/dashboard/getDashboardData",
+                "/api/main/dashboard/getDashboardData", // Düzeltilmiş API endpoint yolu
                 {
                     date1: selectedFilter.date.from,
                     date2: selectedFilter.date.to,
@@ -133,9 +132,9 @@ export default function Dashboard() {
                 trendsChart: false,
                 recentTickets: false,
             });
-        } catch (error: unknown) {
+        } catch (error) {
             console.error("Error fetching data:", error);
-            if (isAxiosError(error) && error.response && error.response.status === 404) {
+            if (error.response && error.response.status === 404) {
                 toast({
                     title: "Bilgi",
                     description: "Destek merkezi verileri bulunamadı. Lütfen daha sonra tekrar deneyin.",
@@ -206,7 +205,6 @@ export default function Dashboard() {
         // Sekme geçişi testi: eğer önceden aktif değilse ve şimdi aktifse,
         // bu sekme geçişi demektir - API isteği yapmadan yalnızca flag'i güncelle
         if (!wasTabActive.current) {
-            console.log("Dashboard sekmesine geçiş tespit edildi, veri zaten yüklü olduğu için yeni API isteği yapılmıyor");
             wasTabActive.current = true;
         }
     }, [activeTab, fetchData, shouldFetch, hasFetched, setShouldFetch, selectedFilter.appliedAt, selectedFilter.branches, selectedFilter.selectedBranches]);

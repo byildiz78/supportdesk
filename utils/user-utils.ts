@@ -46,3 +46,25 @@ export const getUserData = () => {
     return null;
   }
 };
+
+/**
+ * localStorage'dan kullanıcı adını alır
+ * @returns Kullanıcı adı veya null
+ */
+export const getUserName = (): string | null => {
+  try {
+    // userData_login'den kullanıcı adını al
+    const userData = localStorage.getItem('userData_login');
+    if (userData) {
+      const parsedUserData = JSON.parse(userData);
+      if (parsedUserData && parsedUserData.name) {
+        return parsedUserData.name;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Kullanıcı adı alınırken hata oluştu:', error);
+    return null;
+  }
+};

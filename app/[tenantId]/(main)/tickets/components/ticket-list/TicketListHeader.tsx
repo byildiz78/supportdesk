@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Building, User, ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react"
+import { Building, User, ArrowUpDown, ChevronUp, ChevronDown, Phone } from "lucide-react"
 
-export type SortField = 'ticketno' | 'title' | 'description' | 'priority' | 'status' | 'createdAt' | 'assignedUserName' | 'companyName' | 'customerName' | 'source' | 'elapsedTime' | 'dueDate'
+export type SortField = 'ticketno' | 'title' | 'description' | 'priority' | 'status' | 'createdAt' | 'assignedUserName' | 'companyName' | 'customerName' | 'source' | 'elapsedTime' | 'dueDate' | 'callcount'
 export type SortDirection = 'asc' | 'desc'
 
 interface TicketListHeaderProps {
@@ -74,6 +74,16 @@ export function TicketListHeader({ sortField, sortDirection, onSort, showStatusC
                         <User className="h-3 w-3" />
                         <span>İletişim</span>
                         {renderSortIndicator('customerName')}
+                    </div>
+                </TableHead>
+                <TableHead 
+                    className="w-[80px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    onClick={() => onSort('callcount')}
+                >
+                    <div className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        <span>Aranma Sayısı</span>
+                        {renderSortIndicator('callcount')}
                     </div>
                 </TableHead>
                 <TableHead 

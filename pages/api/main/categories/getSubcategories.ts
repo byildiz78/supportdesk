@@ -22,8 +22,6 @@ export default async function handler(
 
   try {
     const { categoryId } = req.query;
-    console.log('Alt kategoriler API çağrıldı, categoryId:', categoryId);
-
     if (!categoryId) {
       return res.status(400).json({
         success: false,
@@ -57,8 +55,6 @@ export default async function handler(
       params: [categoryId],
       req
     });
-    
-    console.log(`${result.length} alt kategori bulundu`);
     
     return res.status(200).json({
       success: true,

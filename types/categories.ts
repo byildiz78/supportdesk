@@ -22,6 +22,11 @@ export interface Group {
     name: string;
     description?: string;
     subcategoryId: string;
+    mesaiSaatleriSla?: number;
+    mesaiDisiSla?: number;
+    haftaSonuMesaiSla?: number;
+    haftaSonuMesaiDisiSla?: number;
+    slaNextDayStart?: boolean;
     createdAt: string;
     updatedAt: string;
 }

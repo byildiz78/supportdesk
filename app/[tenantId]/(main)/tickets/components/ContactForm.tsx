@@ -3,11 +3,11 @@
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { motion } from "framer-motion"
 import { Loader2, User } from "lucide-react"
 import { useEffect, useState, useMemo } from "react"
 import { useContacts } from "@/providers/contacts-provider"
+import ReactSelect from "react-select"
 
 interface ContactFormProps {
   companyId: string
@@ -89,41 +89,59 @@ export default function ContactForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <Label>İletişim Kişisi</Label>
-            <Select
-              value={contactId}
-              onValueChange={handleContactSelect}
-              disabled={!companyId || isLoadingContacts}
-            >
-              <SelectTrigger>
-                {isLoadingContacts ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Yükleniyor...</span>
-                  </div>
-                ) : (
-                  <SelectValue placeholder={companyId ? "İletişim kişisi seçin" : "Önce firma seçin"} />
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                {filteredContacts.length > 0 ? (
-                  filteredContacts.map(contact => {
+            <ReactSelect
+              value={contactId ? { 
+                value: contactId, 
+                label: (() => {
+                  const contact = contacts.find(c => c.id === contactId);
+                  if (contact) {
                     const firstName = contact.firstName || contact.first_name || '';
                     const lastName = contact.lastName || contact.last_name || '';
-                    const contactName = contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
-                    
-                    return (
-                      <SelectItem key={contact.id} value={contact.id}>
-                        {contactName}
-                      </SelectItem>
-                    );
-                  })
-                ) : (
-                  <SelectItem value="" disabled>
-                    {companyId ? "Bu firmaya ait kişi bulunamadı" : "Önce firma seçin"}
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+                    return contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
+                  }
+                  return "İletişim kişisi seçin";
+                })()
+              } : null}
+              onChange={(option: any) => {
+                if (option) {
+                  handleContactSelect(option.value);
+                } else {
+                  handleContactSelect("");
+                }
+              }}
+              options={filteredContacts.map(contact => {
+                const firstName = contact.firstName || contact.first_name || '';
+                const lastName = contact.lastName || contact.last_name || '';
+                const contactName = contact.name || `${firstName} ${lastName}`.trim() || "İsimsiz Kişi";
+                
+                return {
+                  value: contact.id,
+                  label: contactName
+                };
+              })}
+              isDisabled={!companyId || isLoadingContacts}
+              placeholder={companyId ? "İletişim kişisi seçin" : "Önce firma seçin"}
+              noOptionsMessage={() => companyId ? "Bu firmaya ait kişi bulunamadı" : "Önce firma seçin"}
+              loadingMessage={() => "Yükleniyor..."}
+              isLoading={isLoadingContacts}
+              isClearable
+              classNames={{
+                control: (state) => 
+                  `border rounded-md p-1 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
+                placeholder: () => "text-muted-foreground",
+                input: () => "text-foreground",
+                option: (state) => 
+                  `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''}`,
+                menu: () => "bg-background border rounded-md shadow-md mt-1 z-50",
+              }}
+              components={{
+                LoadingIndicator: () => (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                )
+              }}
+            />
           </div>
 
           <div>

@@ -4,11 +4,9 @@ import { db } from '@/lib/database';
 interface User {
   id: string;
   name: string;
-  username: string;
   email: string;
   role: string;
   department: string | null;
-  password_hash: string;
   status: string;
   lastLogin: string | null;
   profileImageUrl: string | null;
@@ -39,11 +37,9 @@ export default async function handler(
       SELECT 
         id,
         name,
-        username,
         email,
         role,
         department,
-        password_hash,
         status,
         last_login as "lastLogin",
         profile_image_url as "profileImageUrl",

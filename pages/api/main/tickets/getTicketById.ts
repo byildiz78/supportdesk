@@ -12,7 +12,9 @@ interface Ticket {
   category_id: string | null;
   category_name: string | null;
   subcategory_id: string | null;
+  subcategory_name: string | null;
   group_id: string | null;
+  group_name: string | null;
   assigned_to: string | null;
   assigned_user_name: string | null;
   customer_name: string | null;
@@ -48,6 +50,14 @@ interface Comment {
   created_by_name: string;
   updated_at: string | null;
   updated_by: string | null;
+  email_id: string | null;
+  thread_id: string | null;
+  sender: string | null;
+  sender_email: string | null;
+  to_recipients: string[] | null;
+  cc_recipients: string[] | null;
+  html_content: string | null;
+  attachments?: Attachment[];
 }
 
 interface Attachment {
@@ -72,7 +82,6 @@ export default async function handler(
   try {
     const { ticketId } = req.query;
     
-    console.log('Bilet Detayı API çağrıldı, ticketId:', ticketId);
 
     if (!ticketId) {
       return res.status(400).json({
@@ -89,7 +98,7 @@ export default async function handler(
 
     // Ana bilet bilgilerini getir
     const ticketQuery = `
-      SELECT 
+        SELECT 
         t.id,
         t.ticketno,
         t.title,
@@ -99,6 +108,13 @@ export default async function handler(
         t.source,
         t.category_id,
         c.name as category_name,
+        t.subcategory_id,
+        s.name as subcategory_name,
+        t.group_id,
+        g.name as group_name,
+        t.customer_name,
+        t.customer_email,
+        t.customer_phone,
         t.company_id,
         t.company_name,
         t.contact_id,
@@ -121,13 +137,12 @@ export default async function handler(
         t.sla_breach
       FROM tickets t
       LEFT JOIN categories c ON t.category_id = c.id
+      LEFT JOIN subcategories s ON s.id = t.subcategory_id
+      LEFT JOIN groups g ON g.id = t.group_id
       LEFT JOIN contacts ct ON t.contact_id = ct.id
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.id = $1::uuid
     `;
-
-    console.log('Bilet sorgusu çalıştırılıyor:', ticketQuery);
-    console.log('Bilet ID:', ticketId);
 
     try {
       const ticketResult = await db.executeQuery<Ticket[]>({
@@ -136,7 +151,6 @@ export default async function handler(
         req
       });
 
-      console.log('Bilet sorgu sonucu:', JSON.stringify(ticketResult));
 
       if (!ticketResult || ticketResult.length === 0) {
         return res.status(404).json({
@@ -147,7 +161,6 @@ export default async function handler(
 
       // Kişi bilgileri eksikse, contacts tablosundan tekrar sorgulayalım
       if (ticketResult[0].contact_id && (!ticketResult[0].contact_name || !ticketResult[0].contact_email || !ticketResult[0].contact_phone)) {
-        console.log('Kişi bilgileri eksik, contacts tablosundan sorgulanıyor...', ticketResult[0].contact_id);
         
         const contactQuery = `
           SELECT 
@@ -167,28 +180,15 @@ export default async function handler(
             req
           });
           
-          console.log('Kişi sorgu sonucu:', JSON.stringify(contactResult));
-          
           if (contactResult && contactResult.length > 0) {
-            console.log('Kişi bilgileri bulundu, bilet nesnesine ekleniyor...');
             ticketResult[0].contact_name = contactResult[0].contact_name;
             ticketResult[0].contact_email = contactResult[0].contact_email;
             ticketResult[0].contact_phone = contactResult[0].contact_phone;
             ticketResult[0].contact_position = contactResult[0].contact_position;
-            console.log('Güncellenmiş bilet:', JSON.stringify(ticketResult[0]));
-          } else {
-            console.log('Kişi bulunamadı, ID:', ticketResult[0].contact_id);
           }
         } catch (contactError) {
           console.error('Kişi sorgusu hatası:', contactError);
         }
-      } else {
-        console.log('Kişi bilgileri zaten mevcut veya contact_id yok:', 
-          'contact_id:', ticketResult[0].contact_id, 
-          'contact_name:', ticketResult[0].contact_name,
-          'contact_email:', ticketResult[0].contact_email,
-          'contact_phone:', ticketResult[0].contact_phone
-        );
       }
 
       // Fetch comments for the ticket
@@ -201,15 +201,19 @@ export default async function handler(
           tc.created_at,
           tc.created_by,
           u.name as created_by_name,
-          tc.updated_at,
-          tc.updated_by
+          tc.email_id,
+          tc.thread_id,
+          tc.sender,
+          tc.sender_email,
+          tc.to_recipients,
+          tc.cc_recipients,
+          tc.html_content,
+          tc.attachments
         FROM ticket_comments tc
         LEFT JOIN users u ON tc.created_by = u.id
         WHERE tc.ticket_id = $1::uuid AND tc.is_deleted = false
-        ORDER BY tc.created_at ASC
+        ORDER BY tc.created_at DESC
       `;
-
-      console.log('Yorum sorgusu çalıştırılıyor:', commentsQuery);
 
       try {
         const commentsResult = await db.executeQuery<Comment[]>({
@@ -218,7 +222,42 @@ export default async function handler(
           req
         });
 
-        console.log('Yorum sorgu sonucu:', JSON.stringify(commentsResult));
+        // Yorumları JSON attachments ile birlikte işle
+        const commentsWithAttachments = commentsResult.map(comment => {
+          // JSON attachments alanını parse et
+          let parsedAttachments = [];
+          if (comment.attachments) {
+            try {
+              // Eğer zaten bir object ise (PostgreSQL driver tarafından otomatik parse edilmiş olabilir)
+              if (typeof comment.attachments === 'object') {
+                parsedAttachments = Array.isArray(comment.attachments) 
+                  ? comment.attachments 
+                  : [comment.attachments];
+              } else if (typeof comment.attachments === 'string') {
+                // String ise JSON olarak parse et
+                parsedAttachments = JSON.parse(comment.attachments);
+              }
+            } catch (e) {
+              console.error('Attachments JSON parse hatası:', e);
+            }
+          }
+
+          return {
+            ...comment,
+            attachments: parsedAttachments || [],
+            // Transform field names to match front-end expectations
+            createdByName: comment.created_by_name,
+            isInternal: comment.is_internal,
+            createdAt: comment.created_at,
+            createdBy: comment.created_by,
+            emailId: comment.email_id,
+            threadId: comment.thread_id,
+            senderEmail: comment.sender_email,
+            toRecipients: comment.to_recipients,
+            ccRecipients: comment.cc_recipients,
+            htmlContent: comment.html_content
+          };
+        });
 
         // Fetch all attachments for the ticket
         const ticketAttachmentsQuery = `
@@ -242,68 +281,12 @@ export default async function handler(
           req
         });
 
-        console.log('Ticket attachments query result:', JSON.stringify(ticketAttachments));
-
-        // Yorumlar için ekleri getir
-        const commentsWithAttachments = await Promise.all(commentsResult.map(async (comment) => {
-          const attachmentsQuery = `
-            SELECT 
-              id,
-              name,
-              original_filename as "originalFilename",
-              size,
-              mime_type as "mimeType",
-              public_url as "url",
-              created_at as "uploadedAt",
-              created_by as "uploadedBy"
-            FROM attachments
-            WHERE entity_type = 'comment' AND entity_id = $1::uuid AND is_deleted = false
-          `;
-
-          try {
-            const attachmentsResult = await db.executeQuery<Attachment[]>({
-              query: attachmentsQuery,
-              params: [comment.id],
-              req
-            });
-
-            return {
-              ...comment,
-              attachments: attachmentsResult || [],
-              // Transform field names to match front-end expectations
-              createdByName: comment.created_by_name,
-              isInternal: comment.is_internal,
-              createdAt: comment.created_at,
-              createdBy: comment.created_by,
-              updatedAt: comment.updated_at,
-              updatedBy: comment.updated_by,
-              ticketId: comment.ticket_id
-            };
-          } catch (error) {
-            console.error('Yorum ekleri sorgusu hatası:', error);
-            return {
-              ...comment,
-              attachments: [],
-              // Transform field names to match front-end expectations
-              createdByName: comment.created_by_name,
-              isInternal: comment.is_internal,
-              createdAt: comment.created_at,
-              createdBy: comment.created_by,
-              updatedAt: comment.updated_at,
-              updatedBy: comment.updated_by,
-              ticketId: comment.ticket_id
-            };
-          }
-        }));
-
         // Sonuçları birleştir
         const ticket = {
           ...ticketResult[0],
           comments: commentsWithAttachments || [],
           attachments: ticketAttachments || []
         };
-        
-        console.log('Bilet detayı döndürülüyor:', JSON.stringify(ticket));
         
         return res.status(200).json({
           success: true,

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "@/lib/axios";
 
 export interface Company {
   id: string;
@@ -10,6 +10,11 @@ export interface Company {
   website?: string;
   tax_number?: string;
   tax_office?: string;
+  flow_ba_starting_date?: string;
+  flow_ba_end_date?: string;
+  flow_ba_notes?: string;
+  flow_support_notes?: string;
+  flow_licence_notes?: string;
 }
 
 export const CompanyService = {
@@ -17,8 +22,8 @@ export const CompanyService = {
   getCompanies: async (parentCompanyId?: string): Promise<Company[]> => {
     try {
       const url = parentCompanyId 
-        ? `/supportdesk/api/main/companies/getCompanies?parentCompanyId=${parentCompanyId}`
-        : '/supportdesk/api/main/companies/getCompanies';
+        ? `/api/main/companies/getCompanies?parentCompanyId=${parentCompanyId}`
+        : '/api/main/companies/getCompanies';
       
       const response = await axios.get(url);
       
@@ -36,7 +41,7 @@ export const CompanyService = {
   // Firma detaylarını getir
   getCompanyById: async (companyId: string): Promise<Company> => {
     try {
-      const response = await axios.get(`/supportdesk/api/main/companies/getCompanyById?companyId=${companyId}`);
+      const response = await axios.get(`/api/main/companies/getCompanyById?companyId=${companyId}`);
       
       if (response.data.success) {
         return response.data.data;
@@ -52,7 +57,7 @@ export const CompanyService = {
   // Firma oluştur veya güncelle
   createUpdateCompany: async (company: Partial<Company>): Promise<Company> => {
     try {
-      const response = await axios.post('/supportdesk/api/main/companies/createUpdateCompany', company);
+      const response = await axios.post('/api/main/companies/createUpdateCompany', company);
       
       if (response.data.success) {
         return response.data.data;
@@ -68,7 +73,7 @@ export const CompanyService = {
   // Firma sil
   deleteCompany: async (companyId: string): Promise<void> => {
     try {
-      const response = await axios.delete(`/supportdesk/api/main/companies/deleteCompany?companyId=${companyId}`);
+      const response = await axios.delete(`/api/main/companies/deleteCompany?companyId=${companyId}`);
       
       if (!response.data.success) {
         throw new Error(response.data.message || "Firma silinemedi");

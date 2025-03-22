@@ -11,7 +11,9 @@ export interface Ticket {
     category_id: string | null;
     category_name: string | null;
     subcategory_id: string | null;
+    subcategory_name: string | null;
     group_id: string | null;
+    group_name: string | null;
     assigned_to: string | null;
     assignedTo?: string | null; // camelCase version for API compatibility
     assignedUserName?: string | null; // Added for displaying assigned user name
@@ -31,11 +33,14 @@ export interface Ticket {
     resolution_time: number | null;
     parent_company_id: string | null;
     sla_breach: boolean | null;
+    callcount?: number | null; // Aranma sayısı
     
     // CamelCase versions for frontend compatibility
     categoryId?: string | null;
     subcategoryId?: string | null;
+    subcategoryName?: string | null;
     groupId?: string | null;
+    groupName?: string | null;
     customerName?: string | null;
     customerEmail?: string | null;
     customerPhone?: string | null;
@@ -135,11 +140,15 @@ export interface Contact {
 export interface FileAttachment {
     id: string;
     name: string;
+    originalFilename?: string;
     size: number;
-    type: string;
+    type?: string;
+    mimeType?: string;
     url: string;
-    uploaded_at: string;
-    uploaded_by: string;
+    uploaded_at?: string;
+    uploaded_by?: string;
+    uploadedAt?: string;
+    uploadedBy?: string;
 }
 
 export interface TicketComment {
@@ -151,6 +160,16 @@ export interface TicketComment {
     created_at: string;
     is_internal: boolean;
     attachments?: FileAttachment[];
+    
+    // Email-specific fields
+    email_id?: string;
+    thread_id?: string;
+    sender?: string;
+    sender_email?: string;
+    to_recipients?: string[];
+    cc_recipients?: string[];
+    html_content?: string;
+    in_reply_to_email_id?: string;
 }
 
 export interface TicketFilter {

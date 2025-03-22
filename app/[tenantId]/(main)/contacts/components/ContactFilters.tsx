@@ -1,96 +1,35 @@
 "use client"
 
+import { Card } from '@/components/ui/card'
 import { Input } from "@/components/ui/input"
-import { Search, Building } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useCompaniesStore } from "@/stores/main/companies-store"
-import { useEffect, useState } from "react"
-import axios from "@/lib/axios"
-import { useFilterStore } from "@/stores/filters-store"
+import { Search } from "lucide-react"
 
-export interface ContactFiltersProps {
-    searchTerm: string;
-    onSearchChange: (value: string) => void;
-    selectedCompanyId: string | null;
-    onCompanyFilterChange: (companyId: string | null) => void;
+interface ContactFiltersProps {
+    searchTerm: string
+    onSearchChange: (value: string) => void
 }
 
-export function ContactFilters({ 
-    searchTerm, 
-    onSearchChange, 
-    selectedCompanyId, 
-    onCompanyFilterChange 
-}: ContactFiltersProps) {
-    const { companies, setCompanies } = useCompaniesStore()
-    const { selectedFilter } = useFilterStore()
-    const [isLoadingCompanies, setIsLoadingCompanies] = useState(false)
-
-    // Fetch companies for the dropdown
-    useEffect(() => {
-        const fetchCompanies = async () => {
-            if (companies.length === 0) {
-                try {
-                    setIsLoadingCompanies(true)
-                    
-                    // Handle selected branches
-                    let branchParam = selectedFilter.selectedBranches.length > 0
-                        ? selectedFilter.selectedBranches
-                        : selectedFilter.branches
-
-                    // Prepare value for API
-                    if (!branchParam || (Array.isArray(branchParam) && branchParam.length === 0)) {
-                        // Send empty array, not null
-                        branchParam = []
-                    }
-                    
-                    const response = await axios.post('/api/main/companies/companiesList', {
-                        tenantId: branchParam
-                    })
-                    
-                    if (response.data) {
-                        setCompanies(response.data)
-                    }
-                } catch (error) {
-                    console.error('Error loading companies for filter:', error)
-                } finally {
-                    setIsLoadingCompanies(false)
-                }
-            }
-        }
-
-        fetchCompanies()
-    }, [companies.length, setCompanies, selectedFilter.branches, selectedFilter.selectedBranches])
-
+export function ContactFilters({ searchTerm, onSearchChange }: ContactFiltersProps) {
     return (
-        <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                <Input
-                    placeholder="Kişi ara..."
-                    value={searchTerm}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-10"
-                />
-            </div>
-            <div className="w-full sm:w-64">
-                <div className="relative">
-                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Select
-                        value={selectedCompanyId || ""}
-                        onValueChange={(value) => onCompanyFilterChange(value === "" ? null : value)}
-                    >
-                        <SelectTrigger className="pl-10">
-                            <SelectValue placeholder="Firmaya göre filtrele" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="">Tüm Firmalar</SelectItem>
-                            {companies.map(company => (
-                                <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+        <div className="flex flex-col md:flex-row gap-4">
+            <Card className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-2 border-blue-100/50 dark:border-blue-900/20 shadow-lg shadow-blue-500/5">
+                <div className="p-6">
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                        <div className="flex-1">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                                <Input
+                                    type="search"
+                                    placeholder="Kişi ara..."
+                                    value={searchTerm}
+                                    onChange={(e) => onSearchChange(e.target.value)}
+                                    className="pl-10 bg-white/80 dark:bg-gray-800/80 border-2 border-blue-100 dark:border-blue-900/30 focus:border-blue-500 dark:focus:border-blue-400 rounded-xl transition-all duration-200"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </Card>
         </div>
     )
 }

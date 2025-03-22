@@ -46,7 +46,6 @@ export default async function handler(
       query,
       req
     });
-    console.log('parentCompanies', parentCompanies);
     // Return results
     return res.status(200).json(parentCompanies);
   } catch (error: any) {

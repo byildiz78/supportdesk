@@ -31,8 +31,6 @@ export default function NewMainCompanyPage() {
 
     try {
       // API call will be implemented here
-      console.log("Form submitted:", companyData)
-      
     } catch (error) {
       console.error('Error submitting form:', error)
       setError(error instanceof Error ? error.message : 'Beklenmeyen bir hata oluştu')
