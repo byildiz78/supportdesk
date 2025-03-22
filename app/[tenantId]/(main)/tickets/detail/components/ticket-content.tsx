@@ -472,19 +472,6 @@ export function TicketContent({ ticket }: TicketContentProps) {
                 ticketId={ticket.id} 
             />
 
-            {/* Email Reply Form */}
-            {replyingToEmail && (
-                <Card className="p-4 mb-6">
-                    <EmailReplyForm 
-                        originalComment={replyingToEmail}
-                        replyAll={replyAll}
-                        subject={`Re: ${replyingToEmail.content || ''}`}
-                        onSubmit={handleSubmitEmailReply}
-                        onCancel={handleCancelReply}
-                    />
-                </Card>
-            )}
-
             {/* Comments */}
             {ticket.comments && ticket.comments.length > 0 ? (
                 <Card className="p-6 mb-6">
@@ -542,6 +529,19 @@ export function TicketContent({ ticket }: TicketContentProps) {
                     </div>
                 </Card>
             ) : null}
+
+            {/* Email Reply Form */}
+            {replyingToEmail && (
+                <Card className="p-4 mb-6">
+                    <EmailReplyForm 
+                        originalComment={replyingToEmail}
+                        replyAll={replyAll}
+                        subject={`Re: ${replyingToEmail.content || ''}`}
+                        onSubmit={handleSubmitEmailReply}
+                        onCancel={handleCancelReply}
+                    />
+                </Card>
+            )}
 
             {/* File Upload */}
             <Card className="p-6 mb-6">

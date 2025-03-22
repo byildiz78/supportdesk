@@ -75,13 +75,26 @@ export default async function handler(
     // Nodemailer transporter oluştur
     try {
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // SSL/TLS kullan
         auth: {
           user: process.env.SUPPORT_MAIL,
           pass: process.env.GMAIL_APP_PASSWORD,
         },
+        debug: true, // Hata ayıklama modunu etkinleştir
+        logger: true // Günlük kaydını etkinleştir
       });
       console.log('Nodemailer transporter oluşturuldu');
+
+      // Transporter'ın bağlantısını test et
+      transporter.verify(function(error, success) {
+        if (error) {
+          console.error('SMTP bağlantı hatası:', error);
+        } else {
+          console.log('SMTP sunucusuna bağlantı başarılı:', success);
+        }
+      });
 
       // Ticket numarasını kontrol et ve ekle
       let emailSubject = subject || 'Re: Destek Talebiniz Hakkında';
