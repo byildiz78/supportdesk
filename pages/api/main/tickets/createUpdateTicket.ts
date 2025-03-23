@@ -20,7 +20,7 @@ const createStatusHistoryEntry = async (
   ticketId: string,
   previousStatus: string | null,
   newStatus: string,
-  changedBy: string,
+  changedBy: string | null,
   req: NextApiRequest
 ): Promise<void> => {
   try {
@@ -51,6 +51,9 @@ const createStatusHistoryEntry = async (
       }
     }
 
+    // Sistem kullanıcısı ID'si - changedBy null ise bu ID kullanılacak
+    const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
+
     // Durum değişikliği kaydını oluştur
     await client.query(`
       INSERT INTO ticket_status_history 
@@ -60,7 +63,7 @@ const createStatusHistoryEntry = async (
       ticketId,
       previousStatus,
       newStatus,
-      changedBy,
+      changedBy || systemUserId, // Eğer changedBy null ise sistem kullanıcısı ID'sini kullan
       timeInStatus
     ]);
 
@@ -172,7 +175,18 @@ export default async function handler(
         `;
         const previousStatusResult = await client.query(previousStatusQuery, [ticketId]);
         const previousStatus = previousStatusResult.rows[0].status;
-        await createStatusHistoryEntry(client, ticketId, previousStatus, safeTicketData.status, safeTicketData.updatedBy, req);
+        
+        // Sistem kullanıcısı ID'si
+        const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
+        
+        await createStatusHistoryEntry(
+          client, 
+          ticketId, 
+          previousStatus, 
+          safeTicketData.status, 
+          safeTicketData.updatedBy || systemUserId, 
+          req
+        );
       } else {
         // Check for duplicate tickets with the same title and company_id
         const checkDuplicateQuery = `
@@ -261,8 +275,18 @@ export default async function handler(
           ticketId = result.rows[0].id;
           ticketNo = result.rows[0].ticketno;
 
+          // Sistem kullanıcısı ID'si
+          const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
+
           // Durum geçmişi kaydı oluştur
-          await createStatusHistoryEntry(client, ticketId, null, safeTicketData.status, safeTicketData.createdBy, req);
+          await createStatusHistoryEntry(
+            client, 
+            ticketId, 
+            null, 
+            safeTicketData.status, 
+            safeTicketData.createdBy || systemUserId, 
+            req
+          );
         } catch (queryError: any) {
           console.error('SQL query error:', queryError);
           return res.status(500).json({ 
