@@ -10,6 +10,7 @@ export interface Ticket {
   subcategory_id: string | null;
   group_id: string | null;
   assigned_to: string | null;
+  assigned_to_name: string | null;
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
@@ -26,6 +27,7 @@ export interface Ticket {
   resolution_time: number | null;
   created_at: string;
   created_by: string | null;
+  created_by_name: string | null;
   updated_at: string | null;
   updated_by: string | null;
   is_deleted: boolean;

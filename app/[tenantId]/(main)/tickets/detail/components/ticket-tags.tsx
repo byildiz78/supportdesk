@@ -106,73 +106,62 @@ export function TicketTags({ ticketId, onTagsUpdate }: TicketTagsProps) {
   }
 
   return (
-    <Card className="p-4 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold flex items-center">
-          <Tag className="h-4 w-4 mr-2 text-blue-600" />
-          Etiketler
-        </h3>
+    <Card className="p-4 mb-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Tag className="h-4 w-4 text-gray-500" />
+        <h3 className="text-sm font-medium">Etiketler</h3>
       </div>
       
-      {loading ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-        </div>
-      ) : error ? (
-        <div className="text-center py-2 text-sm text-red-500">{error}</div>
-      ) : (
-        <>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tags.length > 0 ? (
-              tags.map((tag) => (
-                <Badge 
-                  key={tag.id} 
-                  variant="secondary"
-                  className="px-2 py-1 flex items-center gap-1 group"
+      <div className="mb-2">
+        <div className="flex flex-wrap gap-1.5">
+          {loading ? (
+            <div className="flex items-center justify-center w-full py-1">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            </div>
+          ) : tags && tags.length > 0 ? (
+            tags.map((tag) => (
+              <Badge key={tag.id} variant="outline" className="group flex items-center gap-1 text-xs py-0.5 px-2">
+                <span>{tag.name}</span>
+                <button 
+                  onClick={() => handleRemoveTag(tag)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 hover:text-red-500"
                 >
-                  <span>{tag.name}</span>
-                  <button 
-                    onClick={() => handleRemoveTag(tag)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 hover:text-red-500"
-                  >
-                    &times;
-                  </button>
-                </Badge>
-              ))
+                  &times;
+                </button>
+              </Badge>
+            ))
+          ) : (
+            <div className="text-xs text-gray-500 py-1">Henüz etiket eklenmemiş</div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2 mt-2">
+          <Input
+            placeholder="Yeni etiket ekle."
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            className="text-xs h-7"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddTag()
+              }
+            }}
+          />
+          <Button 
+            size="sm" 
+            onClick={handleAddTag}
+            disabled={isAddingTag || !newTag.trim()}
+            className="h-7 text-xs px-2"
+          >
+            {isAddingTag ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <div className="text-sm text-gray-500 py-1">Henüz etiket eklenmemiş</div>
+              <Plus className="h-3 w-3" />
             )}
-          </div>
-          
-          <div className="flex items-center gap-2 mt-3">
-            <Input
-              placeholder="Yeni etiket ekle"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              className="text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddTag()
-                }
-              }}
-            />
-            <Button 
-              size="sm" 
-              onClick={handleAddTag}
-              disabled={isAddingTag || !newTag.trim()}
-              className="flex items-center"
-            >
-              {isAddingTag ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-              ) : (
-                <Plus className="h-4 w-4 mr-1" />
-              )}
-              Ekle
-            </Button>
-          </div>
-        </>
-      )}
+          </Button>
+        </div>
+      </div>
     </Card>
   )
 }

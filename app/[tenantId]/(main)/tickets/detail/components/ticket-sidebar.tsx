@@ -34,6 +34,8 @@ import { tr } from "date-fns/locale"
 import React, { useState, useEffect, useMemo } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { TicketService } from "../services/ticket-service"
+import { AuditService } from "@/app/[tenantId]/(main)/services/audit-service"
+import { StatusHistoryService } from "@/app/[tenantId]/(main)/services/status-history-service"
 import { useCompanies } from "@/providers/companies-provider"
 import { useUsers } from "@/providers/users-provider"
 import { useContacts } from "@/providers/contacts-provider"
@@ -41,20 +43,14 @@ import { Group, useCategories } from "@/providers/categories-provider"
 import { toast } from "@/components/ui/toast/use-toast"
 import { useTabStore } from "@/stores/tab-store"
 import { useTicketStore } from "@/stores/ticket-store"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import CategoryForm from "../../components/CategoryForm"
 import ReactSelect from "react-select"
 import axios from "@/lib/axios"
+import { getUserId, getUserName } from "@/utils/user-utils"
 
 interface TicketSidebarProps {
     ticket: any;
@@ -363,6 +359,9 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
     // Durum değiştiğinde
     const handleStatusChange = (value: string) => {
+        // Önceki durumu sakla (audit log için)
+        const previousStatus = updatedTicket.status;
+        
         setUpdatedTicket((prev: any) => {
             const updated = {
                 ...prev,
@@ -411,11 +410,34 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
     // Atanan kişi değiştiğinde
     const handleAssignedToChange = (value: string) => {
-        setUpdatedTicket((prev: any) => ({
-            ...prev,
-            assigned_to: value,
-            assignedTo: value
-        }))
+        // Önceki atanan kişiyi sakla (audit log için)
+        const previousAssignee = updatedTicket.assigned_to;
+        const previousAssigneeName = updatedTicket.assigned_user_name;
+        
+        // Atanan kişinin adını bul
+        const selectedUser = users.find(user => user.id === value);
+        const userName = selectedUser ? selectedUser.name : "Bilinmeyen Kullanıcı";
+        
+        setUpdatedTicket((prev: any) => {
+            return {
+                ...prev,
+                assigned_to: value,
+                assigned_user_name: userName
+            };
+        });
+
+        // Atanan kişi değişikliğini ticket history'ye kaydet
+        if (ticket.id && previousAssignee !== value) {
+            StatusHistoryService.createAssignmentHistoryEntry(
+                ticket.id,
+                previousAssignee,
+                value,
+                previousAssigneeName,
+                userName
+            ).catch(error => {
+                console.error("Atanan kişi değişikliği kaydedilirken hata:", error);
+            });
+        }
     }
 
     // Firma değiştiğinde
@@ -534,6 +556,11 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             setIsSaving(true)
             setValidationError(null)
 
+            // Orijinal bilet durumunu sakla (audit log için)
+            const originalTicket = { ...ticket };
+            const statusChanged = originalTicket.status !== updatedTicket.status;
+            const assignmentChanged = originalTicket.assigned_to !== updatedTicket.assigned_to;
+
             // Eğer grup seçiliyse SLA bitiş tarihini yeniden hesapla
             let ticketData = { ...updatedTicket };
             if (ticketData.group_id && ticketData.created_at) {
@@ -555,6 +582,75 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             const updatedTicketData = await TicketService.updateTicket(ticketData)
 
             if (updatedTicketData) {
+                // Durum değişikliği varsa audit log oluştur
+                if (statusChanged) {
+                    try {
+                        await AuditService.logTicketStatusChange(
+                            updatedTicketData.id,
+                            originalTicket.status,
+                            updatedTicketData.status,
+                            {
+                                status: originalTicket.status,
+                                priority: originalTicket.priority,
+                                assigned_to: originalTicket.assigned_to,
+                                category_id: originalTicket.category_id,
+                                subcategory_id: originalTicket.subcategory_id,
+                                group_id: originalTicket.group_id
+                            },
+                            {
+                                status: updatedTicketData.status,
+                                priority: updatedTicketData.priority,
+                                assigned_to: updatedTicketData.assigned_to,
+                                category_id: updatedTicketData.category_id,
+                                subcategory_id: updatedTicketData.subcategory_id,
+                                group_id: updatedTicketData.group_id
+                            }
+                        );
+                        
+                        // Durum geçmişi tablosuna kaydet
+                        await StatusHistoryService.createStatusHistoryEntry(
+                            updatedTicketData.id,
+                            originalTicket.status,
+                            updatedTicketData.status
+                        );
+                    } catch (logError) {
+                        console.error("Log oluşturulurken hata:", logError);
+                        // Log hatası bilet güncellemeyi etkilemeyecek
+                    }
+                }
+
+                // Görevlendirme değişikliği varsa audit log oluştur
+                if (assignmentChanged) {
+                    try {
+                        await AuditService.logTicketAssignmentChange(
+                            updatedTicketData.id,
+                            originalTicket.assigned_to,
+                            updatedTicketData.assigned_to,
+                            {
+                                status: originalTicket.status,
+                                priority: originalTicket.priority,
+                                assigned_to: originalTicket.assigned_to,
+                                assigned_user_name: originalTicket.assigned_user_name,
+                                category_id: originalTicket.category_id,
+                                subcategory_id: originalTicket.subcategory_id,
+                                group_id: originalTicket.group_id
+                            },
+                            {
+                                status: updatedTicketData.status,
+                                priority: updatedTicketData.priority,
+                                assigned_to: updatedTicketData.assigned_to,
+                                assigned_user_name: updatedTicketData.assigned_user_name,
+                                category_id: updatedTicketData.category_id,
+                                subcategory_id: updatedTicketData.subcategory_id,
+                                group_id: updatedTicketData.group_id
+                            }
+                        );
+                    } catch (logError) {
+                        console.error("Görevlendirme değişikliği log kaydı oluşturulurken hata:", logError);
+                        // Audit log hatası bilet güncellemeyi etkilemeyecek
+                    }
+                }
+
                 toast({
                     title: "Başarılı",
                     description: "Bilet başarıyla güncellendi.",
@@ -653,6 +749,9 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
         setIsResolvingTicket(true)
         try {
+            // Orijinal bilet durumunu sakla (audit log için)
+            const originalTicket = { ...ticket };
+
             // Bileti çözümlendi olarak güncelle - yeni resolveTicket API'sini kullan
             const resolvedTicket = await TicketService.resolveTicket({
                 id: updatedTicket.id,
@@ -666,6 +765,43 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                 ...resolvedTicket,
                 status: "resolved"
             })
+
+            // Durum değişikliğini audit log'a kaydet
+            try {
+                await AuditService.logTicketStatusChange(
+                    updatedTicket.id,
+                    originalTicket.status,
+                    "resolved",
+                    {
+                        status: originalTicket.status,
+                        priority: originalTicket.priority,
+                        assigned_to: originalTicket.assigned_to,
+                        category_id: originalTicket.category_id,
+                        subcategory_id: originalTicket.subcategory_id,
+                        group_id: originalTicket.group_id
+                    },
+                    {
+                        status: "resolved",
+                        priority: resolvedTicket.priority || originalTicket.priority,
+                        assigned_to: resolvedTicket.assigned_to || originalTicket.assigned_to,
+                        category_id: resolvedTicket.category_id || originalTicket.category_id,
+                        subcategory_id: resolvedTicket.subcategory_id || originalTicket.subcategory_id,
+                        group_id: resolvedTicket.group_id || originalTicket.group_id,
+                        resolution_notes: resolutionDetails,
+                        resolution_tags: resolutionTags.map(tag => tag.name)
+                    }
+                );
+                
+                // Durum geçmişi tablosuna kaydet
+                await StatusHistoryService.createStatusHistoryEntry(
+                    updatedTicket.id,
+                    originalTicket.status,
+                    "resolved"
+                );
+            } catch (logError) {
+                console.error("Audit log oluşturulurken hata:", logError);
+                // Audit log hatası bilet çözümlemeyi etkilemeyecek
+            }
 
             // Modalı kapat
             setIsResolveModalOpen(false)
@@ -866,7 +1002,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                     <span className="text-xs text-gray-500">Kullanıcılar yükleniyor...</span>
                                 </div>
                             ) : (
-                                <>
+                                <div className="flex flex-col space-y-2">
                                     <div className="flex items-start space-x-2">
                                         <User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
                                         <div className="w-full relative">
@@ -882,13 +1018,39 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                             />
                                         </div>
                                     </div>
-                                    {updatedTicket?.assigned_to && updatedTicket?.assigned_user_name && (
-                                        <div className="mt-2 text-xs md:text-sm text-gray-500 ml-6">
-                                            <span>Atanan: </span>
-                                            <span className="font-medium">{updatedTicket.assigned_user_name}</span>
-                                        </div>
-                                    )}
-                                </>
+                                    <div className="flex items-center justify-between">
+                                        {updatedTicket?.assigned_to && updatedTicket?.assigned_user_name && (
+                                            <span className="text-xs md:text-sm text-gray-500">Atanan: {updatedTicket.assigned_user_name}</span>
+                                        )}
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="text-xs h-6 px-2"
+                                            onClick={() => {
+                                                const currentUserId = getUserId();
+                                                const currentUserName = getUserName();
+                                                
+                                                if (currentUserId) {
+                                                    handleAssignedToChange(currentUserId);
+                                                    
+                                                    toast({
+                                                        title: "Bilgi",
+                                                        description: "Bilet size devredildi. Değişiklikleri kaydetmek için 'Kaydet' butonuna tıklayın.",
+                                                        variant: "default",
+                                                    });
+                                                } else {
+                                                    toast({
+                                                        title: "Hata",
+                                                        description: "Kullanıcı bilgisi bulunamadı.",
+                                                        variant: "destructive",
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            Devir Al
+                                        </Button>
+                                    </div>
+                                </div>
                             )}
                         </div>
 
@@ -943,7 +1105,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                         <div>
                             <h3 className="text-sm font-semibold mb-2">İletişim Kişisi</h3>
                             {loadingContacts || loadingContactInfo ? (
-                                <div className="flex items-center space-x-2 p-2 border rounded-md">
+                                <div className="flex items-center space-x-2">
                                     <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                                     <span className="text-xs text-gray-500">Kişi bilgileri yükleniyor...</span>
                                 </div>
@@ -962,61 +1124,78 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <div className="flex items-center space-x-2">
-                                            <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                            {isEditingContact ? (
-                                                <Input
-                                                    value={contactInfo.phone}
-                                                    onChange={(e) => handleContactInfoChange('phone', e.target.value)}
-                                                    className="h-7 text-sm"
-                                                    placeholder="Telefon"
-                                                />
-                                            ) : (
-                                                <span className="text-sm">{contactInfo.phone || "Telefon bilgisi yok"}</span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center space-x-2">
-                                            <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                            {isEditingContact ? (
-                                                <Input
-                                                    value={contactInfo.name}
-                                                    onChange={(e) => handleContactInfoChange('name', e.target.value)}
-                                                    className="h-7 text-sm"
-                                                    placeholder="Ad Soyad"
-                                                />
-                                            ) : (
-                                                <span className="text-sm">{contactInfo.name || "İsim bilgisi yok"}</span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center space-x-2">
-                                            <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                            {isEditingContact ? (
-                                                <Input
-                                                    value={contactInfo.position}
-                                                    onChange={(e) => handleContactInfoChange('position', e.target.value)}
-                                                    className="h-7 text-sm"
-                                                    placeholder="Pozisyon"
-                                                />
-                                            ) : (
-                                                <span className="text-sm">{contactInfo.position || "Pozisyon bilgisi yok"}</span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center space-x-2">
-                                            <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                            {isEditingContact ? (
-                                                <Input
-                                                    value={contactInfo.email}
-                                                    onChange={(e) => handleContactInfoChange('email', e.target.value)}
-                                                    className="h-7 text-sm"
-                                                    placeholder="E-posta"
-                                                />
-                                            ) : (
-                                                <span className="text-sm">{contactInfo.email || "E-posta bilgisi yok"}</span>
-                                            )}
-                                        </div>
+                                        {isEditingContact ? (
+                                            <>
+                                                <div className="flex items-center space-x-2">
+                                                    <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                    <Input
+                                                        value={contactInfo.phone}
+                                                        onChange={(e) => handleContactInfoChange('phone', e.target.value)}
+                                                        className="h-7 text-sm"
+                                                        placeholder="Telefon"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                    <Input
+                                                        value={contactInfo.name}
+                                                        onChange={(e) => handleContactInfoChange('name', e.target.value)}
+                                                        className="h-7 text-sm"
+                                                        placeholder="Ad Soyad"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                    <Input
+                                                        value={contactInfo.position}
+                                                        onChange={(e) => handleContactInfoChange('position', e.target.value)}
+                                                        className="h-7 text-sm"
+                                                        placeholder="Pozisyon"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                    <Input
+                                                        value={contactInfo.email}
+                                                        onChange={(e) => handleContactInfoChange('email', e.target.value)}
+                                                        className="h-7 text-sm"
+                                                        placeholder="E-posta"
+                                                    />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {contactInfo.phone && (
+                                                    <div className="flex items-center space-x-2">
+                                                        <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <span className="text-sm">{contactInfo.phone}</span>
+                                                    </div>
+                                                )}
+                                                {contactInfo.name && (
+                                                    <div className="flex items-center space-x-2">
+                                                        <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <span className="text-sm">{contactInfo.name}</span>
+                                                    </div>
+                                                )}
+                                                {contactInfo.position && (
+                                                    <div className="flex items-center space-x-2">
+                                                        <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <span className="text-sm">{contactInfo.position}</span>
+                                                    </div>
+                                                )}
+                                                {contactInfo.email && (
+                                                    <div className="flex items-center space-x-2">
+                                                        <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <span className="text-sm">{contactInfo.email}</span>
+                                                    </div>
+                                                )}
+                                                {!contactInfo.phone && !contactInfo.name && !contactInfo.position && !contactInfo.email && (
+                                                    <div className="text-sm text-gray-500 italic">
+                                                        İletişim bilgisi bulunmuyor
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
 
                                     {isEditingContact && (

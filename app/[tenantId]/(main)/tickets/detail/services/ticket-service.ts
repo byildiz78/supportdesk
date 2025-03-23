@@ -12,6 +12,24 @@ export const TicketService = {
         // API'den dönen veriyi güvenli bir şekilde işle
         const ticket = response.data.data || {};
         
+        // Kullanıcı adlarını işle
+        let created_by_name = ticket.created_by_name;
+        let assigned_to_name = ticket.assigned_to_name || ticket.assigned_user_name;
+        
+        // Eğer created_by ve assigned_to aynı kullanıcıya aitse ve assigned_user_name varsa
+        if (!created_by_name && ticket.created_by && ticket.assigned_to && 
+            ticket.created_by === ticket.assigned_to && ticket.assigned_user_name) {
+          created_by_name = ticket.assigned_user_name;
+        }
+        // Eğer kullanıcı adları yoksa ve e-posta formatındaysa, kullanıcı adını çıkar
+        else if (!created_by_name && ticket.created_by && ticket.created_by.includes('@')) {
+          created_by_name = ticket.created_by.split('@')[0];
+        }
+        
+        if (!assigned_to_name && ticket.assigned_to && ticket.assigned_to.includes('@')) {
+          assigned_to_name = ticket.assigned_to.split('@')[0];
+        }
+        
         // Eksik alanları varsayılan değerlerle doldur
         return {
           id: ticket.id || "",
@@ -37,8 +55,10 @@ export const TicketService = {
           contact_position: ticket.contact_position || null,
           // Diğer alanlar
           assigned_to: ticket.assigned_to || null,
+          assigned_to_name: assigned_to_name,
           assignedTo: ticket.assignedTo || null,
           created_by: ticket.created_by || null,
+          created_by_name: created_by_name,
           created_at: ticket.created_at || new Date().toISOString(),
           updated_at: ticket.updated_at || null,
           due_date: ticket.due_date || null,
@@ -76,32 +96,24 @@ export const TicketService = {
         const updatedTicket = response.data.data || {};
         
         // Eksik alanları varsayılan değerlerle doldur
-        return {
+        const updatedTicketData = {
+          ...ticket,
+          ...updatedTicket,
           id: updatedTicket.id || ticket.id || "",
           title: updatedTicket.title || ticket.title || "",
           description: updatedTicket.description || ticket.description || "",
           status: updatedTicket.status || ticket.status || "open",
           priority: updatedTicket.priority || ticket.priority || "medium",
-          category_id: updatedTicket.category_id || ticket.category_id || null,
-          subcategory_id: updatedTicket.subcategory_id || ticket.subcategory_id || null,
-          company_id: updatedTicket.company_id || ticket.company_id || null,
-          company_name: updatedTicket.company_name || ticket.company_name || null,
-          contact_id: updatedTicket.contact_id || ticket.contact_id || null,
-          customer_name: updatedTicket.customer_name || ticket.customer_name || null,
-          customer_email: updatedTicket.customer_email || ticket.customer_email || null,
-          customer_phone: updatedTicket.customer_phone || ticket.customer_phone || null,
-          // Contact bilgileri
-          contact_name: updatedTicket.contact_name || ticket.contact_name || null,
-          contact_first_name: updatedTicket.contact_first_name || ticket.contact_first_name || null,
-          contact_last_name: updatedTicket.contact_last_name || ticket.contact_last_name || null,
-          contact_email: updatedTicket.contact_email || ticket.contact_email || null,
-          contact_phone: updatedTicket.contact_phone || ticket.contact_phone || null,
-          contact_position: updatedTicket.contact_position || ticket.contact_position || null,
-          // Diğer alanlar
+          
+          // Kullanıcı adlarını işle
           assigned_to: updatedTicket.assigned_to || ticket.assigned_to || null,
+          assigned_to_name: updatedTicket.assigned_to_name || updatedTicket.assigned_user_name || 
+                           ticket.assigned_to_name || ticket.assigned_user_name || null,
           assignedTo: updatedTicket.assignedTo || ticket.assignedTo || null,
           assigned_user_name: updatedTicket.assigned_user_name || ticket.assigned_user_name || null,
+          
           created_by: updatedTicket.created_by || ticket.created_by || null,
+          created_by_name: updatedTicket.created_by_name || (updatedTicket.created_by && updatedTicket.assigned_to && updatedTicket.created_by === updatedTicket.assigned_to ? updatedTicket.assigned_user_name : ticket.created_by_name) || null,
           created_at: updatedTicket.created_at || ticket.created_at || new Date().toISOString(),
           updated_at: updatedTicket.updated_at || new Date().toISOString(),
           due_date: updatedTicket.due_date || ticket.due_date || null,
@@ -110,6 +122,8 @@ export const TicketService = {
           // Ek alanlar
           ...updatedTicket
         };
+        
+        return updatedTicketData;
       } else {
         throw new Error(response.data.message || "Bilet güncellenemedi");
       }

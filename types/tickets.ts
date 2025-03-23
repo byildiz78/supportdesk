@@ -15,6 +15,7 @@ export interface Ticket {
     group_id: string | null;
     group_name: string | null;
     assigned_to: string | null;
+    assigned_to_name?: string | null; // Atanan kullanıcının adı
     assignedTo?: string | null; // camelCase version for API compatibility
     assignedUserName?: string | null; // Added for displaying assigned user name
     customer_name: string | null;
@@ -60,6 +61,7 @@ export interface Ticket {
     comments?: TicketComment[];
     created_at: string;
     created_by: string | null;
+    created_by_name?: string | null; // Oluşturan kullanıcının adı
     updated_at: string | null;
     updated_by: string | null;
     is_deleted: boolean;

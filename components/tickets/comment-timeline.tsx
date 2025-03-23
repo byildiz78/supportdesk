@@ -4,7 +4,7 @@ import { TicketComment, FileAttachment } from "@/types/tickets"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow, isValid } from "date-fns"
 import { tr } from "date-fns/locale"
 import { Download, FileIcon, FileText, Image, Paperclip } from "lucide-react"
 import DOMPurify from 'dompurify';
@@ -134,10 +134,20 @@ export function CommentTimeline({ comments, onReplyToEmail }: CommentTimelinePro
                                         )}
                                     </div>
                                     <div className="text-sm text-muted-foreground">
-                                        {formatDistanceToNow(new Date(comment.created_at), { 
-                                            addSuffix: true,
-                                            locale: tr 
-                                        })}
+                                        {(() => {
+                                            try {
+                                                if (!comment.created_at) return "Tarih bilinmiyor";
+                                                const date = new Date(comment.created_at);
+                                                return isValid(date) 
+                                                    ? formatDistanceToNow(date, { 
+                                                        addSuffix: true,
+                                                        locale: tr 
+                                                      })
+                                                    : "Geçersiz tarih";
+                                            } catch (error) {
+                                                return "Tarih bilinmiyor";
+                                            }
+                                        })()}
                                     </div>
                                 </div>
                                 

@@ -7,6 +7,7 @@ import { CommentForm } from "@/components/tickets/comment-form"
 import { FileUpload } from "./file-upload"
 import { EditableTicketDetails } from "./editable-ticket-details"
 import { TicketTags } from "./ticket-tags"
+import { TicketStatusHistory } from "./ticket-status-history"
 import { useState } from "react"
 import { useTicketStore } from "@/stores/ticket-store"
 import { getUserId, getUserName } from "@/utils/user-utils"
@@ -14,6 +15,8 @@ import axios from "@/lib/axios"
 import { EmailReplyForm } from "@/components/tickets/email-reply-form"
 import { TicketComment, FileAttachment } from "@/types/tickets"
 import DOMPurify from 'dompurify';
+import { MessageSquare, Paperclip, Reply, Upload, PenSquare, History, Calendar, Download, FileIcon, Tag } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface TicketContentProps {
     ticket: {
@@ -48,6 +51,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [replyingToEmail, setReplyingToEmail] = useState<TicketComment | null>(null)
     const [replyAll, setReplyAll] = useState(false)
+    const [activeTab, setActiveTab] = useState("comment")
     const { addComment, addAttachments, updateTicket } = useTicketStore()
 
     const handleSubmitComment = async (content: string, isInternal: boolean, files?: File[]) => {
@@ -460,24 +464,30 @@ export function TicketContent({ ticket }: TicketContentProps) {
     };
 
     return (
-        <>
+        <div className="space-y-6">
             {/* Original Description */}
-            <EditableTicketDetails 
-                ticket={ticket} 
-                onUpdate={handleTicketUpdate} 
-            />
-
-            {/* Tags */}
-            <TicketTags 
-                ticketId={ticket.id} 
-            />
+            <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                <div className="border-b border-gray-100 dark:border-gray-700">
+                    <EditableTicketDetails 
+                        ticket={ticket} 
+                        onUpdate={handleTicketUpdate} 
+                    />
+                </div>
+            </Card>
 
             {/* Comments */}
             {ticket.comments && ticket.comments.length > 0 ? (
-                <Card className="p-6 mb-6">
-                    <div>
-                        <p className="mb-2 text-sm text-gray-500">Yorumlar: {ticket.comments.length}</p>
-                        <div className="pr-2">
+                <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
+                                <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                Yorumlar <span className="ml-2 px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">{ticket.comments.length}</span>
+                            </h3>
+                        </div>
+                        <div className="pr-2 max-h-[600px] overflow-y-auto custom-scrollbar">
                             <CommentTimeline 
                                 comments={ticket.comments} 
                                 onReplyToEmail={handleReplyToEmail}
@@ -486,40 +496,56 @@ export function TicketContent({ ticket }: TicketContentProps) {
                     </div>
                 </Card>
             ) : (
-                <Card className="p-6 mb-6 text-center">
-                    <p className="text-gray-500">Henüz yorum yok</p>
-                    <pre className="text-xs bg-gray-100 p-2 mt-2 overflow-auto max-h-20">
-                        ticket.comments: {JSON.stringify(ticket.comments, null, 2)}
-                    </pre>
+                <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-6 text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full">
+                                <MessageSquare className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                            </div>
+                        </div>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Henüz yorum yok</p>
+                    </div>
                 </Card>
             )}
 
             {/* Attachments */}
             {ticket.attachments && ticket.attachments.length > 0 ? (
-                <Card className="p-6 mb-6">
-                    <div>
-                        <p className="mb-2 text-sm text-gray-500">Eklentiler: {ticket.attachments.length}</p>
+                <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-full">
+                                <Paperclip className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                Eklentiler <span className="ml-2 px-2.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 rounded-full text-xs font-medium">{ticket.attachments.length}</span>
+                            </h3>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {ticket.attachments.map((attachment) => (
-                                <div key={attachment.id} className="border rounded-md p-3 flex flex-col">
+                                <div key={attachment.id} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-4 flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-medium truncate" title={attachment.originalFilename}>
-                                            {attachment.originalFilename}
-                                        </span>
-                                        <span className="text-xs text-gray-500">
+                                        <div className="flex items-center gap-2 max-w-[70%]">
+                                            <FileIcon className="h-4 w-4 flex-shrink-0 text-gray-500 dark:text-gray-400" />
+                                            <span className="font-medium truncate text-sm" title={attachment.originalFilename}>
+                                                {attachment.originalFilename}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300">
                                             {Math.round(attachment.size / 1024)} KB
                                         </span>
                                     </div>
-                                    <div className="flex justify-between items-center mt-auto">
-                                        <span className="text-xs text-gray-500">
-                                            {new Date(attachment.uploadedAt).toLocaleDateString()}
+                                    <div className="flex justify-between items-center mt-auto pt-2 border-t border-gray-100 dark:border-gray-700">
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            {new Date(attachment.uploadedAt).toLocaleDateString('tr-TR')}
                                         </span>
                                         <a 
                                             href={attachment.url} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className="text-sm text-blue-600 hover:text-blue-800"
+                                            className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1 transition-colors"
                                         >
+                                            <Download className="h-3 w-3" />
                                             İndir
                                         </a>
                                     </div>
@@ -532,33 +558,148 @@ export function TicketContent({ ticket }: TicketContentProps) {
 
             {/* Email Reply Form */}
             {replyingToEmail && (
-                <Card className="p-4 mb-6">
-                    <EmailReplyForm 
-                        originalComment={replyingToEmail}
-                        replyAll={replyAll}
-                        subject={`Re: ${replyingToEmail.content || ''}`}
-                        onSubmit={handleSubmitEmailReply}
-                        onCancel={handleCancelReply}
-                    />
+                <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full">
+                                <Reply className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                E-posta Yanıtı
+                            </h3>
+                        </div>
+                        <EmailReplyForm 
+                            originalComment={replyingToEmail}
+                            replyAll={replyAll}
+                            subject={`Re: ${replyingToEmail.content || ''}`}
+                            onSubmit={handleSubmitEmailReply}
+                            onCancel={handleCancelReply}
+                        />
+                    </div>
                 </Card>
             )}
 
-            {/* File Upload */}
-            <Card className="p-6 mb-6">
-                <div className="mb-4">
-                    <h3 className="text-lg font-medium">Dosya Ekle</h3>
-                    <p className="text-sm text-gray-500">Bilete dosya eklemek için aşağıdaki alanı kullanın</p>
+            {/* Tabbed Interface for Comment, File Upload, Status History, and Tags */}
+            <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                <div className="p-6">
+                    <Tabs defaultValue="comment" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <TabsList className="grid grid-cols-4 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl gap-2">
+                            <TabsTrigger 
+                                value="comment" 
+                                className="data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700 dark:data-[state=active]:bg-indigo-900/40 dark:data-[state=active]:text-indigo-300 rounded-lg py-3 transition-all duration-200"
+                            >
+                                <div className="flex items-center gap-1.5 justify-center">
+                                    <div className={`p-1.5 rounded-full ${activeTab === "comment" ? "bg-indigo-200 dark:bg-indigo-800" : ""}`}>
+                                        <PenSquare className={`h-4 w-4 ${activeTab === "comment" ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400"}`} />
+                                    </div>
+                                    <span className="hidden md:inline font-medium text-sm">Yorum Ekle</span>
+                                    <span className="md:hidden font-medium text-xs">Yorum</span>
+                                </div>
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="file" 
+                                className="data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/40 dark:data-[state=active]:text-amber-300 rounded-lg py-3 transition-all duration-200"
+                            >
+                                <div className="flex items-center gap-1.5 justify-center">
+                                    <div className={`p-1.5 rounded-full ${activeTab === "file" ? "bg-amber-200 dark:bg-amber-800" : ""}`}>
+                                        <Upload className={`h-4 w-4 ${activeTab === "file" ? "text-amber-600 dark:text-amber-400" : "text-gray-500 dark:text-gray-400"}`} />
+                                    </div>
+                                    <span className="hidden md:inline font-medium text-sm">Dosya Ekle</span>
+                                    <span className="md:hidden font-medium text-xs">Dosya</span>
+                                </div>
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="history" 
+                                className="data-[state=active]:bg-cyan-100 data-[state=active]:text-cyan-700 dark:data-[state=active]:bg-cyan-900/40 dark:data-[state=active]:text-cyan-300 rounded-lg py-3 transition-all duration-200"
+                            >
+                                <div className="flex items-center gap-1.5 justify-center">
+                                    <div className={`p-1.5 rounded-full ${activeTab === "history" ? "bg-cyan-200 dark:bg-cyan-800" : ""}`}>
+                                        <History className={`h-4 w-4 ${activeTab === "history" ? "text-cyan-600 dark:text-cyan-400" : "text-gray-500 dark:text-gray-400"}`} />
+                                    </div>
+                                    <span className="hidden md:inline font-medium text-sm">Durum Geçmişi</span>
+                                    <span className="md:hidden font-medium text-xs">Geçmiş</span>
+                                </div>
+                            </TabsTrigger>
+                            <TabsTrigger 
+                                value="tags" 
+                                className="data-[state=active]:bg-gray-200 data-[state=active]:text-gray-700 dark:data-[state=active]:bg-gray-700 dark:data-[state=active]:text-gray-200 rounded-lg py-3 transition-all duration-200"
+                            >
+                                <div className="flex items-center gap-1.5 justify-center">
+                                    <div className={`p-1.5 rounded-full ${activeTab === "tags" ? "bg-gray-300 dark:bg-gray-800" : ""}`}>
+                                        <Tag className={`h-4 w-4 ${activeTab === "tags" ? "text-gray-600 dark:text-gray-400" : "text-gray-500 dark:text-gray-400"}`} />
+                                    </div>
+                                    <span className="hidden md:inline font-medium text-sm">Etiketler</span>
+                                    <span className="md:hidden font-medium text-xs">Etiket</span>
+                                </div>
+                            </TabsTrigger>
+                        </TabsList>
+                        
+                        <div className="mt-4">
+                            <TabsContent value="comment" className="mt-0 border-0 p-0">
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900/50 dark:to-indigo-800/50 p-5 rounded-xl shadow-sm">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-full">
+                                            <PenSquare className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                            Yorum Ekle
+                                        </h3>
+                                    </div>
+                                    <CommentForm onSubmit={handleSubmitComment} />
+                                </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="file" className="mt-0 border-0 p-0">
+                                <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-gray-900/50 dark:to-amber-800/50 p-5 rounded-xl shadow-sm">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-full">
+                                            <Upload className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                            Dosya Ekle
+                                        </h3>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bilete dosya eklemek için aşağıdaki alanı kullanın</p>
+                                    <FileUpload 
+                                        ticketId={ticket.id} 
+                                        onUploadComplete={handleFileUploadComplete} 
+                                    />
+                                </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="history" className="mt-0 border-0 p-0">
+                                <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-900/50 dark:to-cyan-800/50 p-5 rounded-xl shadow-sm">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-full">
+                                            <History className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                            Durum Geçmişi
+                                        </h3>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Biletin durum değişikliklerinin kronolojik geçmişi</p>
+                                    <TicketStatusHistory ticketId={ticket.id} />
+                                </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="tags" className="mt-0 border-0 p-0">
+                                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 p-5 rounded-xl shadow-sm">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full">
+                                            <Tag className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                            Etiketler
+                                        </h3>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bileti kategorize etmek için etiketleri yönetin</p>
+                                    <TicketTags ticketId={ticket.id} />
+                                </div>
+                            </TabsContent>
+                        </div>
+                    </Tabs>
                 </div>
-                <FileUpload 
-                    ticketId={ticket.id} 
-                    onUploadComplete={handleFileUploadComplete} 
-                />
             </Card>
-
-            {/* Comment Input */}
-            <Card className="p-4 mt-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
-                <CommentForm onSubmit={handleSubmitComment} />
-            </Card>
-        </>
+        </div>
     )
 }

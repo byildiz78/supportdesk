@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/database';
 import { extractTenantFromBody } from '@/lib/utils';
 import { sendEventToClients } from '../../events';
+import { generateTicketCreationNotification, sendTicketNotificationEmail } from '@/utils/email-utils';
 
 // Define interface for comment response
 interface TicketComment {
@@ -28,6 +29,63 @@ const isValidUUID = (uuid: string | undefined | null): boolean => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
+
+// Durum geçmişi kaydı oluşturan yardımcı fonksiyon
+const createStatusHistoryEntry = async (
+  client: any,
+  ticketId: string,
+  previousStatus: string | null,
+  newStatus: string,
+  changedBy: string,
+  req: NextApiRequest
+): Promise<void> => {
+  try {
+    // Eğer önceki durum değişikliği varsa, o durumda geçirilen süreyi hesapla
+    let timeInStatus = null;
+    if (previousStatus) {
+      try {
+        // Önceki durum değişikliğinin zamanını bul
+        const previousStatusEntry = await client.query(`
+          SELECT changed_at
+          FROM ticket_status_history 
+          WHERE ticket_id = $1 
+          AND new_status = $2 
+          ORDER BY changed_at DESC 
+          LIMIT 1
+        `, [ticketId, previousStatus]);
+
+        if (previousStatusEntry.rows.length > 0) {
+          const previousChangeTime = new Date(previousStatusEntry.rows[0].changed_at);
+          const currentTime = new Date();
+          
+          // Saniye cinsinden süreyi hesapla
+          timeInStatus = Math.floor((currentTime.getTime() - previousChangeTime.getTime()) / 1000);
+        }
+      } catch (timeError) {
+        console.error("Durum süresi hesaplanırken hata:", timeError);
+        // Süre hesaplama hatası kayıt oluşturmayı engellemeyecek
+      }
+    }
+
+    // Durum değişikliği kaydını oluştur
+    await client.query(`
+      INSERT INTO ticket_status_history 
+      (ticket_id, previous_status, new_status, changed_by, time_in_status) 
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      ticketId,
+      previousStatus,
+      newStatus,
+      changedBy,
+      timeInStatus
+    ]);
+
+    console.log(`Durum geçmişi kaydı oluşturuldu: ${ticketId}, ${previousStatus} -> ${newStatus}`);
+  } catch (error) {
+    console.error("Durum geçmişi kaydı oluşturulurken hata:", error);
+    // Hata durumunda işlemi engellememek için hatayı yutuyoruz
+  }
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -249,7 +307,9 @@ export default async function handler(
             updated_at = CURRENT_TIMESTAMP,
             updated_by = $21
           WHERE id = $22
-          RETURNING id, ticketno;
+          RETURNING id, ticketno, status, (
+            SELECT status FROM tickets WHERE id = $22
+          ) as previous_status;
         `;
 
         const result = await client.query(updateQuery, [
@@ -283,6 +343,21 @@ export default async function handler(
 
         ticketId = result.rows[0].id;
         ticketNo = result.rows[0].ticketno;
+        
+        // Durum değişikliği varsa, durum geçmişi kaydı oluştur
+        const previousStatus = result.rows[0].previous_status;
+        const newStatus = safeTicketData.status;
+        
+        if (previousStatus !== newStatus) {
+          await createStatusHistoryEntry(
+            client,
+            ticketId,
+            previousStatus,
+            newStatus,
+            safeTicketData.updatedBy || "efa579e5-6d64-43d0-b12a-a078ab357e90", // Sistem kullanıcısı ID'si
+            req
+          );
+        }
       } else {
         // Check for duplicate tickets with the same title and company_id
         const checkDuplicateQuery = `
@@ -375,6 +450,16 @@ export default async function handler(
           ticketId = result.rows[0].id;
           ticketNo = result.rows[0].ticketno;
           isNewTicket = true;
+          
+          // Yeni oluşturulan bilet için durum geçmişi kaydı oluştur
+          await createStatusHistoryEntry(
+            client,
+            ticketId,
+            null, // Yeni bilet olduğu için önceki durum null
+            safeTicketData.status,
+            safeTicketData.createdBy || "efa579e5-6d64-43d0-b12a-a078ab357e90", // Sistem kullanıcısı ID'si
+            req
+          );
           
           // Eğer email ile ilgili bilgiler varsa, yeni oluşturulan ticket'a bir yorum ekle
           if (email_id || thread_id || html_content) {
@@ -567,6 +652,112 @@ export default async function handler(
         });
       } catch (sseError) {
         console.error('SSE olayı gönderme hatası:', sseError);
+      }
+
+      // Send email notification for new ticket creation
+      if (isNewTicket && safeTicketData.source === 'email' && sender_email) {
+        console.log('Starting email notification process for new ticket:', {
+          ticketId,
+          ticketNo,
+          sender_email,
+          cc_recipients: safeCcRecipients,
+          source: safeTicketData.source
+        });
+        
+        try {
+          // Prepare recipients
+          const toRecipients = [sender_email];
+          console.log('Email notification recipients:', {
+            to: toRecipients,
+            cc: safeCcRecipients
+          });
+          
+          // Create email subject with ticket number
+          let emailSubject = safeTicketData.title || 'Destek Talebiniz Alındı';
+          if (ticketNo && !emailSubject.includes(`#${ticketNo}#`)) {
+            emailSubject = `${emailSubject} #${ticketNo}#`;
+          }
+          console.log('Email notification subject:', emailSubject);
+          
+          // Get original email content from the comment
+          const originalEmailContent = html_content || ticketData.content;
+          console.log('Original email content available:', !!originalEmailContent);
+          
+          // Generate notification with original content
+          const customerName = safeTicketData.customer_name || sender || 'Müşterimiz';
+          console.log('Using customer name for notification:', customerName);
+          const htmlContent = generateTicketCreationNotification(
+            ticketNo, 
+            customerName,
+            originalEmailContent
+          );
+          console.log('Generated HTML notification content length:', htmlContent.length);
+          
+          // Send notification email asynchronously
+          console.log('Sending notification email...');
+          sendTicketNotificationEmail(
+            emailSubject,
+            toRecipients,
+            safeCcRecipients,
+            htmlContent
+          ).then(emailResult => {
+            console.log('Ticket notification email complete result:', JSON.stringify(emailResult));
+            
+            // Save notification as internal comment if email was sent
+            if (emailResult.success) {
+              console.log('Email sent successfully, saving as internal comment');
+              // System user ID for automatic comments
+              const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
+              
+              // Add notification as internal comment
+              const insertNotificationCommentQuery = `
+                INSERT INTO ticket_comments (
+                  ticket_id,
+                  content,
+                  is_internal,
+                  created_at,
+                  created_by,
+                  updated_at,
+                  is_deleted,
+                  html_content
+                )
+                VALUES (
+                  $1, $2, true, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP, false, $4
+                )
+              `;
+              
+              console.log('Saving notification as internal comment for ticket:', ticketId);
+              db.executeQuery({
+                query: insertNotificationCommentQuery,
+                params: [
+                  ticketId,
+                  'Otomatik bildirim e-postası gönderildi',
+                  systemUserId,
+                  htmlContent
+                ],
+                req
+              }).then(commentResult => {
+                console.log('Notification comment saved successfully:', commentResult);
+              }).catch(commentError => {
+                console.error('Failed to save notification comment:', commentError);
+              });
+            } else {
+              console.error('Email sending failed, not saving comment:', emailResult.message);
+            }
+          }).catch(emailError => {
+            console.error('Failed to send notification email:', emailError);
+            // Continue with response even if email fails
+          });
+        } catch (notificationError) {
+          console.error('Error preparing notification email:', notificationError);
+          // Continue with response even if notification preparation fails
+        }
+      } else {
+        console.log('Skipping email notification - conditions not met:', {
+          isNewTicket,
+          source: safeTicketData.source,
+          hasSenderEmail: !!sender_email
+        });
       }
 
       return res.status(id ? 200 : 201).json({ 

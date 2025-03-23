@@ -144,8 +144,12 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                             id={selectedTicket.id} 
                             title={selectedTicket.title} 
                             createdBy={selectedTicket.created_by}
+                            createdByName={selectedTicket.created_by_name || "Bilinmiyor"}
+                            status={selectedTicket.status}
+                            assignedTo={selectedTicket.assigned_to_name || selectedTicket.assigned_to}
                             selectedCompany={selectedCompany}
                             isLicenseExpired={isLicenseExpired}
+                            createdAt={selectedTicket.created_at}
                         />
                         
                         {/* Main Content Area */}

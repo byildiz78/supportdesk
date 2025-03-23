@@ -11,6 +11,63 @@ const isValidUUID = (uuid: string | undefined | null): boolean => {
   return uuidRegex.test(uuid);
 }
 
+// Durum geçmişi kaydı oluşturan yardımcı fonksiyon
+const createStatusHistoryEntry = async (
+  client: any,
+  ticketId: string,
+  previousStatus: string | null,
+  newStatus: string,
+  changedBy: string,
+  req: NextApiRequest
+): Promise<void> => {
+  try {
+    // Eğer önceki durum değişikliği varsa, o durumda geçirilen süreyi hesapla
+    let timeInStatus = null;
+    if (previousStatus) {
+      try {
+        // Önceki durum değişikliğinin zamanını bul
+        const previousStatusEntry = await client.query(`
+          SELECT changed_at
+          FROM ticket_status_history 
+          WHERE ticket_id = $1 
+          AND new_status = $2 
+          ORDER BY changed_at DESC 
+          LIMIT 1
+        `, [ticketId, previousStatus]);
+
+        if (previousStatusEntry.rows.length > 0) {
+          const previousChangeTime = new Date(previousStatusEntry.rows[0].changed_at);
+          const currentTime = new Date();
+          
+          // Saniye cinsinden süreyi hesapla
+          timeInStatus = Math.floor((currentTime.getTime() - previousChangeTime.getTime()) / 1000);
+        }
+      } catch (timeError) {
+        console.error("Durum süresi hesaplanırken hata:", timeError);
+        // Süre hesaplama hatası kayıt oluşturmayı engellemeyecek
+      }
+    }
+
+    // Durum değişikliği kaydını oluştur
+    await client.query(`
+      INSERT INTO ticket_status_history 
+      (ticket_id, previous_status, new_status, changed_by, time_in_status) 
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      ticketId,
+      previousStatus,
+      newStatus,
+      changedBy,
+      timeInStatus
+    ]);
+
+    console.log(`Durum geçmişi kaydı oluşturuldu: ${ticketId}, ${previousStatus} -> ${newStatus}`);
+  } catch (error) {
+    console.error("Durum geçmişi kaydı oluşturulurken hata:", error);
+    // Hata durumunda işlemi engellememek için hatayı yutuyoruz
+  }
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -182,7 +239,9 @@ export default async function handler(
             updated_at = CURRENT_TIMESTAMP,
             updated_by = $21
           WHERE id = $22
-          RETURNING id, ticketno;
+          RETURNING id, ticketno, status, (
+            SELECT status FROM tickets WHERE id = $22
+          ) as previous_status;
         `;
 
         const result = await client.query(updateQuery, [
@@ -216,6 +275,17 @@ export default async function handler(
 
         ticketId = result.rows[0].id;
         ticketNo = result.rows[0].ticketno;
+        
+        // Durum geçmişi kaydı oluştur
+        if (safeTicketData.status) {
+          const previousStatus = result.rows[0].previous_status;
+          const newStatus = result.rows[0].status;
+          
+          // Durum değişikliği varsa kaydet
+          if (previousStatus !== newStatus) {
+            await createStatusHistoryEntry(client, ticketId, previousStatus, newStatus, safeTicketData.updatedBy || "efa579e5-6d64-43d0-b12a-a078ab357e90", req);
+          }
+        }
       } else {
         // Check for duplicate tickets with the same title and company_id
         const checkDuplicateQuery = `
@@ -306,6 +376,18 @@ export default async function handler(
           ticketId = result.rows[0].id;
           ticketNo = result.rows[0].ticketno;
           isNewTicket = true;
+          
+          // Durum geçmişi kaydı oluştur
+          if (safeTicketData.status) {
+            await createStatusHistoryEntry(
+              client, 
+              ticketId, 
+              null, 
+              safeTicketData.status, 
+              safeTicketData.createdBy || "efa579e5-6d64-43d0-b12a-a078ab357e90", 
+              req
+            );
+          }
         } catch (queryError: any) {
           console.error('SQL query error:', queryError);
           return res.status(500).json({ 
