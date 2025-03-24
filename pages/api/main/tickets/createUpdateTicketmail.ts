@@ -136,145 +136,140 @@ export default async function handler(
 
     // Use a transaction to ensure data consistency
     return await db.executeTransaction(req, async (client) => {
-      // Eğer bu yeni bir ticket ise ve email_id veya thread_id varsa kontrol et
-      if (!id && (email_id || thread_id)) {
-        // Önce email_id ile eşleşen bir yorum var mı kontrol et
-        const checkExistingCommentQuery = `
-          SELECT tc.ticket_id, t.title, t.description, t.ticketno
-          FROM ticket_comments tc
-          JOIN tickets t ON tc.ticket_id = t.id
-          WHERE 
-            (
-              (tc.email_id = $1 AND $1 IS NOT NULL)
-              OR
-              (tc.thread_id = $2 AND $2 IS NOT NULL AND $1 IS NULL)
-            )
-            AND t.status NOT IN ('resolved', 'closed')
-            AND (t.is_deleted = false OR t.is_deleted IS NULL)
-          ORDER BY tc.created_at DESC
-          LIMIT 1
-        `;
+      // Eğer bu yeni bir ticket ise, subject içinde #ticketno# var mı kontrol et
+      if (!id && ticketData.title) {
+        // Subject içinde #ticketno# formatını ara
+        const ticketNoRegex = /#([A-Za-z0-9]+)#/;
+        const ticketNoMatch = ticketData.title.match(ticketNoRegex);
         
-        const existingComment = await client.query(checkExistingCommentQuery, [
-          email_id,
-          thread_id
-        ]);
-        
-        // Eğer email_id veya thread_id ile eşleşen bir yorum varsa, ilgili ticket'a yeni bir yorum ekle
-        if (existingComment.rows.length > 0) {
-          const existingTicketId = existingComment.rows[0].ticket_id;
+        if (ticketNoMatch && ticketNoMatch[1]) {
+          const extractedTicketNo = ticketNoMatch[1];
+          console.log('Subject içinde ticket numarası bulundu:', extractedTicketNo);
           
-          // İçerik olarak title (e-posta konusu) kullan
-          const commentContent = ticketData.title || 'İçerik yok';
+          // Bu ticket numarasına sahip ve durumu resolved veya closed olmayan bir ticket var mı kontrol et
+          const checkExistingTicketQuery = `
+            SELECT id, title, description, ticketno, status
+            FROM tickets
+            WHERE 
+              ticketno = $1
+              AND status NOT IN ('resolved', 'closed')
+              AND (is_deleted = false OR is_deleted IS NULL)
+            LIMIT 1
+          `;
           
-          // Ticket numarasını subject'e ekle
-          const ticketNo = existingComment.rows[0].ticketno;
-          let subjectWithTicketNo = commentContent;
+          const existingTicket = await client.query(checkExistingTicketQuery, [extractedTicketNo]);
           
-          // Ticket numarası varsa ve subject içinde yoksa ekle
-          if (ticketNo && !subjectWithTicketNo.includes(`#${ticketNo}#`)) {
-            subjectWithTicketNo = `${subjectWithTicketNo} #${ticketNo}#`;
-            console.log('Ticket numarası eklendi, yeni subject:', subjectWithTicketNo);
-          }
-          
-          // Sistem otomatik olarak yorum eklediği için sabit ID kullan
-          const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
-          
-          const insertCommentQuery = `
-            INSERT INTO ticket_comments (
-              ticket_id,
-              content,
-              is_internal,
-              created_at,
-              created_by,
-              updated_at,
-              is_deleted,
+          // Eğer eşleşen bir ticket varsa, ona yorum ekle
+          if (existingTicket.rows.length > 0) {
+            const existingTicketId = existingTicket.rows[0].id;
+            const ticketNo = existingTicket.rows[0].ticketno;
+            
+            // İçerik olarak title (e-posta konusu) kullan
+            const commentContent = ticketData.title || 'İçerik yok';
+            
+            // Sistem otomatik olarak yorum eklediği için sabit ID kullan
+            const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
+            
+            const insertCommentQuery = `
+              INSERT INTO ticket_comments (
+                ticket_id,
+                content,
+                is_internal,
+                created_at,
+                created_by,
+                updated_at,
+                is_deleted,
+                email_id,
+                thread_id,
+                sender,
+                sender_email,
+                to_recipients,
+                cc_recipients,
+                html_content,
+                attachments
+              )
+              VALUES (
+                $1, $2, false, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP, false,
+                $4, $5, $6, $7, $8, $9, $10, $11::jsonb
+              )
+              RETURNING id, created_at as "createdAt";
+            `;
+            
+            const commentResult = await client.query(insertCommentQuery, [
+              existingTicketId,
+              commentContent,
+              systemUserId,
               email_id,
               thread_id,
               sender,
               sender_email,
-              to_recipients,
-              cc_recipients,
+              safeToRecipients,
+              safeCcRecipients,
               html_content,
-              attachments
-            )
-            VALUES (
-              $1, $2, false, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP, false,
-              $4, $5, $6, $7, $8, $9, $10, $11::jsonb
-            )
-            RETURNING id, created_at as "createdAt";
-          `;
-          
-          const commentResult = await client.query(insertCommentQuery, [
-            existingTicketId,
-            subjectWithTicketNo, // Ticket numarası eklenmiş subject
-            systemUserId,
-            email_id,
-            thread_id,
-            sender,
-            sender_email,
-            safeToRecipients,
-            safeCcRecipients,
-            html_content,
-            safeAttachments
-          ]);
-          
-          // Ticket'in updated_at alanını ve callcount'u güncelle
-          await client.query(
-            'UPDATE tickets SET updated_at = CURRENT_TIMESTAMP, callcount = COALESCE(callcount, 0) + 1 WHERE id = $1',
-            [existingTicketId]
-          );
-          
-          // Güncellenmiş ticket verilerini al
-          const updatedTicketQuery = `
-            SELECT * FROM tickets WHERE id = $1
-          `;
-          const updatedTicketResult = await client.query(updatedTicketQuery, [existingTicketId]);
-          const updatedTicket = updatedTicketResult.rows[0];
-          
-          // SSE kullanarak callcount güncellemesi bildirimini gönder
-          try {
-            sendEventToClients('ticket-update', {
-              action: 'update',
-              updateType: 'callcount',
-              ticket: {
-                ...updatedTicket,
-                id: existingTicketId,
-                ticketno: updatedTicket.ticketno || existingTicketId.substring(0, 8),
-                // Hem snake_case hem de camelCase formatında gönder
-                customerName: updatedTicket.customer_name,
-                customerEmail: updatedTicket.customer_email,
-                customerPhone: updatedTicket.customer_phone,
-                contactPosition: updatedTicket.contact_position,
-                companyName: updatedTicket.company_name,
-                companyId: updatedTicket.company_id,
-                contactId: updatedTicket.contact_id,
-                categoryId: updatedTicket.category_id,
-                subcategoryId: updatedTicket.subcategory_id,
-                groupId: updatedTicket.group_id,
-                assignedTo: updatedTicket.assigned_to,
-                createdAt: updatedTicket.created_at,
-                updatedAt: updatedTicket.updated_at,
-                dueDate: updatedTicket.due_date,
-                slaBreach: updatedTicket.sla_breach
-              }
+              safeAttachments
+            ]);
+            
+            // Ticket'in updated_at alanını ve callcount'u güncelle
+            await client.query(
+              'UPDATE tickets SET updated_at = CURRENT_TIMESTAMP, callcount = COALESCE(callcount, 0) + 1 WHERE id = $1',
+              [existingTicketId]
+            );
+            
+            // Güncellenmiş ticket verilerini al
+            const updatedTicketQuery = `
+              SELECT * FROM tickets WHERE id = $1
+            `;
+            const updatedTicketResult = await client.query(updatedTicketQuery, [existingTicketId]);
+            const updatedTicket = updatedTicketResult.rows[0];
+            
+            // SSE kullanarak callcount güncellemesi bildirimini gönder
+            try {
+              sendEventToClients('ticket-update', {
+                action: 'update',
+                updateType: 'callcount',
+                ticket: {
+                  ...updatedTicket,
+                  id: existingTicketId,
+                  ticketno: updatedTicket.ticketno || existingTicketId.substring(0, 8),
+                  // Hem snake_case hem de camelCase formatında gönder
+                  customerName: updatedTicket.customer_name,
+                  customerEmail: updatedTicket.customer_email,
+                  customerPhone: updatedTicket.customer_phone,
+                  contactPosition: updatedTicket.contact_position,
+                  companyName: updatedTicket.company_name,
+                  companyId: updatedTicket.company_id,
+                  contactId: updatedTicket.contact_id,
+                  categoryId: updatedTicket.category_id,
+                  subcategoryId: updatedTicket.subcategory_id,
+                  groupId: updatedTicket.group_id,
+                  assignedTo: updatedTicket.assigned_to,
+                  createdAt: updatedTicket.created_at,
+                  updatedAt: updatedTicket.updated_at,
+                  dueDate: updatedTicket.due_date,
+                  slaBreach: updatedTicket.sla_breach
+                }
+              });
+            } catch (sseError) {
+              console.error('SSE callcount güncelleme olayı gönderme hatası:', sseError);
+            }
+            
+            // Var olan ticket'a yorum eklendiğini bildir
+            return res.status(200).json({
+              success: true,
+              message: 'Existing ticket found with the same ticket number in subject. Comment added instead of creating a new ticket.',
+              id: existingTicketId,
+              ticketno: ticketNo,
+              isCommentAdded: true
             });
-          } catch (sseError) {
-            console.error('SSE callcount güncelleme olayı gönderme hatası:', sseError);
+          } else {
+            console.log('Subject içinde ticket numarası bulundu, ancak aktif bir ticket eşleşmedi:', extractedTicketNo);
+            // Subject içindeki eski ticket numarasını temizle, yeni ticket oluşturulacak
+            ticketData.title = ticketData.title.replace(ticketNoRegex, '').trim();
           }
-          
-          // Var olan ticket'a yorum eklendiğini bildir
-          return res.status(200).json({
-            success: true,
-            message: 'Existing ticket found with the same email_id or thread_id. Comment added instead of creating a new ticket.',
-            id: existingTicketId,
-            ticketno: existingComment.rows[0].ticketno || existingTicketId.substring(0, 8),
-            isCommentAdded: true
-          });
         }
       }
       
-      // Mevcut email_id veya thread_id ile eşleşen bir yorum bulunamadıysa, normal işleme devam et
+      // Mevcut ticket numarası ile eşleşen bir ticket bulunamadıysa, normal işleme devam et
       let ticketId: string;
       let ticketNo: string;
       let isNewTicket = false;
@@ -489,15 +484,18 @@ export default async function handler(
             `;
             
             // İçerik olarak title (e-posta konusu) kullan
-            const commentContent = ticketData.title || 'İçerik yok';
+            let commentContent = ticketData.title || 'İçerik yok';
             
-            // Ticket numarasını subject'e ekle
-            let subjectWithTicketNo = commentContent;
-            
-            // Ticket numarası varsa ve subject içinde yoksa ekle
-            if (ticketNo && !subjectWithTicketNo.includes(`#${ticketNo}#`)) {
-              subjectWithTicketNo = `${subjectWithTicketNo} #${ticketNo}#`;
-              console.log('Ticket numarası eklendi, yeni subject:', subjectWithTicketNo);
+            // Subject içinde eski ticket numarası varsa, yeni numara ile değiştir
+            const ticketNoRegex = /#([A-Za-z0-9]+)#/;
+            if (ticketNoRegex.test(commentContent)) {
+              commentContent = commentContent.replace(ticketNoRegex, `#${ticketNo}#`);
+              console.log('Subject içindeki eski ticket numarası yenisiyle değiştirildi:', commentContent);
+            } 
+            // Ticket numarası yoksa ekle
+            else if (ticketNo && !commentContent.includes(`#${ticketNo}#`)) {
+              commentContent = `${commentContent} #${ticketNo}#`;
+              console.log('Ticket numarası eklendi, yeni subject:', commentContent);
             }
             
             // Use provided created_by or system user ID
@@ -508,7 +506,7 @@ export default async function handler(
             
             const commentResult = await client.query(insertCommentQuery, [
               ticketId,
-              subjectWithTicketNo, // Ticket numarası eklenmiş subject
+              commentContent, // Ticket numarası güncellenmiş veya eklenmiş subject
               commentIsInternal,
               commentCreatedBy,
               email_id,
@@ -539,7 +537,7 @@ export default async function handler(
               const comment: TicketComment = {
                 id: commentId,
                 ticket_id: ticketId,
-                content: subjectWithTicketNo,
+                content: commentContent,
                 is_internal: commentIsInternal,
                 created_at: commentCreatedAt,
                 created_by: commentCreatedBy,
@@ -674,9 +672,18 @@ export default async function handler(
           
           // Create email subject with ticket number
           let emailSubject = safeTicketData.title || 'Destek Talebiniz Alındı';
-          if (ticketNo && !emailSubject.includes(`#${ticketNo}#`)) {
+          
+          // Subject içinde eski ticket numarası varsa, yeni numara ile değiştir
+          const ticketNoRegex = /#([A-Za-z0-9]+)#/;
+          if (ticketNoRegex.test(emailSubject)) {
+            emailSubject = emailSubject.replace(ticketNoRegex, `#${ticketNo}#`);
+            console.log('Email konusundaki eski ticket numarası yenisiyle değiştirildi:', emailSubject);
+          } 
+          // Ticket numarası yoksa ekle
+          else if (ticketNo && !emailSubject.includes(`#${ticketNo}#`)) {
             emailSubject = `${emailSubject} #${ticketNo}#`;
           }
+          
           console.log('Email notification subject:', emailSubject);
           
           // Get original email content from the comment
