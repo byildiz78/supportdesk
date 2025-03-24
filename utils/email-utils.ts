@@ -312,8 +312,8 @@ export const sendTicketNotificationEmail = async (
     // Create nodemailer transporter
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
-      port: 465,
-      secure: true, // Use SSL/TLS
+      port: 587,
+      secure: false, // Use STARTTLS
       auth: {
         user: process.env.SUPPORT_MAIL,
         pass: process.env.GMAIL_APP_PASSWORD,

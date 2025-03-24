@@ -76,8 +76,8 @@ export default async function handler(
     try {
       const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, // SSL/TLS kullan
+        port: 587,
+        secure: false, // Use STARTTLS
         auth: {
           user: process.env.SUPPORT_MAIL,
           pass: process.env.GMAIL_APP_PASSWORD,
