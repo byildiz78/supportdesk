@@ -3,6 +3,9 @@ import { db } from '@/lib/database';
 import nodemailer from 'nodemailer';
 import { extractTenantFromBody } from '@/lib/utils';
 import { sendEventToClients } from '@/pages/api/events';
+import path from 'path';
+import { saveFile } from '@/lib/saveFile';
+import fs from 'fs';
 
 interface QueryResult {
   rows: any[];
@@ -45,6 +48,17 @@ export default async function handler(
       ticketId, content, subject, to, cc, replyToEmailId, 
       threadId, isInternal, userId, userName 
     });
+
+    // Gönderen robotpos ise işlemi engelle
+    if (userName === 'robotpos' || userName === 'Robotpos' || 
+        req.body.sender === 'robotpos' || req.body.sender === 'Robotpos' ||
+        req.body.sender_email === 'robotpos@gmail.com' || 
+        req.body.senderEmail === 'robotpos@gmail.com') {
+      return res.status(400).json({
+        success: false,
+        message: 'Robotpos kullanıcısı ile yorum eklenemez veya e-posta gönderilemez',
+      });
+    }
 
     // E-posta gönderme işlemi için gerekli bilgileri kontrol et
     if (!ticketId || !content || !to || !to.length) {
@@ -153,12 +167,33 @@ export default async function handler(
         },
         // Eklentileri ekleyelim
         attachments: attachments && attachments.length > 0 ? attachments.map((attachment: any) => {
-          // Dosya yolunu oluşturalım
-          const filePath = attachment.storagePath && attachment.storagePath.startsWith('/') 
-            ? `${process.cwd()}/public${attachment.storagePath}` 
-            : `${process.cwd()}/public/uploads/${attachment.name}`;
+          // Üretim ve geliştirme ortamı için farklı yolları dene
+          let filePath = `${process.cwd()}/uploads/supportdesk/${attachment.name}`;
           
-          console.log('Eklenti dosya yolu:', filePath);
+          // Eğer dosya mevcut projenin kök dizininde değilse, 
+          // üretim ortamında olabilecek diğer yolları dene
+          if (!fs.existsSync(filePath)) {
+            // Üretim ortamı için alternatif yol (Vercel, Docker, vb.)
+            const productionPath1 = `/var/www/new-supportdesk/uploads/supportdesk/${attachment.name}`;
+            const productionPath2 = path.join(process.cwd(), '..', 'uploads', 'supportdesk', attachment.name);
+            
+            console.log(`İlk yol bulunamadı: ${filePath}, alternatif yollar deneniyor...`);
+            
+            if (fs.existsSync(productionPath1)) {
+              filePath = productionPath1;
+              console.log(`Dosya alternatif yolda bulundu: ${filePath}`);
+            } else if (fs.existsSync(productionPath2)) {
+              filePath = productionPath2;
+              console.log(`Dosya alternatif yolda bulundu: ${filePath}`);
+            } else {
+              console.error(`Dosya hiçbir yolda bulunamadı: ${attachment.name}`);
+              console.log(`Denenen yollar:`, {
+                dev: filePath,
+                prod1: productionPath1,
+                prod2: productionPath2
+              });
+            }
+          }
           
           return {
             filename: attachment.originalFilename || attachment.name,
@@ -167,13 +202,10 @@ export default async function handler(
           };
         }) : []
       };
-      console.log('Mail options hazırlandı:', mailOptions);
 
       // E-postayı gönder
       if (!isInternal) {
         try {
-          console.log('E-posta gönderme işlemi başlatılıyor...');
-          
           // Zaman aşımı için Promise ile sarmalama
           const sendMailPromise = new Promise<any>((resolve, reject) => {
             // Zaman aşımı için 30 saniye
@@ -225,6 +257,7 @@ export default async function handler(
     console.log('Veritabanı işlemleri başlatılıyor...');
 
     // Yanıtı veritabanına kaydet
+    // ID değerini doğrudan döndürmek için RETURNING * kullanılıyor
     const insertCommentQuery = `
       INSERT INTO ticket_comments (
         ticket_id,
@@ -256,7 +289,7 @@ export default async function handler(
       SELECT name, email FROM users WHERE id = $1
     `;
     try {
-      const userResult = await db.executeQuery<QueryResult>({
+      const userResult = await db.executeQueryResult<QueryResult>({
         query: userQuery,
         params: [userId],
         req
@@ -270,7 +303,7 @@ export default async function handler(
 
       // Yorumu veritabanına ekle
       console.log('Yorum veritabanına ekleniyor...');
-      const commentResult = await db.executeQuery<QueryResult>({
+      const commentResult = await db.executeQueryResult<QueryResult>({
         query: insertCommentQuery,
         params: [
           ticketId,
@@ -295,20 +328,13 @@ export default async function handler(
       });
       
       // Yorumun başarıyla eklendiğinden emin olalım
-      // Bazı durumlarda, sorgu başarılı olsa bile rows dizisi boş olabilir
-      // Bu durumda, rowCount > 0 ise yorum başarıyla eklenmiş demektir
       if ((!commentResult.rows || commentResult.rows.length === 0) && commentResult.rowCount === 0) {
         throw new Error('Yorum veritabanına eklenemedi');
       }
       
-      // Yorum ID'si ve oluşturulma tarihi
-      const commentId = commentResult.rows && commentResult.rows.length > 0 
-        ? commentResult.rows[0]?.id 
-        : `comment-${Date.now()}`;
-      
-      const commentCreatedAt = commentResult.rows && commentResult.rows.length > 0 
-        ? commentResult.rows[0]?.createdAt 
-        : new Date().toISOString();
+      // Eklenen yorumun ID'si ve oluşturulma tarihi
+      const commentId = commentResult.rows[0].id;
+      const commentCreatedAt = commentResult.rows[0].createdAt;
       
       // Ticket'ın updated_at alanını güncelle
       console.log('Ticket güncelleniyor...');
@@ -332,11 +358,81 @@ export default async function handler(
         console.error('SSE yorum ekleme olayı gönderme hatası:', sseError);
       }
 
+      // Yorum detaylarını almak için sorgu
+      const getCommentQuery = `
+        SELECT 
+          id, 
+          ticket_id as "ticketId", 
+          content, 
+          is_internal as "isInternal", 
+          created_at as "createdAt", 
+          created_by as "createdBy", 
+          updated_at as "updatedAt",
+          is_deleted as "isDeleted",
+          email_id as "emailId",
+          thread_id as "threadId",
+          sender, 
+          sender_email as "senderEmail", 
+          to_recipients as "toRecipients", 
+          cc_recipients as "ccRecipients", 
+          html_content as "htmlContent", 
+          attachments
+        FROM ticket_comments 
+        WHERE id = $1
+      `;
+      
+      // Eklenen yorumun detaylarını al
+      const commentDetailResult = await db.executeQueryResult<QueryResult>({
+        query: getCommentQuery,
+        params: [commentId],
+        req
+      });
+      
+      const commentDetail = commentDetailResult.rows && commentDetailResult.rows.length > 0 
+        ? commentDetailResult.rows[0] 
+        : null;
+
+      // Yanıt olarak eklenen yorumun tam bilgilerini döndür
       return res.status(200).json({
         success: true,
         message: isInternal ? 'Dahili yorum eklendi' : 'E-posta yanıtı gönderildi',
-        commentId: commentId,
-        createdAt: commentCreatedAt,
+        comment: commentDetail ? {
+          id: commentDetail.id,
+          ticketId: commentDetail.ticketId,
+          content: commentDetail.content,
+          isInternal: commentDetail.isInternal,
+          createdAt: commentDetail.createdAt,
+          createdBy: commentDetail.createdBy,
+          createdByName: userName || user.name,
+          updatedAt: commentDetail.updatedAt,
+          isDeleted: commentDetail.isDeleted,
+          emailId: commentDetail.emailId,
+          threadId: commentDetail.threadId,
+          sender: commentDetail.sender,
+          senderEmail: commentDetail.senderEmail,
+          toRecipients: commentDetail.toRecipients,
+          ccRecipients: commentDetail.ccRecipients,
+          htmlContent: commentDetail.htmlContent,
+          attachments: commentDetail.attachments ? 
+            (typeof commentDetail.attachments === 'string' ? 
+              JSON.parse(commentDetail.attachments) : 
+              commentDetail.attachments) : 
+            null
+        } : {
+          id: commentId,
+          ticketId,
+          content: subject || 'E-posta Yanıtı',
+          isInternal: isInternal || false,
+          createdAt: commentCreatedAt,
+          createdBy: userId,
+          createdByName: userName || user.name,
+          sender: userName || user.name,
+          senderEmail: user.email || process.env.SUPPORT_MAIL || '',
+          toRecipients: to || [],
+          ccRecipients: cc || null,
+          htmlContent: htmlContent || `<p>${content}</p>`,
+          attachments: req.body.attachments || null
+        }
       });
     } catch (dbError) {
       console.error('Veritabanı işlemi hatası:', dbError);

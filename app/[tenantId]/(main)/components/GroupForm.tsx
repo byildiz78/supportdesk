@@ -7,10 +7,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Group } from "@/types/categories"
 import { Checkbox } from "@/components/ui/checkbox"
+import { getUserId } from "@/utils/user-utils"
 
 interface GroupFormProps {
     group?: Group
-    onSubmit: (data: Partial<Group>) => void
+    onSubmit: (data: Partial<Group> & { userId?: string | null }) => void
 }
 
 function GroupForm({ group, onSubmit }: GroupFormProps) {
@@ -59,7 +60,8 @@ function GroupForm({ group, onSubmit }: GroupFormProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        onSubmit(formData)
+        const userId = getUserId()
+        onSubmit({ ...formData, userId })
     }
 
     return (

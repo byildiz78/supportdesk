@@ -104,8 +104,8 @@ export function TicketPagination({
         <div>
           <p className="text-sm text-muted-foreground">
             Toplam <span className="font-medium">{totalTickets}</span> talep içinden{' '}
-            <span className="font-medium">{Math.min((currentPage - 1) * 10 + 1, totalTickets)}</span>-
-            <span className="font-medium">{Math.min(currentPage * 10, totalTickets)}</span> arası gösteriliyor
+            <span className="font-medium">{Math.min((currentPage - 1) * 50 + 1, totalTickets)}</span>-
+            <span className="font-medium">{Math.min(currentPage * 50, totalTickets)}</span> arası gösteriliyor
           </p>
         </div>
         <div>

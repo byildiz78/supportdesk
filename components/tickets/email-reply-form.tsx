@@ -93,11 +93,11 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
     return (
         <Card className="p-4 space-y-4 bg-blue-50/50 dark:bg-blue-900/20 border-blue-200/50 dark:border-blue-800/30">
             <div className="space-y-2">
-                <div className="text-sm font-medium">Email Reply</div>
+                <div className="text-sm font-medium">E-posta Yanıtı</div>
                 
                 <div className="space-y-3">
                     <div className="space-y-1">
-                        <Label htmlFor="to-recipients">To:</Label>
+                        <Label htmlFor="to-recipients">Alıcı:</Label>
                         <Input 
                             id="to-recipients"
                             value={recipients.join(', ')}
@@ -119,23 +119,23 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                     </div>
                     
                     <div className="space-y-1">
-                        <Label htmlFor="email-subject">Subject:</Label>
+                        <Label htmlFor="email-subject">Konu:</Label>
                         <Input 
                             id="email-subject"
                             value={emailSubject}
                             onChange={(e) => setEmailSubject(e.target.value)}
-                            placeholder="Email subject"
+                            placeholder="Konu"
                             disabled={isSubmitting}
                         />
                     </div>
                     
                     <div className="space-y-1">
-                        <Label htmlFor="reply-content">Message:</Label>
+                        <Label htmlFor="reply-content">Mesaj:</Label>
                         <Textarea 
                             id="reply-content"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder="Type your reply here..."
+                            placeholder="Mesajınızı yazınız..."
                             rows={6}
                             className="resize-y"
                             disabled={isSubmitting}
@@ -147,7 +147,7 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
             {/* File attachments */}
             {files.length > 0 && (
                 <div className="space-y-2">
-                    <div className="text-sm font-medium">Attachments</div>
+                    <div className="text-sm font-medium">Eklentiler</div>
                     <div className="flex flex-wrap gap-2">
                         {files.map((file, index) => (
                             <div 
@@ -180,7 +180,7 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                         disabled={isSubmitting}
                     >
                         <Paperclip className="h-4 w-4 mr-1" />
-                        Attach Files
+                        Eklenti Ekle
                     </Button>
                     <input 
                         type="file" 
@@ -199,7 +199,7 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                             className="rounded border-gray-300"
                             disabled={isSubmitting}
                         />
-                        <span className="text-sm">Internal Note (not sent as email)</span>
+                        <span className="text-sm">Dahili Not (e-posta olarak gönderilmez)</span>
                     </label>
                 </div>
                 
@@ -210,7 +210,7 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                         onClick={onCancel}
                         disabled={isSubmitting}
                     >
-                        Cancel
+                        İptal
                     </Button>
                     <Button 
                         type="button" 
@@ -226,7 +226,7 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                         ) : (
                             <>
                                 <Send className="h-4 w-4 mr-1" />
-                                {isInternal ? "Save Note" : "Send Reply"}
+                                {isInternal ? "Kaydet" : "Gönder"}
                             </>
                         )}
                     </Button>

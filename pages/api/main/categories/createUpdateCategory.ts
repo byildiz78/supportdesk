@@ -15,6 +15,7 @@ export default async function handler(
       name,
       description,
       isUpdate,
+      userId,
       ...otherFields
     } = req.body;
 
@@ -57,7 +58,7 @@ export default async function handler(
 
         const result = await client.query(query, [
           ...params,
-          req.body.updated_by || null,
+          userId || req.body.updated_by || null,
           id
         ]);
 
@@ -110,7 +111,7 @@ export default async function handler(
 
         const result = await client.query(query, [
           ...params,
-          req.body.created_by || null
+          userId || req.body.created_by || null
         ]);
 
         // Format the response

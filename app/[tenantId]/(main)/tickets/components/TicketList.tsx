@@ -7,6 +7,7 @@ import axios from "@/lib/axios"
 import { toast } from "@/components/ui/toast/use-toast"
 import { Ticket } from "@/types/tickets"
 import { useTabStore } from "@/stores/tab-store"
+import { clearTicketCache } from "../detail/page"
 
 // Import our new components
 import { TicketListHeader, SortField, SortDirection } from "./ticket-list/TicketListHeader"
@@ -36,26 +37,51 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
     // Handle ticket actions
     const handleViewTicket = (ticket: Ticket) => {
         const tabId = `ticket-${ticket.id}`
-        addTab({
-            id: tabId,
-            title: `Talep #${ticket.ticketno}`,
-            lazyComponent: () => import('../detail/page').then(module => ({
-                default: (props: any) => <module.default {...props} ticketId={ticket.id} />
-            }))
-        })
-        setActiveTab(tabId)
+        
+        // Önce bu ID'ye sahip bir tab var mı kontrol et
+        const tabs = useTabStore.getState().tabs
+        const existingTab = tabs.find(tab => tab.id === tabId)
+        
+        // Her tıklamada önbelleği temizle, böylece her zaman API'den taze veri alınacak
+        clearTicketCache(tabId)
+        
+        if (existingTab) {
+            // Tab zaten açıksa, sadece o taba geçiş yap
+            setActiveTab(tabId)
+        } else {
+            // Tab yoksa yeni tab oluştur
+            addTab({
+                id: tabId,
+                title: `Talep #${ticket.ticketno}`,
+                lazyComponent: () => import('../detail/page').then(module => ({
+                    default: (props: any) => <module.default {...props} ticketId={ticket.id} />
+                }))
+            })
+            setActiveTab(tabId)
+        }
     }
 
     const handleEditTicket = (ticket: Ticket) => {
         const tabId = `edit-ticket-${ticket.id}`
-        addTab({
-            id: tabId,
-            title: `Talep #${ticket.ticketno} (Düzenle)`,
-            lazyComponent: () => import('../crud-update/page').then(module => ({
-                default: (props: any) => <module.default {...props} ticketId={ticket.id} />
-            }))
-        })
-        setActiveTab(tabId)
+        
+        // Önce bu ID'ye sahip bir tab var mı kontrol et
+        const tabs = useTabStore.getState().tabs
+        const existingTab = tabs.find(tab => tab.id === tabId)
+        
+        if (existingTab) {
+            // Tab zaten açıksa, sadece o taba geçiş yap
+            setActiveTab(tabId)
+        } else {
+            // Tab yoksa yeni tab oluştur
+            addTab({
+                id: tabId,
+                title: `Talep #${ticket.ticketno} (Düzenle)`,
+                lazyComponent: () => import('../crud-update/page').then(module => ({
+                    default: (props: any) => <module.default {...props} ticketId={ticket.id} />
+                }))
+            })
+            setActiveTab(tabId)
+        }
     }
 
     const handleDeleteClick = (ticket: Ticket) => {

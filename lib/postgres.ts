@@ -63,6 +63,33 @@ export const executeQuery = async <T>(options: QueryOptions): Promise<T> => {
   }
 };
 
+export const executeQueryResult = async <T>(options: QueryOptions): Promise<T> => {
+  // Tarayıcı ortamında çalışırken boş bir dizi döndür
+  if (typeof window !== 'undefined') {
+    console.warn('PostgreSQL queries are not supported in browser environment');
+    return [] as unknown as T;
+  }
+
+  const { query, params = [], tenantId } = options;
+  const client = await getPool().connect();
+  
+  try {
+    // If tenantId is provided, set the search_path
+    if (tenantId) {
+      await client.query(`SET search_path TO "${tenantId}",public`);
+    }
+    
+    const result = await client.query(query, params);
+    return result as T;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+
 // Helper function to execute a transaction with multiple queries
 export const executeTransaction = async <T>(
   callback: (client: PoolClient) => Promise<T>,

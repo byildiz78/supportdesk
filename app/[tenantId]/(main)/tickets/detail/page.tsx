@@ -14,6 +14,7 @@ import { Ticket } from "./types"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useCompanies } from "@/providers/companies-provider"
+import { useTabStore } from "@/stores/tab-store"
 
 // Ticket tiplerini dönüştüren yardımcı fonksiyon
 const convertToStoreTicket = (ticket: Ticket): StoreTicket => {
@@ -48,18 +49,32 @@ interface TicketDetailPageProps {
     ticketId: string;
 }
 
+// Her tab için ticket verilerini saklayacak global obje
+const tabTickets: Record<string, Ticket> = {};
+
+// Önbelleği temizlemek için kullanılacak fonksiyon
+export const clearTicketCache = (tabId: string) => {
+    if (tabTickets[tabId]) {
+        delete tabTickets[tabId];
+    }
+};
+
 export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
     const { selectedTicket, setSelectedTicket } = useTicketStore()
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const { toast } = useToast()
     const { companies } = useCompanies()
+    const { activeTab } = useTabStore()
+    
+    // Tab için özel ticket state'i
+    const [tabTicket, setTabTicket] = useState<Ticket | null>(null)
     
     // Seçilen firmanın lisans bilgilerini getir
     const selectedCompany = useMemo(() => {
-        if (!selectedTicket?.company_id || !Array.isArray(companies)) return null;
-        return companies.find(company => company.id === selectedTicket.company_id);
-    }, [selectedTicket, companies]);
+        if (!tabTicket?.company_id || !Array.isArray(companies)) return null;
+        return companies.find(company => company.id === tabTicket.company_id);
+    }, [tabTicket, companies]);
 
     // Lisans bitiş tarihinin geçip geçmediğini kontrol et
     const isLicenseExpired = useMemo(() => {
@@ -77,8 +92,21 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
             setError(null)
             
             try {
+                // Eğer bu tab için daha önce veri yüklendiyse, onu kullan
+                if (tabTickets[activeTab]) {
+                    setTabTicket(tabTickets[activeTab]);
+                    setIsLoading(false);
+                    return;
+                }
+                
                 const response = await TicketService.getTicketById(ticketId);
-                setSelectedTicket(response);
+                
+                // Tab için ticket verisini kaydet
+                tabTickets[activeTab] = response;
+                setTabTicket(response);
+                
+                // Global state'i de güncelle
+                setSelectedTicket(convertToStoreTicket(response));
             } catch (error: any) {
                 console.error('Bilet detayı alınırken hata oluştu:', error)
                 setError(error.message || 'Bilet bilgileri alınamadı')
@@ -94,19 +122,14 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
 
     // Bilet güncelleme işleyicisi
     const handleTicketUpdate = (updatedTicket: Ticket) => {
-        // Hem selectedTicket'ı hem de store'daki bileti güncelle
-        setSelectedTicket(convertToStoreTicket(updatedTicket))
+        // Tab için ticket verisini güncelle
+        tabTickets[activeTab] = updatedTicket;
         
-        // Store'daki updateTicket fonksiyonunu da çağır (varsa)
-        if (useTicketStore.getState().updateTicket) {
-            useTicketStore.getState().updateTicket(convertToStoreTicket(updatedTicket))
-        }
+        // Tab ticket state'ini güncelle
+        setTabTicket(updatedTicket);
         
-        toast({
-            title: "Başarılı",
-            description: "Bilet başarıyla güncellendi",
-            variant: "default",
-        })
+        // Global state'i de güncelle
+        setSelectedTicket(convertToStoreTicket(updatedTicket));
     }
 
     // Yükleme ve hata durumlarını göster
@@ -115,7 +138,7 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
     }
 
     // Bilet bulunamadıysa
-    if (!selectedTicket) {
+    if (!tabTicket) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
                 <div className="text-center">
@@ -141,15 +164,17 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                     <div className="flex-1 flex flex-col h-full">
                         {/* Ticket Header */}
                         <TicketHeader 
-                            id={selectedTicket.id} 
-                            title={selectedTicket.title} 
-                            createdBy={selectedTicket.created_by}
-                            createdByName={selectedTicket.created_by_name || "Bilinmiyor"}
-                            status={selectedTicket.status}
-                            assignedTo={selectedTicket.assigned_to_name || selectedTicket.assigned_to}
+                            id={tabTicket.id} 
+                            title={tabTicket.title} 
+                            createdBy={tabTicket.created_by}
+                            createdByName={tabTicket.created_by_name || "Bilinmiyor"}
+                            status={tabTicket.status}
+                            assignedTo={tabTicket.assigned_to_name || tabTicket.assigned_to}
                             selectedCompany={selectedCompany}
                             isLicenseExpired={isLicenseExpired}
-                            createdAt={selectedTicket.created_at}
+                            createdAt={tabTicket.created_at}
+                            resolved_by={(tabTicket.resolved_by_name || tabTicket.resolved_by || tabTicket.resolvedBy || tabTicket.resolvedByName)}
+                            resolution_notes={(tabTicket.resolution_notes || tabTicket.resolutionNotes)}
                         />
                         
                         {/* Main Content Area */}
@@ -158,7 +183,7 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                             <div className="h-full flex flex-col overflow-hidden">
                                 <ScrollArea className="flex-1 h-[calc(100vh-250px)]">
                                     <div className="space-y-6 pb-24 pr-4">
-                                        <TicketContent ticket={selectedTicket} />
+                                        <TicketContent ticket={tabTicket} />
                                     </div>
                                 </ScrollArea>
                             </div>
@@ -168,7 +193,7 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                     {/* Sidebar */}
                     <div className="w-[25rem]">
                         <TicketSidebar 
-                            ticket={selectedTicket} 
+                            ticket={tabTicket} 
                             onTicketUpdate={handleTicketUpdate} 
                         />
                     </div>

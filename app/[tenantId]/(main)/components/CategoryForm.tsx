@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Category } from "@/types/categories"
+import { getUserId } from "@/utils/user-utils"
 
 interface CategoryFormProps {
     category?: Category
-    onSubmit: (data: Partial<Category>) => void
+    onSubmit: (data: Partial<Category> & { userId?: string | null }) => void
 }
 
 function CategoryForm({ category, onSubmit }: CategoryFormProps) {
@@ -36,7 +37,8 @@ function CategoryForm({ category, onSubmit }: CategoryFormProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        onSubmit(formData)
+        const userId = getUserId()
+        onSubmit({ ...formData, userId })
     }
 
     return (

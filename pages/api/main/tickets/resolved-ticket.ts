@@ -37,7 +37,9 @@ export default async function handler(
         t.created_at as "createdAt",
         t.created_by as "createdBy",
         t.updated_at as "updatedAt",
-        t.updated_by as "updatedBy"
+        t.updated_by as "updatedBy",
+        t.resolved_by as "resolved_by",
+        t.resolution_notes as "resolution_notes"
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)

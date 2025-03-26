@@ -43,7 +43,7 @@ export default function AllTicketsPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [error, setError] = useState<string | null>(null)
-    const itemsPerPage = 10
+    const itemsPerPage = 50
     
     // Referanslar
     const hasInitializedRef = useRef(false)
@@ -181,10 +181,11 @@ export default function AllTicketsPage() {
             return new Date(bDate).getTime() - new Date(aDate).getTime();
         });
         
-        // Status filter
+        // Status filter - "pending" durumu için "waiting" kontrolü ekle
         if (filters.status && filters.status.length > 0) {
             filtered = filtered.filter(ticket => 
-                filters.status!.includes(ticket.status)
+                filters.status!.includes(ticket.status) || 
+                (filters.status!.includes("pending") && ticket.status === "waiting")
             );
         }
         
@@ -259,21 +260,44 @@ export default function AllTicketsPage() {
             );
         }
         
-        // Search term filter
+        // Search term filter - tüm alanları dahil et
         if (searchTerm) {
+            const searchTermLower = searchTerm.toLowerCase();
             filtered = filtered.filter(ticket => 
-                (ticket.title && ticket.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.ticketno && ticket.ticketno.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.parent_company_id && ticket.parent_company_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.parentCompanyId && ticket.parentCompanyId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.company_name && ticket.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.companyName && ticket.companyName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customer_name && ticket.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customerName && ticket.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customer_email && ticket.customer_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customerEmail && ticket.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customer_phone && ticket.customer_phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                (ticket.customerPhone && ticket.customerPhone.toLowerCase().includes(searchTerm.toLowerCase()))
+                // Temel bilet bilgileri
+                (ticket.title?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.ticketno?.toString().toLowerCase().includes(searchTermLower)) ||
+                (ticket.description?.toLowerCase().includes(searchTermLower)) ||
+                
+                // Firma ve müşteri bilgileri
+                ((ticket.company_name || ticket.companyName)?.toLowerCase().includes(searchTermLower)) ||
+                ((ticket.company_id || ticket.companyId)?.toLowerCase().includes(searchTermLower)) ||
+                ((ticket.parent_company_id || ticket.parentCompanyId)?.toLowerCase().includes(searchTermLower)) ||
+                
+                // Müşteri bilgileri
+                ((ticket.customer_name || ticket.customerName)?.toLowerCase().includes(searchTermLower)) ||
+                ((ticket.customer_email || ticket.customerEmail)?.toLowerCase().includes(searchTermLower)) ||
+                ((ticket.customer_phone || ticket.customerPhone)?.toLowerCase().includes(searchTermLower)) ||
+                
+                // İletişim bilgileri
+                (ticket.contact_name?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.contact_first_name?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.contact_last_name?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.contact_email?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.contact_phone?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.contact_position?.toLowerCase().includes(searchTermLower)) ||
+                
+                // Kategori bilgileri
+                (ticket.category_name?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.subcategory_name?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.group_name?.toLowerCase().includes(searchTermLower)) ||
+                
+                // Atanan kişi bilgileri
+                (ticket.assigned_to_name?.toLowerCase().includes(searchTermLower)) ||
+                (ticket.assignedUserName?.toLowerCase().includes(searchTermLower)) ||
+                
+                // Oluşturan kişi bilgileri
+                (ticket.created_by_name?.toLowerCase().includes(searchTermLower))
             );
         }
         
@@ -320,7 +344,10 @@ export default function AllTicketsPage() {
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">
-            <TicketHeader />
+            <TicketHeader 
+                title="Tüm Destek Talepleri" 
+                description="Tüm destek taleplerini yönetin ve takip edin." 
+            />
             
             <TicketFilters 
                 searchTerm={searchTerm}

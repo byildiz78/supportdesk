@@ -139,7 +139,7 @@ export default async function handler(
           customer_name = COALESCE($6, customer_name),
           customer_email = COALESCE($7, customer_email),
           customer_phone = COALESCE($8, customer_phone),
-          company_name = COALESCE($9, company_name),
+          company_name = $9,
           company_id = $10,
           contact_position = COALESCE($11, contact_position),
           contact_id = $12,
@@ -153,6 +153,9 @@ export default async function handler(
         RETURNING *;
       `;
 
+      // company_id null ise company_name'i de null yap
+      const companyName = safeTicketData.company_id === null ? null : safeTicketData.company_name;
+
       const result = await client.query(updateQuery, [
         safeTicketData.title,
         safeTicketData.description,
@@ -162,7 +165,7 @@ export default async function handler(
         safeTicketData.customer_name,
         safeTicketData.customer_email,
         safeTicketData.customer_phone,
-        safeTicketData.company_name,
+        companyName,
         safeTicketData.company_id,
         safeTicketData.contact_position,
         contactId, // Güncellenmiş veya yeni oluşturulmuş contact_id kullan

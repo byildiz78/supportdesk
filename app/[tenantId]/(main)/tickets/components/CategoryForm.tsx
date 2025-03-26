@@ -29,18 +29,18 @@ export default function CategoryForm({
   isLoading
 }: CategoryFormProps) {
   // Provider'dan veri al
-  const { 
-    categories, 
-    getSubcategoriesByCategoryId, 
+  const {
+    categories,
+    getSubcategoriesByCategoryId,
     getGroupsBySubcategoryId,
-    loading 
+    loading
   } = useCategories();
-  
+
   // Arama için state'ler
   const [categoryInputValue, setCategoryInputValue] = useState("");
   const [subcategoryInputValue, setSubcategoryInputValue] = useState("");
   const [groupInputValue, setGroupInputValue] = useState("");
-  
+
   // Filtrelenmiş veriler
   const [searchedCategories, setSearchedCategories] = useState<any[]>([]);
   const [searchedSubcategories, setSearchedSubcategories] = useState<any[]>([]);
@@ -77,61 +77,61 @@ export default function CategoryForm({
   };
 
   // Kategori arama fonksiyonu
-  const searchCategories = useMemo(() => 
+  const searchCategories = useMemo(() =>
     debounce((inputValue: string) => {
       if (!inputValue) {
         setSearchedCategories([]);
         return;
       }
-      
+
       const searchTerm = inputValue.toLowerCase();
       const results = categories
-        .filter(category => 
+        .filter(category =>
           category.name.toLowerCase().includes(searchTerm)
         )
         .slice(0, 100); // Sadece ilk 100 sonucu göster
-      
+
       setSearchedCategories(results);
     }, 300),
-  [categories]);
+    [categories]);
 
   // Alt kategori arama fonksiyonu
-  const searchSubcategories = useMemo(() => 
+  const searchSubcategories = useMemo(() =>
     debounce((inputValue: string) => {
       if (!inputValue) {
         setSearchedSubcategories([]);
         return;
       }
-      
+
       const searchTerm = inputValue.toLowerCase();
       const results = subcategories
-        .filter(subcategory => 
+        .filter(subcategory =>
           subcategory.name.toLowerCase().includes(searchTerm)
         )
         .slice(0, 100); // Sadece ilk 100 sonucu göster
-      
+
       setSearchedSubcategories(results);
     }, 300),
-  [subcategories]);
+    [subcategories]);
 
   // Grup arama fonksiyonu
-  const searchGroups = useMemo(() => 
+  const searchGroups = useMemo(() =>
     debounce((inputValue: string) => {
       if (!inputValue) {
         setSearchedGroups([]);
         return;
       }
-      
+
       const searchTerm = inputValue.toLowerCase();
       const results = groups
-        .filter(group => 
+        .filter(group =>
           group.name.toLowerCase().includes(searchTerm)
         )
         .slice(0, 100); // Sadece ilk 100 sonucu göster
-      
+
       setSearchedGroups(results);
     }, 300),
-  [groups]);
+    [groups]);
 
   // Kategori input değeri değiştiğinde
   const handleCategoryInputChange = (inputValue: string) => {
@@ -156,19 +156,19 @@ export default function CategoryForm({
     if (categoryInputValue.length > 0) {
       return [
         { value: "", label: "Seçiniz" },
-        ...searchedCategories.map(category => ({ 
-          value: category.id, 
-          label: category.name 
+        ...searchedCategories.map(category => ({
+          value: category.id,
+          label: category.name
         }))
       ];
     }
-    
+
     // Input değeri yoksa, tüm kategorileri göster
     return [
       { value: "", label: "Seçiniz" },
-      ...categories.map(category => ({ 
-        value: category.id, 
-        label: category.name 
+      ...categories.map(category => ({
+        value: category.id,
+        label: category.name
       }))
     ];
   }, [categories, searchedCategories, categoryInputValue]);
@@ -178,19 +178,19 @@ export default function CategoryForm({
     if (subcategoryInputValue.length > 0) {
       return [
         { value: "", label: "Seçiniz" },
-        ...searchedSubcategories.map(subcategory => ({ 
-          value: subcategory.id, 
-          label: subcategory.name 
+        ...searchedSubcategories.map(subcategory => ({
+          value: subcategory.id,
+          label: subcategory.name
         }))
       ];
     }
-    
+
     // Input değeri yoksa, seçilen kategoriye ait tüm alt kategorileri göster
     return [
       { value: "", label: "Seçiniz" },
-      ...subcategories.map(subcategory => ({ 
-        value: subcategory.id, 
-        label: subcategory.name 
+      ...subcategories.map(subcategory => ({
+        value: subcategory.id,
+        label: subcategory.name
       }))
     ];
   }, [subcategories, searchedSubcategories, subcategoryInputValue]);
@@ -200,19 +200,19 @@ export default function CategoryForm({
     if (groupInputValue.length > 0) {
       return [
         { value: "", label: "Seçiniz" },
-        ...searchedGroups.map(group => ({ 
-          value: group.id, 
-          label: group.name 
+        ...searchedGroups.map(group => ({
+          value: group.id,
+          label: group.name
         }))
       ];
     }
-    
+
     // Input değeri yoksa, seçilen alt kategoriye ait tüm grupları göster
     return [
       { value: "", label: "Seçiniz" },
-      ...groups.map(group => ({ 
-        value: group.id, 
-        label: group.name 
+      ...groups.map(group => ({
+        value: group.id,
+        label: group.name
       }))
     ];
   }, [groups, searchedGroups, groupInputValue]);
@@ -221,99 +221,95 @@ export default function CategoryForm({
 
   // Tüm ReactSelect bileşenleri için ortak stiller
   const selectClassNames = {
-    control: (state: any) => 
-      `border rounded-md p-0.5 bg-background ${state.isFocused ? 'border-primary ring-1 ring-primary' : 'border-input'}`,
-    placeholder: () => "text-muted-foreground text-sm",
-    input: () => "text-foreground text-sm",
-    option: (state: any) => 
-      `${state.isFocused ? 'bg-accent' : 'bg-background'} ${state.isSelected ? 'bg-primary text-primary-foreground' : ''} text-sm py-1`,
-    menu: () => "bg-background border rounded-md shadow-md mt-1",
+    control: (state) => `w-full bg-background/60 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md transition-all duration-150 rounded-md h-8 px-2 py-1 flex items-center justify-between ${state.isFocused ? 'border-primary ring-1 ring-primary' : ''}`,
+    menu: () => "bg-background/95 backdrop-blur-sm border border-border/50 shadow-xl rounded-md mt-1 z-50 dark:bg-slate-950 dark:border-slate-800",
+    menuList: () => "py-1 px-1",
+    option: (state) => `cursor-pointer transition-colors py-1.5 px-2 rounded-sm text-xs flex items-center ${state.isFocused ? 'bg-accent text-accent-foreground dark:bg-slate-800 dark:text-white' : ''} ${state.isSelected ? 'bg-primary text-primary-foreground font-medium' : ''}`,
+    singleValue: () => "text-foreground dark:text-white flex items-center text-xs",
+    placeholder: () => "text-muted-foreground dark:text-slate-400 text-xs",
+    valueContainer: () => "flex items-center gap-1"
   }
-  
+
+  // Özel stiller
   const selectStyles = {
-    menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
-    control: (base: any) => ({ 
-      ...base, 
-      minHeight: '32px',
-      height: '32px'
-    }),
-    valueContainer: (base: any) => ({
+    control: (base) => ({
       ...base,
-      height: '32px',
-      padding: '0 6px',
-      display: 'flex',
-      justifyContent: 'left'
+      boxShadow: 'none',
+      minHeight: '32px'
     }),
-    indicatorsContainer: (base: any) => ({
-      ...base,
-      height: '32px'
+    indicatorSeparator: () => ({
+      display: 'none'
     }),
-    singleValue: (base: any) => ({
+    dropdownIndicator: (base) => ({
       ...base,
-      textAlign: 'left',
-      margin: 0,
-      position: 'static',
-      transform: 'none',
-      maxWidth: '100%',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis'
+      color: 'var(--foreground)',
+      opacity: 0.5,
+      padding: '0 4px'
     }),
-    placeholder: (base: any) => ({
+    clearIndicator: (base) => ({
       ...base,
-      textAlign: 'left',
-      margin: 0,
-      position: 'static',
-      transform: 'none'
+      padding: '0 4px'
     }),
-    input: (base: any) => ({
+    valueContainer: (base) => ({
       ...base,
-      margin: 0,
-      padding: 0
+      padding: '0 6px'
     })
   }
+
+  // Select tema ayarları
+  const selectTheme = (theme) => ({
+    ...theme,
+    colors: {
+      ...theme.colors,
+      primary: 'var(--primary)',
+      primary25: 'var(--accent)',
+      neutral0: 'var(--background)',
+      neutral80: 'var(--foreground)'
+    }
+  })
 
   const categorySelectClassNames = {
     ...selectClassNames,
     menu: () => "bg-background border rounded-md shadow-md mt-1 z-[1000]",
   }
-  
+
   const subcategorySelectClassNames = {
     ...selectClassNames,
     menu: () => "bg-background border rounded-md shadow-md mt-1 z-[1500]",
   }
-  
+
   const groupSelectClassNames = {
     ...selectClassNames,
     menu: () => "bg-background border rounded-md shadow-md mt-1 z-[2000]",
   }
-  
+
   const categorySelectStyles = {
     ...selectStyles,
     menuPortal: (base: any) => ({ ...base, zIndex: 1000 }),
   }
-  
+
   const subcategorySelectStyles = {
     ...selectStyles,
     menuPortal: (base: any) => ({ ...base, zIndex: 1500 }),
   }
-  
+
   const groupSelectStyles = {
     ...selectStyles,
     menuPortal: (base: any) => ({ ...base, zIndex: 2000 }),
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold mb-2">Kategori Bilgileri</h3>
-        <div className="space-y-2 max-w-full overflow-hidden">
+        <h3 className="text-sm font-semibold mb-1.5">Kategori Bilgileri</h3>
+        <div className="space-y-1.5 max-w-full overflow-hidden">
           <div className="flex items-start space-x-2">
             <Folder className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
             <div className="w-full relative">
               <ReactSelect
-                value={categoryId ? { 
-                  value: categoryId, 
-                  label: categories.find(c => c.id === categoryId)?.name || "Kategori seçin" 
+                value={categoryId ? {
+                  value: categoryId,
+                  label: categories.find(c => c.id === categoryId)?.name || "Kategori seçin"
                 } : null}
                 onChange={(option: any) => {
                   if (option) {
@@ -328,6 +324,8 @@ export default function CategoryForm({
                 loadingMessage={() => "Yükleniyor..."}
                 isLoading={isLoading || loading}
                 isClearable
+                unstyled
+                theme={selectTheme}
                 onInputChange={handleCategoryInputChange}
                 filterOption={() => true} // Disable built-in filtering
                 classNames={categorySelectClassNames}
@@ -335,7 +333,7 @@ export default function CategoryForm({
                 components={{
                   LoadingIndicator: () => (
                     <div className="flex items-center">
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     </div>
                   )
                 }}
@@ -354,9 +352,9 @@ export default function CategoryForm({
             <Layers className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
             <div className="w-full relative">
               <ReactSelect
-                value={subcategoryId ? { 
-                  value: subcategoryId, 
-                  label: subcategories.find(s => s.id === subcategoryId)?.name || "Alt kategori seçin" 
+                value={subcategoryId ? {
+                  value: subcategoryId,
+                  label: subcategories.find(s => s.id === subcategoryId)?.name || "Alt kategori seçin"
                 } : null}
                 onChange={(option: any) => {
                   if (option) {
@@ -371,6 +369,8 @@ export default function CategoryForm({
                 loadingMessage={() => "Yükleniyor..."}
                 isLoading={isLoading || loading}
                 isClearable
+                unstyled
+                theme={selectTheme}
                 isDisabled={!categoryId}
                 onInputChange={handleSubcategoryInputChange}
                 filterOption={() => true} // Disable built-in filtering
@@ -379,7 +379,7 @@ export default function CategoryForm({
                 components={{
                   LoadingIndicator: () => (
                     <div className="flex items-center">
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     </div>
                   )
                 }}
@@ -398,9 +398,9 @@ export default function CategoryForm({
             <FileText className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
             <div className="w-full relative">
               <ReactSelect
-                value={groupId ? { 
-                  value: groupId, 
-                  label: groups.find(g => g.id === groupId)?.name || "Grup seçin" 
+                value={groupId ? {
+                  value: groupId,
+                  label: groups.find(g => g.id === groupId)?.name || "Grup seçin"
                 } : null}
                 onChange={(option: any) => {
                   if (option) {
@@ -415,6 +415,8 @@ export default function CategoryForm({
                 loadingMessage={() => "Yükleniyor..."}
                 isLoading={isLoading || loading}
                 isClearable
+                unstyled
+                theme={selectTheme}
                 isDisabled={!subcategoryId}
                 onInputChange={handleGroupInputChange}
                 filterOption={() => true} // Disable built-in filtering
@@ -423,7 +425,7 @@ export default function CategoryForm({
                 components={{
                   LoadingIndicator: () => (
                     <div className="flex items-center">
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-3 w-3 animate-spin" />
                     </div>
                   )
                 }}

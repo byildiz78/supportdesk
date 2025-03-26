@@ -26,7 +26,7 @@ function FilePreview({ file }: FilePreviewProps) {
 
     return (
         <a 
-            href={file.url}
+            href={`api/images/${file.name || file.originalFilename || (file.url && file.url.split('/').pop()) || 'Dosya'}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs bg-background/50 hover:bg-background/80 px-3 py-2 rounded-md transition-colors group"
@@ -43,7 +43,7 @@ function FilePreview({ file }: FilePreviewProps) {
                 <Paperclip className="h-4 w-4 text-gray-500" />
             )}
             
-            <span className="max-w-[200px] truncate">{file.name || file.originalFilename}</span>
+            <span className="max-w-[200px] truncate">{file.originalFilename || file.name}</span>
             
             <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
         </a>
@@ -103,20 +103,20 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                     >
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" size="sm" className="w-full flex justify-between text-xs text-muted-foreground">
-                                <span>Email Details</span>
+                                <span>Email Detayları</span>
                                 <span>{isMetadataOpen ? '▲' : '▼'}</span>
                             </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="space-y-2 pt-2 text-xs">
                             {comment.sender_email && (
                                 <div className="flex gap-2">
-                                    <span className="font-medium min-w-[60px]">From:</span>
+                                    <span className="font-medium min-w-[60px]">Gönderen:</span>
                                     <span>{comment.sender_email}</span>
                                 </div>
                             )}
                             {comment.to_recipients && comment.to_recipients.length > 0 && (
                                 <div className="flex gap-2">
-                                    <span className="font-medium min-w-[60px]">To:</span>
+                                    <span className="font-medium min-w-[60px]">Alıcı:</span>
                                     <span>{comment.to_recipients.join(', ')}</span>
                                 </div>
                             )}
@@ -149,7 +149,7 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                             {comment.html_content && (
                                 <div className="flex flex-col gap-1">
                                     <span className="font-medium">İçerik Önizleme:</span>
-                                    <div className="bg-white dark:bg-gray-800 p-2 rounded border text-gray-600 dark:text-gray-300 max-h-96 overflow-auto">
+                                    <div className="bg-white dark:bg-gray-800 p-2 rounded border text-gray-600 dark:text-gray-300">
                                         <div className="prose dark:prose-invert max-w-none prose-ul:pl-5 prose-ol:pl-5 prose-li:my-0 prose-p:my-1 prose-headings:mt-2 prose-headings:mb-1">
                                             {processHtmlContent(comment.html_content)}
                                         </div>
@@ -164,12 +164,12 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                                             <div key={file.id || `file-${Math.random()}`} className="flex items-center gap-2 text-xs py-1">
                                                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <a 
-                                                    href={file.url} 
+                                                    href={`api/images/${file.name || file.originalFilename || (file.url && file.url.split('/').pop()) || 'Dosya'}`} 
                                                     target="_blank" 
                                                     rel="noopener noreferrer"
                                                     className="text-blue-600 dark:text-blue-400 hover:underline"
                                                 >
-                                                    {file.name || file.originalFilename || (file.url && file.url.split('/').pop()) || 'Dosya'}
+                                                    {file.originalFilename || file.name || (file.url && file.url.split('/').pop()) || 'Dosya'}
                                                 </a>
                                                 <span className="text-gray-500 text-[10px]">
                                                     ({file.size ? `${Math.round(file.size / 1024)}KB` : 'Boyut bilinmiyor'})
@@ -213,7 +213,7 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                             }}
                         >
                             <Reply className="h-3.5 w-3.5" />
-                            <span>Reply</span>
+                            <span>Yanıtla</span>
                         </Button>
                         <Button 
                             variant="outline" 
@@ -229,7 +229,7 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                             }}
                         >
                             <ReplyAll className="h-3.5 w-3.5" />
-                            <span>Reply All</span>
+                            <span>Tümüne yanıtla</span>
                         </Button>
                     </div>
                 </div>

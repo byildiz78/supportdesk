@@ -19,67 +19,77 @@ import {
   ArrowRightCircle, 
   PlusCircle
 } from "lucide-react";
+import { getStatusChange } from "@/lib/utils";
 
 interface TicketStatusHistoryProps {
   ticketId: string;
 }
 
-// Durum renkleri ve ikonları için yapılandırma
+// Status colors and icons configuration
 interface StatusConfig {
   color: string;
   bgColor: string;
   lightBgColor: string;
+  darkBgColor: string;
   icon: React.ReactNode;
 }
 
 const statusConfigs: Record<string, StatusConfig> = {
   new: {
-    color: "text-blue-700",
+    color: "text-blue-700 dark:text-blue-400",
     bgColor: "bg-blue-500",
-    lightBgColor: "bg-blue-100",
-    icon: <PlusCircle className="h-4 w-4" />
+    lightBgColor: "bg-blue-50",
+    darkBgColor: "dark:bg-blue-950/30",
+    icon: <PlusCircle className="h-3.5 w-3.5" />
   },
   open: {
-    color: "text-green-700",
+    color: "text-green-700 dark:text-green-400",
     bgColor: "bg-green-500",
-    lightBgColor: "bg-green-100",
-    icon: <AlertCircle className="h-4 w-4" />
+    lightBgColor: "bg-green-50",
+    darkBgColor: "dark:bg-green-950/30",
+    icon: <AlertCircle className="h-3.5 w-3.5" />
   },
   in_progress: {
-    color: "text-indigo-700",
+    color: "text-indigo-700 dark:text-indigo-400",
     bgColor: "bg-indigo-500",
-    lightBgColor: "bg-indigo-100",
-    icon: <Clock className="h-4 w-4" />
+    lightBgColor: "bg-indigo-50",
+    darkBgColor: "dark:bg-indigo-950/30",
+    icon: <Clock className="h-3.5 w-3.5" />
   },
   waiting: {
-    color: "text-amber-700",
+    color: "text-amber-700 dark:text-amber-400",
     bgColor: "bg-amber-500",
-    lightBgColor: "bg-amber-100",
-    icon: <HelpCircle className="h-4 w-4" />
+    lightBgColor: "bg-amber-50",
+    darkBgColor: "dark:bg-amber-950/30",
+    icon: <HelpCircle className="h-3.5 w-3.5" />
   },
   resolved: {
-    color: "text-purple-700",
+    color: "text-purple-700 dark:text-purple-400",
     bgColor: "bg-purple-500",
-    lightBgColor: "bg-purple-100",
-    icon: <CheckCircle2 className="h-4 w-4" />
+    lightBgColor: "bg-purple-50",
+    darkBgColor: "dark:bg-purple-950/30",
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />
   },
   closed: {
-    color: "text-gray-700",
+    color: "text-gray-700 dark:text-gray-400",
     bgColor: "bg-gray-500",
-    lightBgColor: "bg-gray-100",
-    icon: <XCircle className="h-4 w-4" />
+    lightBgColor: "bg-gray-50",
+    darkBgColor: "dark:bg-gray-800/30",
+    icon: <XCircle className="h-3.5 w-3.5" />
   },
   reopened: {
-    color: "text-red-700",
+    color: "text-red-700 dark:text-red-400",
     bgColor: "bg-red-500",
-    lightBgColor: "bg-red-100",
-    icon: <ArrowRightCircle className="h-4 w-4" />
+    lightBgColor: "bg-red-50",
+    darkBgColor: "dark:bg-red-950/30",
+    icon: <ArrowRightCircle className="h-3.5 w-3.5" />
   },
   assignment: {
-    color: "text-sky-700",
+    color: "text-sky-700 dark:text-sky-400",
     bgColor: "bg-sky-500",
-    lightBgColor: "bg-sky-100",
-    icon: <User className="h-4 w-4" />
+    lightBgColor: "bg-sky-50",
+    darkBgColor: "dark:bg-sky-950/30",
+    icon: <User className="h-3.5 w-3.5" />
   }
 };
 
@@ -88,29 +98,27 @@ const getStatusConfig = (status: string, isAssignment: boolean = false): StatusC
     return statusConfigs.assignment;
   }
   return statusConfigs[status.toLowerCase()] || {
-    color: "text-gray-700",
+    color: "text-gray-700 dark:text-gray-400",
     bgColor: "bg-gray-400",
-    lightBgColor: "bg-gray-100",
-    icon: <HelpCircle className="h-4 w-4" />
+    lightBgColor: "bg-gray-50",
+    darkBgColor: "dark:bg-gray-800/30",
+    icon: <HelpCircle className="h-3.5 w-3.5" />
   };
 };
 
 const formatDuration = (seconds: number | null) => {
   if (!seconds) return "Bilinmiyor";
   
-  // Zaman dilimi farkını düzelt (3 saat = 10800 saniye)
-  // Eğer süre 3 saatten az ise, zaman dilimi farkı olabilir
+  // Adjust for timezone difference (3 hours = 10800 seconds)
   if (seconds <= 10800) {
-    // Çok kısa süreler için
     if (seconds < 60) {
       return "1 dakikadan az";
     }
-    // Dakika cinsinden göster
     const minutes = Math.floor(seconds / 60);
     return `${minutes} dakika`;
   }
   
-  // Normal süre hesaplaması (3 saatten fazla ise)
+  // Normal duration calculation (for more than 3 hours)
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -146,88 +154,88 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
   }, [ticketId]);
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-medium">Durum Geçmişi</CardTitle>
+    <Card className="h-full border border-gray-100 dark:border-gray-800 shadow-sm">
+      <CardHeader className="pb-2 pt-3 px-4">
+        <CardTitle className="text-base font-medium text-gray-800 dark:text-gray-200">Durum Geçmişi</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <ScrollArea className="h-auto max-h-[800px]">
+      <CardContent className="pt-0 px-4 pb-4">
+        <ScrollArea className="h-auto max-h-[600px] pr-2">
           {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+            <div className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
           ) : statusHistory.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <div className="flex justify-center mb-2">
-                <Clock className="h-12 w-12 text-gray-300" />
+            <div className="text-center text-gray-500 dark:text-gray-400 py-6">
+              <div className="flex justify-center mb-1.5">
+                <Clock className="h-10 w-10 text-gray-300 dark:text-gray-600" />
               </div>
-              <p className="text-sm">Durum geçmişi bulunamadı.</p>
+              <p className="text-xs">Durum geçmişi bulunamadı.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {statusHistory.map((item, index) => {
                 const isAssignment = item.is_assignment_change;
                 const statusConfig = getStatusConfig(item.new_status, isAssignment);
                 
                 return (
-                <div key={item.id} className="relative pl-8 pb-6">
-                  {/* Zaman çizgisi çizgisi */}
+                <div key={item.id} className="relative pl-6 pb-4">
+                  {/* Timeline line */}
                   {index < statusHistory.length - 1 && (
-                    <div className="absolute left-4 top-6 bottom-0 w-0.5 bg-gradient-to-b from-gray-300 to-gray-100" />
+                    <div className="absolute left-3 top-5 bottom-0 w-px bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-600 dark:to-gray-800/10" />
                   )}
                   
-                  {/* Durum ikonu */}
-                  <div className={`absolute left-0 top-1 w-8 h-8 rounded-full flex items-center justify-center ${statusConfig.lightBgColor} border-2 border-white shadow-sm`}>
+                  {/* Status icon */}
+                  <div className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center ${statusConfig.lightBgColor} ${statusConfig.darkBgColor} border border-gray-100 dark:border-gray-700 shadow-sm`}>
                     <span className={statusConfig.color}>
                       {statusConfig.icon}
                     </span>
                   </div>
                   
-                  <div className="flex flex-col bg-white rounded-lg p-3 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className={`${statusConfig.color} ${statusConfig.lightBgColor} border-none`}>
+                  <div className="flex flex-col bg-white dark:bg-gray-800/40 rounded-lg p-2.5 border border-gray-100 dark:border-gray-700/30 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <Badge variant="outline" className={`px-1.5 py-0.5 text-xs ${statusConfig.color} ${statusConfig.lightBgColor} ${statusConfig.darkBgColor} border-none`}>
                         <span className="flex items-center gap-1">
                           {statusConfig.icon}
-                          <span>{isAssignment ? "Atama Değişikliği" : item.new_status}</span>
+                          <span>{isAssignment ? "Atama Değişikliği" : getStatusChange(item.new_status)}</span>
                         </span>
                       </Badge>
-                      <span className="text-sm text-gray-500 font-medium">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                         {format(new Date(item.changed_at_local || item.changed_at), 'd MMMM yyyy HH:mm', { locale: tr })}
                       </span>
                     </div>
                     
-                    <div className="mt-1 text-sm">
+                    <div className="mt-0.5 text-xs">
                       <span className="font-medium">{item.changed_by_name || 'Sistem'}</span> tarafından 
                       {isAssignment ? (
-                        <span className="ml-1 text-gray-700">
-                          <span className="font-medium text-sky-700">{processHtmlContent(item.previous_status || 'Atanmamış')}</span> kullanıcısından 
-                          <span className="font-medium text-sky-700 ml-1">{processHtmlContent(item.new_status || '')}</span> kullanıcısına atandı.
+                        <span className="ml-1 text-gray-700 dark:text-gray-300">
+                          <span className="font-medium text-sky-700 dark:text-sky-400">{processHtmlContent(item.previous_status || 'Atanmamış')}</span> kullanıcısından 
+                          <span className="font-medium text-sky-700 dark:text-sky-400 ml-1">{processHtmlContent(item.new_status || '')}</span> kullanıcısına atandı.
                         </span>
                       ) : item.previous_status ? (
-                        <span className="ml-1 text-gray-700">
-                          <Badge variant="outline" className={`${getStatusConfig(item.previous_status).color} ${getStatusConfig(item.previous_status).lightBgColor} border-none ml-1 mr-1`}>
-                            <span className="flex items-center gap-1">
+                        <span className="ml-1 text-gray-700 dark:text-gray-300">
+                          <Badge variant="outline" className={`px-1 py-0.5 text-xs ${getStatusConfig(item.previous_status).color} ${getStatusConfig(item.previous_status).lightBgColor} ${getStatusConfig(item.previous_status).darkBgColor} border-none ml-0.5 mr-0.5`}>
+                            <span className="flex items-center gap-0.5">
                               {getStatusConfig(item.previous_status).icon}
-                              <span>{item.previous_status}</span>
+                              <span>{getStatusChange(item.previous_status)}</span>
                             </span>
                           </Badge> 
                           durumundan 
-                          <Badge variant="outline" className={`${statusConfig.color} ${statusConfig.lightBgColor} border-none ml-1 mr-1`}>
-                            <span className="flex items-center gap-1">
+                          <Badge variant="outline" className={`px-1 py-0.5 text-xs ${statusConfig.color} ${statusConfig.lightBgColor} ${statusConfig.darkBgColor} border-none ml-0.5 mr-0.5`}>
+                            <span className="flex items-center gap-0.5">
                               {statusConfig.icon}
-                              <span>{item.new_status}</span>
+                              <span>{getStatusChange(item.new_status)}</span>
                             </span>
                           </Badge> 
                           durumuna değiştirildi.
                         </span>
                       ) : (
-                        <span className="ml-1 text-gray-700">
-                          <Badge variant="outline" className={`${statusConfig.color} ${statusConfig.lightBgColor} border-none ml-1 mr-1`}>
-                            <span className="flex items-center gap-1">
+                        <span className="ml-1 text-gray-700 dark:text-gray-300">
+                          <Badge variant="outline" className={`px-1 py-0.5 text-xs ${statusConfig.color} ${statusConfig.lightBgColor} ${statusConfig.darkBgColor} border-none ml-0.5 mr-0.5`}>
+                            <span className="flex items-center gap-0.5">
                               {statusConfig.icon}
-                              <span>{item.new_status}</span>
+                              <span>{getStatusChange(item.new_status)}</span>
                             </span>
                           </Badge> 
                           olarak oluşturuldu.
@@ -236,8 +244,8 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
                     </div>
                     
                     {item.time_in_status && !isAssignment && (
-                      <div className="mt-2 text-xs flex items-center text-gray-500 bg-gray-50 p-2 rounded">
-                        <Clock className="h-3 w-3 mr-1 text-gray-400" />
+                      <div className="mt-1.5 text-xs flex items-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 p-1.5 rounded">
+                        <Clock className="h-2.5 w-2.5 mr-1 text-gray-400" />
                         Önceki durumda geçirilen süre: 
                         <span className="font-medium ml-1">
                           {Math.abs(item.time_in_status - 10800) < 300 

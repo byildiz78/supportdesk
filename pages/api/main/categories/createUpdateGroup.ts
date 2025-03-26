@@ -21,6 +21,7 @@ export default async function handler(
       hafta_sonu_mesai_disi_sla,
       sla_next_day_start,
       isUpdate,
+      userId,
       ...otherFields
     } = req.body;
 
@@ -82,7 +83,7 @@ export default async function handler(
 
         const result = await client.query(query, [
           ...params,
-          req.body.updated_by || null,
+          userId || req.body.updated_by || null,
           id
         ]);
 
@@ -140,15 +141,15 @@ export default async function handler(
             is_deleted
           )
           VALUES (
-            $1, $2, $3, $4, $5, $6, $7,
-            CURRENT_TIMESTAMP, $8, CURRENT_TIMESTAMP, false 
+            $1, $2, $3, $4, $5, $6, $7, $8,
+            CURRENT_TIMESTAMP, $9, CURRENT_TIMESTAMP, false 
           )
           RETURNING *;
         `;
 
         const result = await client.query(query, [
           ...params,
-          req.body.created_by || null,
+          userId || req.body.created_by || null,
         ]);
 
         // Format the response

@@ -17,6 +17,7 @@ interface TicketFiltersProps {
     filters?: TicketFilter
     onFilterChange?: (filters: Partial<TicketFilter>) => void
     disableStatusFilter?: boolean
+    hideAssignedUserFilter?: boolean
 }
 
 export function TicketFilters({ 
@@ -24,7 +25,8 @@ export function TicketFilters({
     setSearchTerm, 
     filters = {}, 
     onFilterChange = () => {}, 
-    disableStatusFilter = false 
+    disableStatusFilter = false,
+    hideAssignedUserFilter = false
 }: TicketFiltersProps) {
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const { users, isLoading: isLoadingUsers } = useUsers()
@@ -118,30 +120,34 @@ export function TicketFilters({
                                         </div>
                                         
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium">Atanan Kullanıcı</label>
-                                            <Select
-                                                value={filters.assigned_to?.[0] || ""}
-                                                onValueChange={(value) => {
-                                                    const newValue = value ? [value] : [];
-                                                    onFilterChange({ assigned_to: newValue });
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Tüm kullanıcılar" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="">Tüm kullanıcılar</SelectItem>
-                                                    {isLoadingUsers ? (
-                                                        <SelectItem value="" disabled>Yükleniyor...</SelectItem>
-                                                    ) : (
-                                                        users.map((user) => (
-                                                            <SelectItem key={user.id} value={user.id}>
-                                                                {user.name}
-                                                            </SelectItem>
-                                                        ))
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
+                                            {!hideAssignedUserFilter && (
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium">Atanan Kullanıcı</label>
+                                                    <Select
+                                                        value={filters.assigned_to?.[0] || ""}
+                                                        onValueChange={(value) => {
+                                                            const newValue = value ? [value] : [];
+                                                            onFilterChange({ assigned_to: newValue });
+                                                        }}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Tüm kullanıcılar" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="">Tüm kullanıcılar</SelectItem>
+                                                            {isLoadingUsers ? (
+                                                                <SelectItem value="" disabled>Yükleniyor...</SelectItem>
+                                                            ) : (
+                                                                users.map((user) => (
+                                                                    <SelectItem key={user.id} value={user.id}>
+                                                                        {user.name}
+                                                                    </SelectItem>
+                                                                ))
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
                                         </div>
                                         
                                         <Button 

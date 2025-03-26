@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/database';
+import { saveFile } from '@/lib/saveFile';
 
 // Disable the default body parser to handle file uploads
 export const config = {
@@ -24,40 +25,21 @@ export default async function handler(
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  // Hata durumunda kullanmak için başlangıç değerleri
-  let parsedFields: any = {};
-  let parsedFiles: any = {};
   let entityType = 'temp';
   let entityId: string | null = null;
   let createdBy: string | null = null;
   let basePath = process.env.NEXT_PUBLIC_BASEPATH || '';
 
   try {
-    // Parse the form data
-    const form = new IncomingForm({
-      multiples: true,
-      keepExtensions: true,
-      uploadDir: path.join(process.cwd(), 'public/uploads'),
-    });
-
-    // Create uploads directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public/uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Parse the form
-    const formData: any = await new Promise((resolve, reject) => {
+    const form = new IncomingForm();
+    const [fields, files] = await new Promise((resolve, reject) => {
       form.parse(req, (err, fields, files) => {
-        if (err) return reject(err);
-        // Hata durumunda kullanmak için değerleri saklayalım
-        parsedFields = fields;
-        parsedFiles = files;
-        resolve({ fields, files });
+        if (err) reject(err);
+        resolve([fields, files]);
       });
     });
 
-    const { fields, files } = formData;
+    
     entityType = fields.entityType?.[0] || 'temp';
     entityId = fields.entityId?.[0] || null;
     createdBy = fields.createdBy?.[0] || null;
@@ -70,15 +52,15 @@ export default async function handler(
     };
 
     if (!createdBy) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Created by is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Created by is required'
       });
     }
 
     // Process each file
     const uploadedFiles = [];
-    
+
     // files veya files.file tanımsız olabilir, güvenli bir şekilde kontrol et
     if (!files || !files.file) {
       return res.status(200).json({
@@ -87,9 +69,9 @@ export default async function handler(
         files: []
       });
     }
-    
+
     const fileArray = Array.isArray(files.file) ? files.file : [files.file];
-    
+
     // Dosya dizisi boş olabilir
     if (fileArray.length === 0) {
       return res.status(200).json({
@@ -106,12 +88,9 @@ export default async function handler(
       const fileId = uuidv4();
       const fileExt = path.extname(file.originalFilename || '');
       const fileName = `${fileId}${fileExt}`;
-      const storagePath = `/uploads/${fileName}`;
-      const publicUrl = `${basePath}/uploads/${fileName}`;
 
       // Move the file to the final location
-      const finalPath = path.join(process.cwd(), 'public', storagePath);
-      fs.renameSync(file.filepath, finalPath);
+      const finalPath = await saveFile(file, fileName);
 
       // Insert file info into database
       const insertQuery = `
@@ -147,8 +126,8 @@ export default async function handler(
             file.originalFilename,
             file.size,
             file.mimetype,
-            storagePath,
-            publicUrl,
+            finalPath,
+            finalPath,
             entityType,
             entityId,
             createdBy
@@ -182,7 +161,7 @@ export default async function handler(
         originalFilename: file.originalFilename,
         size: file.size,
         mimeType: file.mimetype,
-        url: publicUrl,
+        url: finalPath,
         uploadedAt: new Date().toISOString(),
         uploadedBy: createdBy
       });
@@ -201,21 +180,21 @@ export default async function handler(
     });
   } catch (error: any) {
     console.error('File upload error:', error);
-    
+
     // Hata detaylarını daha ayrıntılı logla
     if (error.code) console.error('Error code:', error.code);
     if (error.stack) console.error('Error stack:', error.stack);
-    
+
     // Veritabanı hatası mı kontrol et
     if (error.message && error.message.includes('database')) {
       console.error('Database error details:', error.detail || 'No additional details');
     }
-    
+
     // Dosya sistemi hatası mı kontrol et
     if (error.code === 'ENOENT' || error.code === 'EACCES' || error.code === 'EPERM') {
       console.error('File system error. Check permissions and paths.');
     }
-    
+
     return res.status(500).json({
       success: false,
       message: 'Error uploading files',

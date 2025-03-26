@@ -26,7 +26,7 @@ function FilePreview({ file }: { file: FileAttachment }) {
 
     return (
         <a 
-            href={file.url}
+            href={`api/images/${file.name || file.originalFilename || (file.url && file.url.split('/').pop()) || 'Dosya'}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs bg-background/50 hover:bg-background/80 px-3 py-2 rounded-md transition-colors group"
@@ -43,7 +43,7 @@ function FilePreview({ file }: { file: FileAttachment }) {
                 <Paperclip className="h-4 w-4 text-gray-500" />
             )}
             
-            <span className="max-w-[200px] truncate">{file.name}</span>
+            <span className="max-w-[200px] truncate">{file.originalFilename || file.name}</span>
             
             <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
         </a>
@@ -81,9 +81,16 @@ function CommentContent({ content }: { content: string }) {
 }
 
 export function CommentTimeline({ comments, onReplyToEmail }: CommentTimelineProps) {
+    // Yorumları eskiden yeniye doğru sıralayarak, gösterimin tutarlı olmasını sağlayalım
+    const sortedComments = [...comments].sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateA.getTime() - dateB.getTime(); // Eskiden yeniye doğru sıralama
+    });
+    
     return (
         <div className="space-y-4">
-            {comments.map((comment) => (
+            {sortedComments.map((comment) => (
                 // If comment has email_id, render it as an email comment
                 comment.email_id ? (
                     <EmailCommentView 

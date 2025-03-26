@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { useRouter, usePathname } from "next/navigation";
-import { LockKeyhole, User, Loader2, ShieldCheck, BarChart3, Globe2, Sun, Moon, Eye, EyeOff, Mail, Currency, LucideCurrency, HandCoins } from "lucide-react";
+import { LockKeyhole, User, Loader2, Shield, Sun, Moon, Eye, EyeOff, Mail, ChevronRight, Building, Clock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -39,23 +39,8 @@ export default function LoginPage() {
     const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
     const [error, setError] = useState<string>("");
     const [shake, setShake] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [bgImageLoaded, setBgImageLoaded] = useState(false);
-
-    useEffect(() => {
-        const checkMobile = () => {
-            const ua = navigator.userAgent;
-            setIsMobile(
-                /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
-                window.innerWidth <= 768
-            );
-        };
-
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+    const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
         const pathSegments = pathname?.split("/") || [];
@@ -66,19 +51,28 @@ export default function LoginPage() {
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                 .join(" ");
             setTenantName(formattedName);
-            document.title = `${formattedName} - ${process.env.NEXT_PUBLIC_APP_NAME}`;
+            document.title = `${formattedName} - Giriş`;
         }
     }, [pathname]);
 
     useEffect(() => {
-        // Expo token'ını dinle
+        // Update time every second
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        
+        return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        // Expo token handling
         const handleExpoToken = async (event: any) => {
             const data = event.data;
             try {
                 if (typeof data === 'string') {
                     const parsedData = JSON.parse(data);
                     if (parsedData.type === 'expoToken') {
-                        // Token'ı API'ye gönder
+                        // Send token to API
                         await fetch('/api/expo/savetoken', {
                             method: 'POST',
                             headers: {
@@ -92,19 +86,12 @@ export default function LoginPage() {
                     }
                 }
             } catch (error) {
-                console.error('Expo token kaydetme hatası:', error);
+                console.error('Expo token save error:', error);
             }
         };
 
         window.addEventListener('message', handleExpoToken);
         return () => window.removeEventListener('message', handleExpoToken);
-    }, []);
-
-    useEffect(() => {
-        // Arka plan resmini önceden yükle
-        const img = document.createElement('img');
-        img.src = `${process.env.NEXT_PUBLIC_BASEPATH}/images/background/background1.jpg`;
-        img.onload = () => setBgImageLoaded(true);
     }, []);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -113,7 +100,7 @@ export default function LoginPage() {
         setError("");
 
         try {
-            // Login isteği
+            // Login request
             const response = await axios.post("/api/auth/login", formData, {
                 headers: {
                     "Content-Type": "application/json",
@@ -123,9 +110,9 @@ export default function LoginPage() {
             if (response.status === 200) {
                 const tenantId = pathname?.split('/')[1];
 
-                // Settings'i al
+                // Get settings
                 try {
-                    // Settings ve kullanıcı bilgilerini localStorage'a kaydet
+                    // Save user data to localStorage
                     localStorage.setItem(`userData_${tenantId}`, JSON.stringify({
                         name: response.data.name,
                         email: response.data.email,
@@ -134,7 +121,7 @@ export default function LoginPage() {
                         usercategory: response.data.userCategory,
                     }));
                     
-                    // Global olarak userId'yi de kaydet
+                    // Save userId globally
                     localStorage.setItem('userId', response.data.userId);
                 } catch (error) {
                     localStorage.setItem(`userData_${tenantId}`, JSON.stringify({
@@ -145,11 +132,11 @@ export default function LoginPage() {
                         usercategory: response.data.usercategory,
                     }));
                     
-                    // Global olarak userId'yi de kaydet
+                    // Save userId globally
                     localStorage.setItem('userId', response.data.userId);
                 }
 
-                // Yönlendirme animasyonu
+                // Redirect animation
                 const button = document.querySelector('button[type="submit"]');
                 if (button) {
                     button.classList.add('scale-95', 'opacity-80');
@@ -191,363 +178,369 @@ export default function LoginPage() {
                 setForgotPasswordEmail("");
             }, 2000);
         } catch (error) {
-            setError("Şifre sıfırlama işlemi başarısız oldu. Lütfen daha sonra tekrar deneyin.");
+            setError("Şifre sıfırlama başarısız oldu. Lütfen daha sonra tekrar deneyin.");
         } finally {
             setForgotPasswordLoading(false);
         }
     };
 
-    const features = [
-        {
-            icon: BarChart3,
-            title: "Cari Hesap Takibi",
-            description: "Anlık borç ve alacak takibi",
-            gradient: "from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700"
-        },
-        {
-            icon: ShieldCheck,
-            title: "Güvenli İşlemler",
-            description: "Güvenli finansal veri yönetimi",
-            gradient: "from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700"
-        },
-        {
-            icon: Globe2,
-            title: "Her Yerden Erişim",
-            description: "Tüm cihazlardan kolay erişim",
-            gradient: "from-purple-500 to-purple-600 dark:from-purple-600 dark:to-purple-700"
-        },
-    ];
+    // Format current time
+    const formattedTime = currentTime.toLocaleTimeString('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    const formattedDate = currentTime.toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long'
+    });
 
     return (
-        <div
-            className={cn(
-                "min-h-screen w-full flex flex-col items-center justify-between relative overflow-hidden",
-                bgImageLoaded ? `bg-[url('${process.env.NEXT_PUBLIC_BASEPATH ?? 'PathNull'}/images/background/background1.jpg')] dark:bg-gray-900 bg-cover bg-center bg-no-repeat` : "bg-gray-900",
-                "transition-all duration-300"
-            )}
-        >
-            {/* Preload image */}
-            <Image
-                src={`${process.env.NEXT_PUBLIC_BASEPATH}/images/background/background1.jpg`}
-                alt="RobotPOS Background"
-                fill
-                priority
-                className="object-cover"
-            />
+        <div className="min-h-screen w-full bg-white dark:bg-gray-950 relative overflow-hidden">
+            {/* Full page background video/image with darkened overlay */}
+            <div className="absolute inset-0 z-0">
+                <Image 
+                    src={`${process.env.NEXT_PUBLIC_BASEPATH}/images/background/background1.jpg`} 
+                    alt="Arka Plan" 
+                    fill 
+                    priority 
+                    className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30 backdrop-blur-[2px]"></div>
+            </div>
 
-            {/* Noise overlay */}
-            <div className={`fixed inset-0 bg-[url('${process.env.NEXT_PUBLIC_BASEPATH ?? ''}/images/background/noise.png')] opacity-10 mix-blend-overlay pointer-events-none`} />
-
-            {/* Dark theme overlay */}
-            <div className="fixed inset-0 bg-black/5 dark:bg-black/5 pointer-events-none" />
-
-            {/* Gradient Orbs with reduced opacity */}
-            <div className="fixed -left-20 -top-20 h-[600px] w-[600px] rounded-full bg-primary/5 dark:bg-primary/10 blur-[120px] animate-pulse-slow pointer-events-none" />
-            <div className="fixed -bottom-20 -right-20 h-[600px] w-[600px] rounded-full bg-secondary/5 dark:bg-secondary/10 blur-[120px] animate-pulse-slow pointer-events-none" />
-            <div className="fixed left-1/3 top-1/3 h-[400px] w-[400px] rounded-full bg-accent/5 dark:bg-accent/10 blur-[100px] animate-pulse pointer-events-none" />
-
-            {/* Theme Toggle */}
+            {/* Theme switcher */}
             <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="fixed right-4 top-4 h-10 w-10 rounded-full bg-background/50 dark:bg-gray-800/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105"
+                className="absolute right-6 top-6 z-50 h-10 w-10 rounded-full bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20"
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             >
-                <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-transform duration-500 dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-transform duration-500 dark:rotate-0 dark:scale-100" />
-                <span className="sr-only">Toggle theme</span>
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-transform duration-500 dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-transform duration-500 dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Tema değiştir</span>
             </Button>
 
-            {/* Logo */}
-            <div className="absolute left-4 top-4 lg:left-8 lg:top-8 md:ml-[4rem] sm:block hidden">
-                <div className="relative h-12 w-48 transition-all duration-300 hover:scale-105">
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_BASEPATH ?? 'PathNull'}/images/robotpos-logo.png`}
-                        alt="RobotPOS Logo"
-                        fill
-                        priority
-                        sizes="(max-width: 768px) 150px, 192px"
-                        className="object-contain dark:brightness-110 dark:contrast-125"
-                    />
-                </div>
-            </div>
-
-            {/* Mobile Logo */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-4 sm:hidden block">
-                <div className="relative h-10 w-40 transition-all duration-300">
-                    <Image
-                        src={`${process.env.NEXT_PUBLIC_BASEPATH ?? 'PathNull'}/images/robotpos-logo.png`}
-                        alt="RobotPOS Logo"
-                        fill
-                        priority
-                        sizes="(max-width: 768px) 150px, 192px"
-                        className="object-contain dark:brightness-110 dark:contrast-125"
-                    />
-                </div>
-            </div>
-
-            <div className="container relative mx-auto flex flex-col justify-between min-h-screen px-4 py-4">
-                <div className="flex flex-col items-center flex-1">
-                    {/* Main content wrapper with vertical centering */}
-                    <div className="flex flex-col items-center justify-center flex-1 w-full max-w-6xl mx-auto">
-                        {/* Tenant Name with new styling */}
-                        <div className="mt-16 sm:mt-0 mb-4 text-center">
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-primary/15 via-transparent to-secondary/15 rounded-lg blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                                {/* <h1 className="relative text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-[0_4px_4px_rgba(0,0,0,1)] dark:text-white dark:drop-shadow-[0_4px_4px_rgba(0,0,0,1)] [text-shadow:_2px_2px_0_rgb(0_0_0_/_40%)]">
-                                    {tenantName}
-                                </h1> */}
-                            </div>
-                        </div>
-
-                        {/* Data Manager Section */}
-                        <div className="mb-6">
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-secondary/15 via-transparent to-primary/15 rounded-lg blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                                <div className="relative flex flex-col items-center gap-2 bg-white/5 backdrop-blur-sm p-3 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 rounded-xl bg-white/5 ring-2 ring-white/20 shadow-[0_4px_8px_rgba(0,0,0,0.8)] hover:shadow-[0_6px_12px_rgba(0,0,0,0.8)] transition-all duration-300">
-                                            <HandCoins className="h-7 w-7 text-white drop-shadow-[0_4px_4px_rgba(0,0,0,1)] [filter:_drop-shadow(0_0_4px_rgba(255,255,255,0.4))]" />
-                                        </div>
-                                        <h2 className="text-2xl sm:text-3xl font-semibold text-white drop-shadow-[0_4px_4px_rgba(0,0,0,1)] dark:text-white dark:drop-shadow-[0_4px_4px_rgba(0,0,0,1)] [text-shadow:_2px_2px_0_rgb(0_0_0_/_40%)]">
-                                            {process.env.NEXT_PUBLIC_APP_NAME}
-                                        </h2>
-                                    </div>
-                                    <p className="text-lg text-white/90 text-center font-medium md:block hidden">
-                                        Kolay ve hızlı ticket yönetimi
-                                    </p>
+            {/* Main content */}
+            <div className="min-h-screen w-full flex items-center justify-center p-6 z-10 relative">
+                <div className="w-full max-w-7xl flex flex-col lg:flex-row rounded-3xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-xl border border-white/10" style={{ maxHeight: "90vh" }}>
+                    {/* Left panel - Branding and visuals */}
+                    <div className="w-full lg:w-7/12 relative text-white p-6 lg:p-10 flex flex-col justify-between overflow-hidden">
+                        {/* Decorative elements */}
+                        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
+                        <div className="absolute -top-32 -right-32 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
+                        
+                        {/* Top section with company info */}
+                        <div className="relative mb-auto">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 shadow-lg">
+                                    <Building className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold tracking-tight">{ process.env.NEXT_PUBLIC_APP_NAME || "Şirket Portalı"}</h1>
+                                    <p className="text-white/70 text-sm">Kurumsal Ticket Yönetim Sistemi</p>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Middle Section - Login Form */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.5 }}
-                            className="w-full max-w-md"
-                        >
-                            <Card className={cn(
-                                "border border-white/20 dark:border-gray-700 shadow-2xl",
-                                "bg-white/10 dark:bg-gray-800/90 backdrop-blur-md",
-                                shake && "animate-shake"
-                            )}>
-                                <CardHeader className="space-y-1 text-center pb-4">
-                                    <h2 className="text-2xl font-semibold text-white dark:text-gray-100 tracking-tight">
-                                        Hoş Geldiniz
-                                    </h2>
-                                    <p className="text-sm text-gray-200 dark:text-gray-400">
-                                        Devam etmek için giriş yapın
-                                    </p>
-                                </CardHeader>
-                                <form onSubmit={handleSubmit}>
-                                    <CardContent className="space-y-4">
-                                        {error && (
-                                            <Alert variant="destructive" className="bg-red-500/10 text-red-400 border-red-500/20">
-                                                <AlertDescription>{error}</AlertDescription>
-                                            </Alert>
-                                        )}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="username" className="text-white dark:text-gray-200">
-                                                Kullanıcı Adı
-                                            </Label>
-                                            <div className="relative">
-                                                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                                                <Input
-                                                    id="username"
-                                                    type="text"
-                                                    inputMode="text"
-                                                    autoCapitalize="none"
-                                                    autoCorrect="off"
-                                                    placeholder="Kullanıcı adınızı girin"
-                                                    value={formData.username}
-                                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                                    className={cn(
-                                                        "pl-10 h-12",
-                                                        "bg-white/10 dark:bg-gray-900/50",
-                                                        "border-white/20 dark:border-gray-700",
-                                                        "text-white dark:text-gray-100",
-                                                        "placeholder:text-gray-400 dark:placeholder:text-gray-500",
-                                                        "focus:border-blue-500/50 focus:ring-blue-500/20"
-                                                    )}
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="password" className="text-white dark:text-gray-200">
-                                                Şifre
-                                            </Label>
-                                            <div className="relative">
-                                                <LockKeyhole className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                                                <Input
-                                                    id="password"
-                                                    type={showPassword ? "text" : "password"}
-                                                    inputMode="text"
-                                                    autoCapitalize="none"
-                                                    autoCorrect="off"
-                                                    placeholder="Şifrenizi girin"
-                                                    value={formData.password}
-                                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                    className={cn(
-                                                        "pl-10 pr-12 h-12",
-                                                        "bg-white/10 dark:bg-gray-900/50",
-                                                        "border-white/20 dark:border-gray-700",
-                                                        "text-white dark:text-gray-100",
-                                                        "placeholder:text-gray-400 dark:placeholder:text-gray-500",
-                                                        "focus:border-blue-500/50 focus:ring-blue-500/20"
-                                                    )}
-                                                    required
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="absolute right-2 top-2 hover:bg-transparent"
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                >
-                                                    {showPassword ? (
-                                                        <EyeOff className="h-5 w-5 text-gray-400" />
-                                                    ) : (
-                                                        <Eye className="h-5 w-5 text-gray-400" />
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        {/* Forgot Password Link */}
-                                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button
-                                                    variant="link"
-                                                    className="text-sm text-gray-200 dark:text-gray-400 hover:text-white dark:hover:text-gray-200 p-0 h-auto font-normal"
-                                                >
-                                                    Şifrenizi mi unuttunuz?
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="sm:max-w-md">
-                                                <DialogHeader>
-                                                    <DialogTitle>Şifre Sıfırlama</DialogTitle>
-                                                    <DialogDescription>
-                                                        E-posta adresinizi girin, size şifre sıfırlama talimatlarını gönderelim.
-                                                    </DialogDescription>
-                                                </DialogHeader>
-                                                <form onSubmit={handleForgotPassword} className="space-y-4 py-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="email">E-posta Adresi</Label>
-                                                        <div className="relative">
-                                                            <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                                                            <Input
-                                                                id="email"
-                                                                type="email"
-                                                                placeholder="ornek@email.com"
-                                                                value={forgotPasswordEmail}
-                                                                onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                                                                className="pl-10"
-                                                                required
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <DialogFooter className="sm:justify-start">
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={forgotPasswordLoading || forgotPasswordSuccess}
-                                                            className="w-full"
-                                                        >
-                                                            {forgotPasswordLoading ? (
-                                                                <>
-                                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                    Gönderiliyor...
-                                                                </>
-                                                            ) : forgotPasswordSuccess ? (
-                                                                <>
-                                                                    <motion.div
-                                                                        initial={{ scale: 0 }}
-                                                                        animate={{ scale: 1 }}
-                                                                        className="text-green-500"
-                                                                    >
-                                                                        ✓ Gönderildi
-                                                                    </motion.div>
-                                                                </>
-                                                            ) : (
-                                                                "Şifre Sıfırlama Bağlantısı Gönder"
-                                                            )}
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </form>
-                                            </DialogContent>
-                                        </Dialog>
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Button
-                                            type="submit"
-                                            className={cn(
-                                                "w-full h-12 text-base font-medium",
-                                                "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700",
-                                                "text-white",
-                                                "transition-all duration-300",
-                                                "disabled:opacity-50 disabled:cursor-not-allowed",
-                                                "transform hover:scale-[1.02] active:scale-95"
-                                            )}
-                                            disabled={isLoading}
-                                        >
-                                            <AnimatePresence mode="wait">
-                                                {isLoading ? (
-                                                    <motion.div
-                                                        key="loading"
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        exit={{ opacity: 0, y: -20 }}
-                                                        className="flex items-center"
-                                                    >
-                                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                                        Giriş yapılıyor...
-                                                    </motion.div>
-                                                ) : (
-                                                    <motion.div
-                                                        key="login"
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        exit={{ opacity: 0, y: -20 }}
-                                                    >
-                                                        Giriş Yap
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </Button>
-                                    </CardFooter>
-                                </form>
-                            </Card>
-                        </motion.div>
-                    </div>
-                </div>
-
-                {/* Bottom Section - Features */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="w-full max-w-6xl mx-auto hidden md:grid grid-cols-1 md:grid-cols-3 gap-4 mt-auto mb-10"
-                >
-                    {features.map((feature, index) => (
-                        <div
-                            key={index}
-                            className="backdrop-blur-md bg-white/5 dark:bg-gray-800/5 rounded-xl px-6 py-4 border border-white/10 dark:border-gray-700/10 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex items-center gap-4"
-                        >
-                            <div className={`flex-shrink-0 p-2.5 rounded-lg bg-gradient-to-br ${feature.gradient} shadow-lg`}>
-                                <feature.icon className="h-5 w-5 text-white" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-semibold text-white dark:text-gray-200">
-                                    {feature.title}
-                                </h3>
-                                <p className="text-sm text-gray-300 dark:text-gray-400">
-                                    {feature.description}
+                            <div className="max-w-lg">
+                                <h2 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
+                                    İş süreçlerinizi yönetin, <span className="text-blue-400">verimliliği artırın</span>
+                                </h2>
+                                <p className="text-white/80 text-base mb-4">
+                                    Modern arayüz ve gelişmiş özelliklerle donatılmış kurumsal ticket yönetim sistemimiz ile işletmenizin tüm ihtiyaçlarını tek platformda karşılayın.
                                 </p>
                             </div>
                         </div>
-                    ))}
-                </motion.div>
+                        
+                        {/* Bottom section with time and features */}
+                        <div className="relative mt-auto pt-8 border-t border-white/10">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-5 w-5 text-blue-400" />
+                                        <span className="text-2xl font-semibold">{formattedTime}</span>
+                                    </div>
+                                    <p className="text-white/60">{formattedDate}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/5">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
+                                            <path d="m9 12 2 2 4-4"></path>
+                                        </svg>
+                                    </div>
+                                    <h3 className="font-medium mb-1">Güvenli Erişim</h3>
+                                    <p className="text-white/60 text-sm">Çift faktörlü kimlik doğrulama ile güçlendirilmiş güvenlik</p>
+                                </div>
+                                
+                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/5">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                            <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"></path>
+                                            <path d="M12 8v4l3 3"></path>
+                                        </svg>
+                                    </div>
+                                    <h3 className="font-medium mb-1">Gerçek Zamanlı</h3>
+                                    <p className="text-white/60 text-sm">Anlık bildirimler ve güncel veriye hızlı erişim</p>
+                                </div>
+                                
+                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/5">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                                            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                                            <line x1="6" x2="6" y1="1" y2="4"></line>
+                                            <line x1="10" x2="10" y1="1" y2="4"></line>
+                                            <line x1="14" x2="14" y1="1" y2="4"></line>
+                                        </svg>
+                                    </div>
+                                    <h3 className="font-medium mb-1">Akıllı Raporlama</h3>
+                                    <p className="text-white/60 text-sm">Veriye dayalı iş kararları için analitik araçlar</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right panel - Login form */}
+                    <div className="w-full lg:w-5/12 p-6 lg:p-8 bg-white dark:bg-gray-900 flex flex-col justify-center items-center">
+                        <div className="w-full max-w-md">
+                            <div className="text-center mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                                    Hesabınıza Giriş Yapın
+                                </h2>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                    Güvenli yönetim portalına erişmek için giriş yapın
+                                </p>
+                            </div>
+                            
+                            {/* Login Form */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                                className="w-full"
+                            >
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    {error && (
+                                        <Alert variant="destructive" className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50">
+                                            <AlertDescription>{error}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                    
+                                    <div className="space-y-2">
+                                        <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 font-medium">
+                                            Kullanıcı Adı
+                                        </Label>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                                            <Input
+                                                id="username"
+                                                type="text"
+                                                inputMode="text"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                placeholder="Kullanıcı adınızı girin"
+                                                value={formData.username}
+                                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                                className={cn(
+                                                    "pl-10 h-12 text-base",
+                                                    "bg-gray-50 dark:bg-gray-800/50",
+                                                    "border-gray-200 dark:border-gray-700",
+                                                    "text-gray-900 dark:text-gray-100",
+                                                    "focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                                                )}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">
+                                                Şifre
+                                            </Label>
+                                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="link"
+                                                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-0 h-auto font-normal"
+                                                    >
+                                                        Şifremi unuttum
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-md">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Şifre Sıfırlama</DialogTitle>
+                                                        <DialogDescription>
+                                                            E-posta adresinizi girin, şifrenizi sıfırlamak için talimatları göndereceğiz.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <form onSubmit={handleForgotPassword} className="space-y-4 py-4">
+                                                        <div className="space-y-2">
+                                                            <Label htmlFor="email">E-posta Adresi</Label>
+                                                            <div className="relative">
+                                                                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                                                                <Input
+                                                                    id="email"
+                                                                    type="email"
+                                                                    placeholder="ad@sirket.com"
+                                                                    value={forgotPasswordEmail}
+                                                                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                                                                    className="pl-10"
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <DialogFooter className="sm:justify-start">
+                                                            <Button
+                                                                type="submit"
+                                                                disabled={forgotPasswordLoading || forgotPasswordSuccess}
+                                                                className="w-full"
+                                                            >
+                                                                {forgotPasswordLoading ? (
+                                                                    <>
+                                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                        Gönderiliyor...
+                                                                    </>
+                                                                ) : forgotPasswordSuccess ? (
+                                                                    <>
+                                                                        <motion.div
+                                                                            initial={{ scale: 0 }}
+                                                                            animate={{ scale: 1 }}
+                                                                            className="text-green-500"
+                                                                        >
+                                                                            ✓ Gönderildi
+                                                                        </motion.div>
+                                                                    </>
+                                                                ) : (
+                                                                    "Sıfırlama Bağlantısı Gönder"
+                                                                )}
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </form>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                        <div className="relative">
+                                            <LockKeyhole className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                                            <Input
+                                                id="password"
+                                                type={showPassword ? "text" : "password"}
+                                                inputMode="text"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                placeholder="Şifrenizi girin"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                className={cn(
+                                                    "pl-10 pr-12 h-12 text-base",
+                                                    "bg-gray-50 dark:bg-gray-800/50",
+                                                    "border-gray-200 dark:border-gray-700",
+                                                    "text-gray-900 dark:text-gray-100",
+                                                    "focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400"
+                                                )}
+                                                required
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute right-2 top-2 hover:bg-transparent"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? (
+                                                    <EyeOff className="h-5 w-5 text-gray-400" />
+                                                ) : (
+                                                    <Eye className="h-5 w-5 text-gray-400" />
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            id="remember"
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-offset-gray-800"
+                                        />
+                                        <label htmlFor="remember" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                            Beni hatırla (bu cihaz için)
+                                        </label>
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        className={cn(
+                                            "w-full h-12 text-base font-medium mt-2",
+                                            "bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700",
+                                            "text-white",
+                                            "transition-all duration-300",
+                                            "shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30",
+                                            "disabled:opacity-50 disabled:cursor-not-allowed",
+                                            "transform hover:scale-[1.02] active:scale-95",
+                                            shake && "animate-shake"
+                                        )}
+                                        disabled={isLoading}
+                                    >
+                                        <AnimatePresence mode="wait">
+                                            {isLoading ? (
+                                                <motion.div
+                                                    key="loading"
+                                                    initial={{ opacity: 0, y: 5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    className="flex items-center"
+                                                >
+                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                    Giriş yapılıyor...
+                                                </motion.div>
+                                            ) : (
+                                                <motion.div
+                                                    key="login"
+                                                    initial={{ opacity: 0, y: 5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -5 }}
+                                                    className="flex items-center"
+                                                >
+                                                    Giriş Yap
+                                                    <ChevronRight className="ml-2 h-5 w-5" />
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </Button>
+                                </form>
+                            </motion.div>
+                            
+                            {/* Help & Support */}
+                            <div className="mt-10">
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                                            Yardıma mı ihtiyacınız var?
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-6 flex justify-center gap-6">
+                                    <a href="#" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
+                                        BT Desteği
+                                    </a>
+                                    <a href="#" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
+                                        Kullanım Kılavuzu
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

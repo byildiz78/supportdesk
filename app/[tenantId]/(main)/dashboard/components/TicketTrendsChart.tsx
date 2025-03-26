@@ -3,6 +3,7 @@
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, LabelList } from "recharts"
 import { LabelProps } from "recharts"
 import { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 
 interface TicketTrendsChartProps {
   data: {
@@ -33,6 +34,10 @@ export function TicketTrendsChart({ data }: TicketTrendsChartProps) {
         "Total": opened + resolved,
       };
     });
+
+  // Toplam talep sayılarını hesapla
+  const totalOpened = chartData.reduce((sum, item) => sum + item.Açılan, 0);
+  const totalResolved = chartData.reduce((sum, item) => sum + item.Çözülen, 0);
 
   // Özel etiket oluşturucu
   const renderCustomizedLabel = (props: LabelProps): ReactNode => {
@@ -76,26 +81,11 @@ export function TicketTrendsChart({ data }: TicketTrendsChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="custom-tooltip" style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          padding: '10px',
-          border: 'none',
-          borderRadius: '6px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-        }}>
-          <p className="tooltip-date" style={{ 
-            margin: '0 0 8px', 
-            fontWeight: 'bold',
-            fontSize: '14px',
-            color: '#333'
-          }}>{`Tarih: ${label}`}</p>
+        <div className="custom-tooltip bg-background border border-border shadow-lg rounded-md p-3">
+          <p className="tooltip-date font-bold text-sm text-foreground mb-2">{`Tarih: ${label}`}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={`item-${index}`} style={{ 
-              margin: '4px 0',
-              fontSize: '13px',
-              color: entry.color
-            }}>
-              <span style={{ fontWeight: 'bold' }}>{entry.name}: </span>
+            <p key={`item-${index}`} className="my-1 text-xs" style={{ color: entry.color }}>
+              <span className="font-bold">{entry.name}: </span>
               <span>{`${entry.value} talep`}</span>
             </p>
           ))}
@@ -110,26 +100,20 @@ export function TicketTrendsChart({ data }: TicketTrendsChartProps) {
     const { payload } = props;
     
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        marginTop: '10px',
-        gap: '20px'
-      }}>
+      <div className="flex justify-center mt-3 gap-5">
         {payload.map((entry: any, index: number) => (
-          <div key={`item-${index}`} style={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            cursor: 'pointer'
-          }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: entry.color,
-              borderRadius: '3px',
-              marginRight: '6px'
-            }} />
-            <span style={{ fontSize: '13px', color: '#666' }}>{entry.value}</span>
+          <div key={`item-${index}`} className="flex items-center cursor-pointer">
+            <div 
+              className="w-3 h-3 rounded mr-1.5" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs text-muted-foreground">
+              {entry.value} {index < 2 && (
+                <span style={{ color: index === 0 ? "#3b82f6" : "#22c55e", fontWeight: "bold" }}>
+                  (Toplam: {index === 0 ? totalOpened : totalResolved})
+                </span>
+              )}
+            </span>
           </div>
         ))}
       </div>
@@ -137,21 +121,8 @@ export function TicketTrendsChart({ data }: TicketTrendsChartProps) {
   };
 
   return (
-    <div style={{ 
-      width: '100%', 
-      height: '100%', 
-      background: 'white', 
-      borderRadius: '8px',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-      padding: '15px'
-    }}>
-      <h3 style={{ 
-        margin: '0 0 15px 0', 
-        fontSize: '16px', 
-        fontWeight: 'bold',
-        color: '#374151',
-        textAlign: 'center'
-      }}>
+    <div className="w-full h-full bg-card dark:bg-card rounded-lg shadow-sm p-4"  style={{ height: "320px" }}>
+      <h3 className="m-0 mb-4 text-base font-bold text-foreground text-center">
         Talep Trendi
       </h3>
       <ResponsiveContainer width="100%" height="90%">
@@ -178,8 +149,8 @@ export function TicketTrendsChart({ data }: TicketTrendsChartProps) {
           <CartesianGrid 
             strokeDasharray="3 3" 
             vertical={false} 
-            stroke="#e5e7eb" 
-            strokeOpacity={0.8}
+            stroke="var(--border)" 
+            strokeOpacity={0.5}
           />
           <XAxis 
             dataKey="name" 
@@ -188,15 +159,15 @@ export function TicketTrendsChart({ data }: TicketTrendsChartProps) {
               const parts = value.split(' ');
               return parts[0];
             }}
-            axisLine={{ stroke: '#e5e7eb' }}
+            axisLine={{ stroke: 'var(--border)' }}
             tickLine={false}
-            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
             dy={10}
           />
           <YAxis 
             axisLine={false}
             tickLine={false}
-            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
             dx={-5}
             tickCount={5}
             width={40}

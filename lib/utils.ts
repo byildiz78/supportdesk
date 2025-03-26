@@ -233,3 +233,39 @@ export const getCardTypeBadgeStyle = (cardType: string | undefined): string => {
             return 'bg-gray-50 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400 border-gray-200 dark:border-gray-800';
     }
 };
+
+
+export const getStatusChange = (status: string | undefined): string => {
+    switch (status?.toLowerCase()) {
+        case 'open':
+            return 'AÇIK';
+        case 'closed':
+            return 'KAPALI';
+        case 'in_progress':
+            return 'İŞLEMDE';
+        case 'waiting':
+            return 'BEKLEMEDE';
+        case 'pending':
+            return 'BEKLEMEDE';
+        case 'resolved':
+            return 'ÇÖZÜMLÜ';
+        default:
+            return 'Belirtilmemiş';
+    }
+};
+
+
+export const getPriorityChange = (priority: string | undefined): string => {
+    switch (priority?.toLowerCase()) {
+        case 'low':
+            return 'DÜŞÜK';
+        case 'medium':
+            return 'ORTA';  
+        case 'high':
+            return 'YÜKSEK';
+        case 'urgent':
+            return 'ACİL';
+        default:
+            return 'Belirtilmemiş';
+    }
+};

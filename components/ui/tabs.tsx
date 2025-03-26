@@ -8,7 +8,10 @@ import {
   FileText, Code, Database, Bot, MessageSquare, 
   BarChart, PieChart, LineChart, Table, Folder,
   FileJson, FileSpreadsheet, Filter, List,
-  XCircle
+  PenSquare, Upload,History,
+  XCircle,
+  Paperclip,
+  Tag
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip"
 
@@ -59,7 +62,7 @@ const TabsList = React.forwardRef<
       {...props}
     >
       <div className="flex-1 overflow-hidden">
-        <div ref={scrollContainerRef} className="w-[calc(90vw-20rem)] overflow-x-auto overflow-y-hidden
+        <div ref={scrollContainerRef} className="w-full overflow-x-auto overflow-y-hidden
           [&::-webkit-scrollbar]:h-1.5
           [&::-webkit-scrollbar-thumb]:bg-gray-300/50
           [&::-webkit-scrollbar-thumb]:rounded-full
@@ -67,7 +70,7 @@ const TabsList = React.forwardRef<
           dark:[&::-webkit-scrollbar-thumb]:bg-gray-700/50
           hover:[&::-webkit-scrollbar-thumb]:bg-gray-300/80
           dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-700/80">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-nowrap min-w-0">
             {props.children}
           </div>
         </div>
@@ -102,19 +105,24 @@ const getRandomIcon = () => {
     Home, Settings, Users, Bell, Search, Mail, 
     FileText, Code, Database, Bot, MessageSquare, 
     BarChart, PieChart, LineChart, Table, Folder,
-    FileJson, FileSpreadsheet, Filter, List
+    FileJson, FileSpreadsheet, Filter, List,
+    PenSquare, Upload,History
   ]
   const RandomIcon = icons[Math.floor(Math.random() * icons.length)]
   return RandomIcon
 }
 
-const getTabIcon = (label: string) => {
+export const getTabIcon = (label: string) => {
   const iconMap: { [key: string]: React.ReactNode } = {
     notifications: <Bell className="w-4 h-4 mr-2" />,
     settings: <Settings className="w-4 h-4 mr-2" />,
     users: <Users className="w-4 h-4 mr-2" />,
     search: <Search className="w-4 h-4 mr-2" />,
     messages: <Mail className="w-4 h-4 mr-2" />,
+    comments: <MessageSquare className="w-4 h-4 mr-2" />,
+    attachments: <Paperclip className="w-4 h-4 mr-2" />,
+    history: <History className="w-4 h-4 mr-2" />,
+    tags: <Tag className="w-4 h-4 mr-2" />,
   }
   return iconMap[label.toLowerCase()]
 }
@@ -148,22 +156,22 @@ const TabsTrigger = React.forwardRef<
         "data-[state=active]:border-b-2 data-[state=active]:border-primary",
         "hover:bg-background/90 hover:text-foreground",
         "hover:scale-102 hover:shadow-md",
-        "group",
+        "group flex-shrink-0",
         className
       )}
       {...props}
     >
       {/* Tab içeriği */}
-      <div className="flex items-center space-x-2">
-        <div className="transition-transform duration-200 group-hover:scale-110">
+      <div className="flex items-center space-x-2 min-w-0">
+        <div className="transition-transform duration-200 group-hover:scale-110 flex-shrink-0">
           {tabIcon || (RandomIconComponent && <RandomIconComponent className="w-4 h-4" />)}
         </div>
-        <span className="font-medium">{children}</span>
+        <span className="font-medium truncate">{children}</span>
       </div>
 
       {/* Kapatma butonu */}
       {onClose && (
-        <div className="ml-2 transition-colors duration-200">
+        <div className="ml-2 transition-colors duration-200 flex-shrink-0">
           <X
             className="h-4 w-4 text-muted-foreground hover:text-destructive hover:scale-110 transition-all duration-200"
             onClick={(e) => {

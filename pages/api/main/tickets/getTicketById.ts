@@ -134,7 +134,9 @@ export default async function handler(
         t.updated_by,
         t.is_deleted,
         t.parent_company_id,
-        t.sla_breach
+        t.sla_breach,
+        t.resolution_time,
+        t.resolution_notes
       FROM tickets t
       LEFT JOIN categories c ON t.category_id = c.id
       LEFT JOIN subcategories s ON s.id = t.subcategory_id

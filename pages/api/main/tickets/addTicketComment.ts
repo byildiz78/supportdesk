@@ -68,50 +68,50 @@ export default async function handler(
       const createdByName = userResult.rows.length > 0 ? userResult.rows[0].name : null;
 
       // Handle attachments if provided
-      let commentAttachments = [];
-      if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-        for (const attachment of attachments) {
-          const insertAttachmentQuery = `
-            INSERT INTO attachments (
-              name,
-              original_filename,
-              size,
-              mime_type,
-              storage_path,
-              public_url,
-              entity_type,
-              entity_id,
-              created_at,
-              created_by,
-              updated_at,
-              is_deleted
-            )
-            VALUES (
-              $1, $2, $3, $4, $5, $6, 'comment', $7, CURRENT_TIMESTAMP, $8, CURRENT_TIMESTAMP, false
-            )
-            RETURNING id, name, original_filename as "originalFilename", size, mime_type as "mimeType", 
-                     public_url as "url", created_at as "uploadedAt";
-          `;
+      // let commentAttachments = [];
+      // if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+      //   for (const attachment of attachments) {
+      //     const insertAttachmentQuery = `
+      //       INSERT INTO attachments (
+      //         name,
+      //         original_filename,
+      //         size,
+      //         mime_type,
+      //         storage_path,
+      //         public_url,
+      //         entity_type,
+      //         entity_id,
+      //         created_at,
+      //         created_by,
+      //         updated_at,
+      //         is_deleted
+      //       )
+      //       VALUES (
+      //         $1, $2, $3, $4, $5, $6, 'comment', $7, CURRENT_TIMESTAMP, $8, CURRENT_TIMESTAMP, false
+      //       )
+      //       RETURNING id, name, original_filename as "originalFilename", size, mime_type as "mimeType", 
+      //                public_url as "url", created_at as "uploadedAt";
+      //     `;
 
-          const attachmentResult = await client.query(insertAttachmentQuery, [
-            attachment.name,
-            attachment.originalFilename,
-            attachment.size,
-            attachment.mimeType,
-            attachment.storagePath,
-            attachment.url,
-            commentId,
-            createdBy
-          ]);
+      //     const attachmentResult = await client.query(insertAttachmentQuery, [
+      //       attachment.name,
+      //       attachment.originalFilename,
+      //       attachment.size,
+      //       attachment.mimeType,
+      //       attachment.storagePath,
+      //       attachment.url,
+      //       commentId,
+      //       createdBy
+      //     ]);
 
-          if (attachmentResult.rows.length > 0) {
-            commentAttachments.push({
-              ...attachmentResult.rows[0],
-              uploadedBy: createdBy
-            });
-          }
-        }
-      }
+      //     if (attachmentResult.rows.length > 0) {
+      //       commentAttachments.push({
+      //         ...attachmentResult.rows[0],
+      //         uploadedBy: createdBy
+      //       });
+      //     }
+      //   }
+      // }
 
       // Update ticket's updated_at timestamp
       await client.query(
@@ -131,7 +131,7 @@ export default async function handler(
           createdAt,
           createdBy,
           createdByName,
-          attachments: commentAttachments
+          attachments: []
         }
       });
     });

@@ -120,14 +120,90 @@ export default function ResolvedTicketsPage() {
         }
     }, [selectedFilter.appliedAt])
 
-    // Filter tickets based on search term
-    const filteredTickets = tickets.filter(ticket => 
-        ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.ticketno?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.parent_company_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    // Gelişmiş filtreleme fonksiyonu
+    const applyFilters = useCallback((ticket: Ticket) => {
+        // Arama terimi filtrelemesi - tüm kolonları dahil et
+        const searchMatch = !searchTerm || 
+            // Temel bilet bilgileri
+            (ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.ticketno?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            
+            // Firma ve müşteri bilgileri
+            ((ticket.company_name || ticket.companyName)?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            ((ticket.company_id || ticket.companyId)?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            ((ticket.parent_company_id || ticket.parentCompanyId)?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            
+            // Müşteri bilgileri
+            ((ticket.customer_name || ticket.customerName)?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            ((ticket.customer_email || ticket.customerEmail)?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            ((ticket.customer_phone || ticket.customerPhone)?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            
+            // İletişim bilgileri
+            (ticket.contact_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.contact_first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.contact_last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.contact_email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.contact_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.contact_position?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            
+            // Kategori bilgileri
+            (ticket.category_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.subcategory_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.group_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            
+            // Atanan kişi bilgileri
+            (ticket.assigned_to_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            (ticket.assignedUserName?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+            
+            // Oluşturan kişi bilgileri
+            (ticket.created_by_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+        
+        // Öncelik filtrelemesi
+        const priorityMatch = !filters.priority?.length || 
+            (ticket.priority && filters.priority.includes(ticket.priority));
+        
+        // Status filtrelemesi
+        const statusMatch = !filters.status?.length || 
+            (ticket.status && (
+                // Doğrudan eşleşme kontrolü
+                filters.status.includes(ticket.status) ||
+                // "Beklemede" durumu için özel kontrol
+                (filters.status.includes("pending") && ticket.status === "waiting")
+            ));
+        
+        // Atanan kullanıcı filtrelemesi - hem assigned_to hem de assignedTo alanlarını kontrol et
+        const assignedToMatch = !filters.assigned_to?.length || 
+            ((ticket.assigned_to || ticket.assignedTo) && 
+             filters.assigned_to.some(id => id === ticket.assigned_to || id === ticket.assignedTo));
+        
+        // Kategori filtrelemesi
+        const categoryMatch = !filters.category?.length || 
+            ((ticket.category_id || ticket.categoryId) && 
+             filters.category.some(id => id === ticket.category_id || id === ticket.categoryId));
+        
+        // Şirket filtrelemesi
+        const companyMatch = !filters.company_id?.length || 
+            ((ticket.company_id || ticket.companyId) && 
+             filters.company_id.some(id => id === ticket.company_id || id === ticket.companyId));
+        
+        // Ana şirket filtrelemesi
+        const parentCompanyMatch = !filters.parent_company_id?.length || 
+            ((ticket.parent_company_id || ticket.parentCompanyId) && 
+             filters.parent_company_id.some(id => id === ticket.parent_company_id || id === ticket.parentCompanyId));
+        
+        // SLA ihlali filtrelemesi
+        const slaBreachMatch = filters.sla_breach === undefined || 
+            (ticket.sla_breach ?? ticket.slaBreach) === filters.sla_breach;
+        
+        // Tüm filtrelerden geçen biletleri döndür
+        return searchMatch && priorityMatch && statusMatch && assignedToMatch && 
+               categoryMatch && companyMatch && parentCompanyMatch && 
+               slaBreachMatch;
+    }, [searchTerm, filters]);
+
+    // Filtreleri uygula
+    const filteredTickets = tickets.filter(applyFilters);
 
     // Sayfalama
     const totalTickets = filteredTickets.length
@@ -142,9 +218,22 @@ export default function ResolvedTicketsPage() {
         // Status filtresini koruyarak diğer filtreleri güncelle
         const updatedFilters = { 
             ...filters, 
-            ...newFilters,
-            status: ['resolved', 'closed'] // Status filtresini her zaman çözülen olarak tut
+            ...newFilters
         };
+        
+        // Eğer status filtresi boş ise veya resolved/closed dışında bir değer içeriyorsa
+        // varsayılan olarak hem resolved hem de closed durumlarını ekle
+        if (!updatedFilters.status || updatedFilters.status.length === 0) {
+            updatedFilters.status = ['resolved', 'closed'];
+        } else if (updatedFilters.status.length === 1) {
+            // Kullanıcı bir durum seçtiyse, seçimini koru
+            // Ancak sadece resolved veya closed olduğundan emin ol
+            const selectedStatus = updatedFilters.status[0];
+            if (selectedStatus !== 'resolved' && selectedStatus !== 'closed') {
+                updatedFilters.status = ['resolved', 'closed'];
+            }
+        }
+        
         setFilters(updatedFilters, TAB_NAME);
         setCurrentPage(1); // Reset to first page when filters change
         // Filtreler değiştiğinde verileri tekrar yükleme, sadece filtreleri uygula
@@ -163,7 +252,10 @@ export default function ResolvedTicketsPage() {
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">
-            <TicketHeader />
+            <TicketHeader 
+                title="Çözülen Talepler" 
+                description="Çözümlenmiş tüm destek taleplerini görüntüleyin ve yönetin." 
+            />
             
             <TicketFilters 
                 searchTerm={searchTerm}

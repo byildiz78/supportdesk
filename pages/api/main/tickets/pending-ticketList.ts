@@ -41,7 +41,7 @@ export default async function handler(
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)
-      AND t.status = 'pending'
+      AND t.status = 'waiting'
       AND (t.created_at BETWEEN $1 AND $2)
       ORDER BY t.created_at DESC
     `;

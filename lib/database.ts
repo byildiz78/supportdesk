@@ -1,5 +1,5 @@
 import { NextApiRequest } from 'next';
-import { executeQuery, executeTransaction } from './postgres';
+import { executeQuery, executeQueryResult, executeTransaction } from './postgres';
 import { extractTenantFromBody, extractTenantId } from './utils';
 
 interface DatabaseQueryOptions {
@@ -43,6 +43,30 @@ export class Database {
       tenantId
     });
   }
+
+    /**
+   * Execute a SQL query with proper tenant context
+   * @param options Query options including the SQL query, parameters, and request object
+   * @returns Query result
+   */
+    public async executeQueryResult<T>(options: DatabaseQueryOptions): Promise<T> {
+      const { query, params = [], req } = options;
+      
+      // Extract tenant ID from request
+      let tenantId = req.body?.tenantId;
+      tenantId = extractTenantFromBody(req) || extractTenantId(req.headers.referer);
+      
+      if (!tenantId) {
+        throw new Error('Tenant ID is required');
+      }
+      
+      // Execute the query with the tenant context
+      return executeQueryResult<T>({
+        query,
+        params,
+        tenantId
+      });
+    }
 
   /**
    * Execute a transaction with multiple queries

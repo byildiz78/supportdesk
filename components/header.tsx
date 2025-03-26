@@ -68,6 +68,7 @@ import { useTab } from "@/hooks/use-tab";
 import { useBranchContext } from "../providers/branch-provider";
 import "flag-icons/css/flag-icons.min.css";
 import { TagProvider } from "@/providers/tag-provider";
+import { NotificationBell } from "./ui/notification-bell";
 
 const translations = {
   tr: {
@@ -701,6 +702,10 @@ export default function Header() {
                   </DropdownMenuItem> */}
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          {/* Bildirim Çanı */}
+          <NotificationBell />
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

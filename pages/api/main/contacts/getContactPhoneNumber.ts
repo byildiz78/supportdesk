@@ -37,6 +37,20 @@ export default async function handler(
       tenantId: req.headers['x-tenant-id'] || req.query.tenantId || 'public'
     };
 
+    let whereClause = '';
+    let params: any[] = [];
+
+    // Öncelik telefon numarasında, eğer varsa ve boş değilse telefon ile ara
+    if (phoneNumber && phoneNumber !== '') {
+      whereClause = 'c.mobile = $1';
+      params.push(phoneNumber);
+    } 
+    // Eğer telefon numarası yoksa veya boşsa email ile ara
+    else if (email && email !== '') {
+      whereClause = 'c.email = $1';
+      params.push(email);
+    }
+
     const query = `
       SELECT 
         c.id, 
@@ -49,11 +63,9 @@ export default async function handler(
       FROM contacts c
       LEFT JOIN companies co ON c.company_id = co.id
       WHERE c.is_deleted = false 
-      AND (c.mobile = $1 OR c.email = $2)
+      AND (${whereClause})
     `;
     
-    const params = [phoneNumber || '', email || ''];
-
     const result = await db.executeQuery<Contact[]>({
       query,
       params,

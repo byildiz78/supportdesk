@@ -86,6 +86,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 ]
             },
             {
+                title: "Departmanlar",
+                icon: LucideIcons.LayoutDashboard, // Genel departmanlar için uygun bir ikon
+                isActive: true,
+                expanded: true,
+                items: [
+                  {
+                    title: "Çağrı Merkezi",
+                    icon: LucideIcons.Headphones, // Çağrı merkezi için kulaklık ikonu mantıklı
+                    url: "/call-center"
+                  },
+                  {
+                    title: "Arge",
+                    icon: LucideIcons.FlaskConical, // AR-GE için laboratuvar şişesi ikonu uygun
+                    url: "/arge"
+                  },
+                  {
+                    title: "ERP",
+                    icon: LucideIcons.Server, // ERP sistemleri genellikle sunucu tabanlıdır
+                    url: "/erp"
+                  },
+                  {
+                    title: "Operasyon Destek",
+                    icon: LucideIcons.LifeBuoy, // Destek hizmetleri için can simidi ikonu anlamlı
+                    url: "/operationdesk"
+                  },
+                  {
+                    title: "Yerinde Servis",
+                    icon: LucideIcons.Truck, // Yerinde servis için araç (kamyon) ikonu kullanılabilir
+                    url: "/inhouse"
+                  },
+                  {
+                    title: "Yazılım",
+                    icon: LucideIcons.Code, // Yazılım departmanı için kod ikonu en uygunu
+                    url: "/software"
+                  }
+                ]
+              },              
+            {
                 title: "Ayarlar",
                 icon: LucideIcons.Settings,
                 isActive: true,

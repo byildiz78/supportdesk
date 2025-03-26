@@ -6,17 +6,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Subcategory } from "@/types/categories"
+import { getUserId } from "@/utils/user-utils"
 
 interface SubcategoryFormProps {
     subcategory?: Subcategory
-    onSubmit: (data: Partial<Subcategory>) => void
+    onSubmit: (data: Partial<Subcategory> & { userId?: string | null }) => void
 }
 
 function SubcategoryForm({ subcategory, onSubmit }: SubcategoryFormProps) {
     const [formData, setFormData] = useState({
         id: "",
         name: "",
-        description: ""
+        description: "",
+        categoryId: ""
     })
 
     useEffect(() => {
@@ -37,7 +39,8 @@ function SubcategoryForm({ subcategory, onSubmit }: SubcategoryFormProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        onSubmit(formData)
+        const userId = getUserId()
+        onSubmit({ ...formData, userId })
     }
 
     return (
