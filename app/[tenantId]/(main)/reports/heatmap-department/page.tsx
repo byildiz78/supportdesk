@@ -8,17 +8,30 @@ import { useTheme } from "@/providers/theme-provider"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { RefreshCw, Calendar as CalendarIcon } from "lucide-react"
+import { RefreshCw, Calendar as CalendarIcon, Filter, Check, ChevronsUpDown } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
-import { DateRange } from "react-day-picker"
+import { 
+    Command, 
+    CommandEmpty, 
+    CommandGroup, 
+    CommandInput, 
+    CommandItem, 
+    CommandList 
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge"
 
 // Window tipini genişlet
 declare global {
     interface Window {
-        refreshHeatmap?: () => Promise<void>;
+        refreshDepartmentHeatmap?: () => Promise<void>;
     }
 }
 
@@ -67,12 +80,12 @@ const NoDataOverlay = () => {
 };
 
 // Heatmap cell component
-const HeatmapCell = ({ value, maxValue, onClick, day, hour }: { 
+const HeatmapCell = ({ value, maxValue, onClick, category, hour }: { 
     value: number, 
     maxValue: number, 
-    onClick: (day: number, hour: number, count: number) => void,
-    day: number,
-    hour: number
+    onClick: (category: string, hour: string, count: number) => void,
+    category: string,
+    hour: string
 }) => {
     // Only apply color intensity if value > 5
     const intensity = value > 5 ? Math.max(0.1, Math.min(0.9, value / maxValue)) : 0;
@@ -87,15 +100,15 @@ const HeatmapCell = ({ value, maxValue, onClick, day, hour }: {
                 backgroundColor: value > 5 ? `rgba(59, 130, 246, ${intensity})` : 'transparent',
                 border: '1px solid rgba(226, 232, 240, 0.3)'
             }}
-            onClick={() => onClick(day, hour, value)}
+            onClick={() => onClick(category, hour, value)}
         >
             {value > 0 && value}
         </div>
     );
 };
 
-export default function TicketHeatmapPage() {
-    const TAB_NAME = "Isı Haritası"
+export default function DepartmentHeatmapPage() {
+    const TAB_NAME = "Isı Haritası-Departman"
     const { activeTab, setActiveTab, addTab } = useTabStore()
     const { selectedFilter } = useFilterStore()
     
@@ -103,12 +116,16 @@ export default function TicketHeatmapPage() {
     const [error, setError] = useState<string | null>(null)
     const [currentStep, setCurrentStep] = useState("Veriler hazırlanıyor...")
     const [localIsLoading, setLocalIsLoading] = useState(false)
-    const [heatmapData, setHeatmapData] = useState<number[][]>(Array(7).fill(0).map(() => Array(24).fill(0)))
-    const [dayTotals, setDayTotals] = useState<number[]>(Array(7).fill(0))
+    const [heatmapData, setHeatmapData] = useState<Record<string, Record<string, number>>>({})
     const [selectedTickets, setSelectedTickets] = useState<any[]>([])
     const [showTicketDetails, setShowTicketDetails] = useState(false)
     const [maxValue, setMaxValue] = useState(0)
     const [rawTicketData, setRawTicketData] = useState<any[]>([])
+    const [categories, setCategories] = useState<string[]>([])
+    const [hours, setHours] = useState<string[]>([])
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+    const [showCategoryFilter, setShowCategoryFilter] = useState(false)
+    const [categoryTotals, setCategoryTotals] = useState<Record<string, number>>({});
     
     // Referanslar
     const hasInitializedRef = useRef(false)
@@ -118,16 +135,20 @@ export default function TicketHeatmapPage() {
     // Theme
     const { theme } = useTheme()
     
-    // Günlerin isimleri
-    const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar']
+    // Saatleri oluştur (0-23)
+    useEffect(() => {
+        const hoursArray = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+        setHours(hoursArray);
+    }, []);
     
     // Isı haritası verilerini güncelleme fonksiyonu
     const updateHeatmapData = useCallback(() => {
         if (rawTicketData.length === 0) return;
         
-        // Isı haritası verilerini hazırla
-        const newHeatmapData = Array(7).fill(0).map(() => Array(24).fill(0));
-        const newDayTotals = Array(7).fill(0);
+        // Kategori ve saat verilerini topla
+        const categoryMap: Record<string, Record<string, number>> = {};
+        const categoryTotals: Record<string, number> = {}; // Kategori başına toplam talep sayısı
+        const allCategories = new Set<string>();
         let newMaxValue = 0;
         
         // Ana sayfadan gelen filtre tarihlerini kullan
@@ -135,25 +156,58 @@ export default function TicketHeatmapPage() {
         
         // Verileri işle
         filteredTickets.forEach((ticket: any) => {
-            if (ticket.createdAt) {
-                const date = new Date(ticket.createdAt);
-                // JavaScript'te 0=Pazar, 1=Pazartesi, ... 6=Cumartesi
-                // Pazartesi=0 olacak şekilde düzenle
-                const day = (date.getDay() + 6) % 7; // 0=Pazartesi, 1=Salı, ... 6=Pazar
-                const hour = date.getHours();
-                
-                newHeatmapData[day][hour]++;
-                newDayTotals[day]++;
-                
-                if (newHeatmapData[day][hour] > newMaxValue) {
-                    newMaxValue = newHeatmapData[day][hour];
-                }
+            const categoryName = ticket.categoryName || "Tanımlanmamış";
+            const ticketDate = new Date(ticket.createdAt);
+            const hourKey = `${ticketDate.getHours().toString().padStart(2, '0')}:00`;
+            
+            // Kategori listesini güncelle
+            allCategories.add(categoryName);
+            
+            // Kategori haritasını güncelle
+            if (!categoryMap[categoryName]) {
+                categoryMap[categoryName] = {};
+                categoryTotals[categoryName] = 0;
+            }
+            
+            if (!categoryMap[categoryName][hourKey]) {
+                categoryMap[categoryName][hourKey] = 0;
+            }
+            
+            categoryMap[categoryName][hourKey]++;
+            categoryTotals[categoryName]++; // Toplam sayıyı artır
+            
+            // Maksimum değeri güncelle
+            if (categoryMap[categoryName][hourKey] > newMaxValue) {
+                newMaxValue = categoryMap[categoryName][hourKey];
             }
         });
         
-        setHeatmapData(newHeatmapData);
-        setDayTotals(newDayTotals);
+        // Tüm kategori ve saat kombinasyonları için boş değerler ata
+        allCategories.forEach(category => {
+            if (!categoryMap[category]) {
+                categoryMap[category] = {};
+                categoryTotals[category] = 0;
+            }
+            
+            hours.forEach(hour => {
+                if (!categoryMap[category][hour]) {
+                    categoryMap[category][hour] = 0;
+                }
+            });
+        });
+        
+        setHeatmapData(categoryMap);
         setMaxValue(newMaxValue || 1); // En az 1 olsun ki bölme hatası olmasın
+        
+        // Kategorileri toplam talep sayısına göre sırala (çoktan aza)
+        const sortedCategories = Array.from(allCategories).sort((a, b) => {
+            return categoryTotals[b] - categoryTotals[a];
+        });
+        
+        setCategories(sortedCategories);
+        
+        // Toplam sayıları state'e kaydet
+        setCategoryTotals(categoryTotals);
         
         // Veri yoksa kullanıcıya bildir
         if (filteredTickets.length === 0) {
@@ -161,14 +215,20 @@ export default function TicketHeatmapPage() {
         } else {
             setError(null);
         }
-    }, [rawTicketData]);
+        
+        console.log("Heatmap data updated:", {
+            categories: Array.from(allCategories).length,
+            hours: hours.length,
+            maxValue: newMaxValue
+        });
+    }, [rawTicketData, hours]);
     
     // Isı haritası verilerini getir
     const fetchHeatmapData = useCallback(async () => {
         try {
             setError(null);
             setLocalIsLoading(true);
-            setCurrentStep("Isı haritası verileri getiriliyor...");
+            setCurrentStep("Departman ısı haritası verileri getiriliyor...");
             
             // Tab filtresi
             const latestFilter = useTabStore.getState().getTabFilter(activeTab);
@@ -195,10 +255,13 @@ export default function TicketHeatmapPage() {
             });
             
             // API isteği - Backend'in beklediği parametreleri kullan (date1, date2)
-            const response = await axios.post('/api/main/reports/heatmap', {
+            const response = await axios.post('/api/main/reports/heatmap-department', {
                 date1: dateFrom.toISOString(),
                 date2: dateTo.toISOString(),
-                filter: latestFilter || {}
+                filter: {
+                    ...latestFilter || {},
+                    selectedCategories: selectedCategories.length > 0 ? selectedCategories : undefined
+                }
             });
             
             if (response.data) {
@@ -213,35 +276,32 @@ export default function TicketHeatmapPage() {
                 setError("Veri alınamadı.");
             }
         } catch (err: any) {
-            console.error('Error fetching heatmap data:', err);
+            console.error('Error fetching department heatmap data:', err);
             setError(err.message || "Veri yüklenirken bir hata oluştu.");
         } finally {
             setLocalIsLoading(false);
             setCurrentStep("");
         }
-    }, [activeTab]);
+    }, [activeTab, selectedCategories]);
     
     // Hücre tıklama olayı
-    const handleCellClick = useCallback(async (day: number, hour: number, count: number) => {
+    const handleCellClick = useCallback(async (category: string, hour: string, count: number) => {
         if (count === 0) return;
         
         try {
             setLocalIsLoading(true);
             setCurrentStep("Talep detayları getiriliyor...");
             
-            // Mevcut rawTicketData'dan ilgili gün ve saatteki talepleri filtrele
+            // Mevcut rawTicketData'dan ilgili kategori ve saatteki talepleri filtrele
             let filteredTickets = rawTicketData.filter((ticket: any) => {
-                if (ticket.createdAt) {
-                    const date = new Date(ticket.createdAt);
-                    const ticketDay = (date.getDay() + 6) % 7;
-                    const ticketHour = date.getHours();
-                    
-                    return ticketDay === day && ticketHour === hour;
-                }
-                return false;
+                const ticketCategory = ticket.categoryName || "Tanımlanmamış";
+                const ticketDate = new Date(ticket.createdAt);
+                const hourKey = `${ticketDate.getHours().toString().padStart(2, '0')}:00`;
+                
+                return ticketCategory === category && hourKey === hour;
             });
             
-            console.log(`${day}. gün, ${hour}. saat için ${filteredTickets.length} talep bulundu`);
+            console.log(`${category} kategorisi, ${hour} saat aralığı için ${filteredTickets.length} talep bulundu`);
             
             setSelectedTickets(filteredTickets);
             setShowTicketDetails(true);
@@ -287,8 +347,8 @@ export default function TicketHeatmapPage() {
             fetchHeatmapData();
         }
         
-        // Global window fonksiyonu olarak refreshHeatmap'i tanımla
-        window.refreshHeatmap = async () => {
+        // Global window fonksiyonu olarak refreshDepartmentHeatmap'i tanımla
+        window.refreshDepartmentHeatmap = async () => {
             if (activeTab === TAB_NAME) {
                 dataLoadedRef.current = false;
                 return await fetchHeatmapData();
@@ -298,7 +358,7 @@ export default function TicketHeatmapPage() {
         
         return () => {
             // Component unmount olduğunda global fonksiyonu temizle
-            window.refreshHeatmap = undefined;
+            window.refreshDepartmentHeatmap = undefined;
         };
     }, [activeTab, fetchHeatmapData, TAB_NAME]);
     
@@ -333,23 +393,115 @@ export default function TicketHeatmapPage() {
         }
     }, [selectedFilter.appliedAt, activeTab, TAB_NAME, fetchHeatmapData]);
     
-    // Görünüm değiştiğinde ısı haritasını güncelle
+    // Veri geldiğinde ısı haritasını güncelle
     useEffect(() => {
         updateHeatmapData();
     }, [updateHeatmapData]);
 
+    // Kategori filtresi için fonksiyonlar
+    const toggleCategorySelection = (category: string) => {
+        setSelectedCategories(prev => {
+            if (prev.includes(category)) {
+                return prev.filter(c => c !== category);
+            } else {
+                return [...prev, category];
+            }
+        });
+    };
+
+    const selectAllCategories = () => {
+        setSelectedCategories([...categories]);
+    };
+
+    const clearCategorySelection = () => {
+        setSelectedCategories([]);
+    };
+
+    // Filtrelenmiş kategorileri hesapla
+    const filteredCategories = selectedCategories.length > 0
+        ? categories.filter(category => selectedCategories.includes(category))
+        : categories;
+    
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">
             {localIsLoading && <LoadingOverlay currentStep={currentStep} />}
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold tracking-tight">Talep Isı Haritası</h2>
+                <h2 className="text-2xl font-bold tracking-tight">Departman Isı Haritası</h2>
                 <div className="flex items-center space-x-2">
+                    <Popover open={showCategoryFilter} onOpenChange={setShowCategoryFilter}>
+                        <PopoverTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center gap-1.5"
+                                onClick={() => setShowCategoryFilter(true)}
+                            >
+                                <Filter className="h-4 w-4" />
+                                Kategori Filtresi
+                                {selectedCategories.length > 0 && (
+                                    <Badge variant="secondary" className="ml-1 rounded-full">
+                                        {selectedCategories.length}
+                                    </Badge>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="end">
+                            <Command>
+                                <CommandInput placeholder="Kategori ara..." />
+                                <CommandList>
+                                    <CommandEmpty>Kategori bulunamadı.</CommandEmpty>
+                                    <CommandGroup>
+                                        <div className="p-2 border-b flex justify-between">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={selectAllCategories}
+                                                className="text-xs"
+                                            >
+                                                Tümünü Seç
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={clearCategorySelection}
+                                                className="text-xs"
+                                            >
+                                                Temizle
+                                            </Button>
+                                        </div>
+                                        <ScrollArea className="h-[300px]">
+                                            {categories.map((category) => (
+                                                <CommandItem
+                                                    key={category}
+                                                    onSelect={() => toggleCategorySelection(category)}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <div className={cn(
+                                                        "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                                        selectedCategories.includes(category) 
+                                                            ? "bg-primary border-primary" 
+                                                            : "border-muted-foreground"
+                                                    )}>
+                                                        {selectedCategories.includes(category) && (
+                                                            <Check className="h-3 w-3 text-white" />
+                                                        )}
+                                                    </div>
+                                                    <span>{category}</span>
+                                                </CommandItem>
+                                            ))}
+                                        </ScrollArea>
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                     <Button 
                         variant="outline" 
                         size="sm" 
                         onClick={() => fetchHeatmapData()}
+                        className="flex items-center gap-1.5"
                     >
-                        <RefreshCw className="h-4 w-4 mr-2" />
+                        <RefreshCw className="h-4 w-4" />
                         Yenile
                     </Button>
                 </div>
@@ -371,47 +523,69 @@ export default function TicketHeatmapPage() {
                         </div>
                     </div>
                 ) : (
-                    <Card className="flex-1 overflow-hidden">
-                        <CardHeader className="pb-2">
-                            <CardTitle>Taleplerin Açılma Saatleri</CardTitle>
+                    <Card className="flex-1 overflow-hidden border-muted shadow-sm">
+                        <CardHeader className="pb-2 bg-muted/30">
+                            <CardTitle className="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                                    <path d="M3 9h18" />
+                                    <path d="M9 21V9" />
+                                </svg>
+                                Kategori ve Saate Göre Talep Dağılımı
+                                {selectedCategories.length > 0 && (
+                                    <Badge variant="outline" className="ml-2">
+                                        {selectedCategories.length} kategori seçili
+                                    </Badge>
+                                )}
+                            </CardTitle>
                             <CardDescription>
-                                Taleplerin hangi gün ve saatlerde açıldığını gösteren ısı haritası. Hücrelere tıklayarak o saat dilimindeki talepleri görebilirsiniz.
+                                Taleplerin hangi kategorilerde ve saatlerde açıldığını gösteren ısı haritası. Hücrelere tıklayarak o kategorideki talepleri görebilirsiniz.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="p-0 flex flex-col h-[calc(100%-5rem)]">
-                            <div className="flex-1 p-4 overflow-auto">
-                                <div className="grid grid-cols-[auto_repeat(24,1fr)] gap-1 h-full">
-                                    {/* Saat Başlıkları */}
-                                    <div className=""></div>
-                                    {Array.from({ length: 24 }).map((_, i) => (
-                                        <div key={`hour-${i}`} className="text-center text-xs font-medium text-muted-foreground">
-                                            {i}:00
-                                        </div>
-                                    ))}
-                                    
-                                    {/* Günler ve Hücreler */}
-                                    {dayNames.map((day, dayIndex) => (
-                                        <Fragment key={`day-${dayIndex}`}>
-                                            <div className="flex items-center justify-between text-xs font-medium whitespace-nowrap sticky left-0 bg-background z-10 border-r h-10 pl-2">
-                                                <span className="truncate max-w-[100px]">{day}</span>
-                                                <span className="ml-2 bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
-                                                    {dayTotals[dayIndex] || 0}
-                                                </span>
-                                            </div>
-                                            {Array.from({ length: 24 }).map((_, hourIndex) => (
-                                                <div key={`cell-${dayIndex}-${hourIndex}`} className="aspect-square">
-                                                    <HeatmapCell 
-                                                        value={heatmapData[dayIndex][hourIndex]} 
-                                                        maxValue={maxValue}
-                                                        onClick={handleCellClick}
-                                                        day={dayIndex}
-                                                        hour={hourIndex}
-                                                    />
+                            <div className="flex-1 p-2 md:p-4 overflow-auto">
+                                {filteredCategories.length > 0 && hours.length > 0 ? (
+                                    <div className="relative overflow-x-auto">
+                                        <div className="grid" style={{ 
+                                            gridTemplateColumns: `minmax(100px, auto) repeat(${hours.length}, minmax(40px, 1fr))`,
+                                            gap: '2px',
+                                            minWidth: '800px'
+                                        }}>
+                                            {/* Saat Başlıkları */}
+                                            <div className="text-center text-xs font-medium text-muted-foreground p-2 truncate sticky top-0 left-0 bg-background z-20 border-b border-r"></div>
+                                            {hours.map((hour, i) => (
+                                                <div key={`hour-${i}`} className={`text-center text-xs font-medium p-2 truncate sticky top-0 bg-background z-10 border-b ${i % 6 === 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                    {hour}
                                                 </div>
                                             ))}
-                                        </Fragment>
-                                    ))}
-                                </div>
+                                            
+                                            {/* Kategoriler ve Hücreler */}
+                                            {filteredCategories.map((category, categoryIndex) => (
+                                                <React.Fragment key={`category-${categoryIndex}`}>
+                                                    <div className="flex items-center justify-between text-xs font-medium whitespace-nowrap sticky left-0 bg-background z-10 border-r h-10 pl-2">
+                                                        <span className="truncate max-w-[150px]">{category}</span>
+                                                        <span className="ml-2 bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                                                            {categoryTotals[category] || 0}
+                                                        </span>
+                                                    </div>
+                                                    {hours.map((hour, hourIndex) => (
+                                                        <div key={`cell-${categoryIndex}-${hourIndex}`} className="h-10 w-full">
+                                                            <HeatmapCell 
+                                                                value={heatmapData[category]?.[hour] || 0} 
+                                                                maxValue={maxValue}
+                                                                onClick={handleCellClick}
+                                                                category={category}
+                                                                hour={hour}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <NoDataOverlay />
+                                )}
                             </div>
                             
                             {/* Seçilen Talepler */}
@@ -423,10 +597,10 @@ export default function TicketHeatmapPage() {
                                                 <div className="bg-primary/10 text-primary rounded-full w-8 h-8 flex items-center justify-center">
                                                     {selectedTickets.length}
                                                 </div>
-                                                <span>Seçilen Zaman Dilimindeki Talepler</span>
+                                                <span>Seçilen Kategorideki Talepler</span>
                                             </DialogTitle>
                                             <DialogDescription className="text-muted-foreground mt-1">
-                                                Bu zaman diliminde açılan taleplerin listesi
+                                                Bu kategori ve saat aralığında açılan taleplerin listesi
                                             </DialogDescription>
                                         </DialogHeader>
                                         <div className="flex-1 overflow-auto p-4">
@@ -463,9 +637,9 @@ export default function TicketHeatmapPage() {
                                                                         <div className="bg-primary/10 rounded-full p-1">
                                                                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                                                                                 <path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-2"></path>
-                                                                                <path d="M9 14h10"></path>
-                                                                                <path d="M15 8h4v4"></path>
-                                                                                <path d="M19 8v4h-4"></path>
+                                                                                <path d="M23 7v10" />
+                                                                                <path d="M12 3.13a4 4 0 0 1 0 7.75" />
+                                                                                <path d="M7 8v8" />
                                                                             </svg>
                                                                         </div>
                                                                         {ticket.companyName || "Belirsiz"}
@@ -515,25 +689,6 @@ const StatusBadge = ({ status }: { status: string }) => {
     };
     
     const { label, color } = statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
-    
-    return (
-        <div className={`px-2 py-1 rounded-full text-xs font-medium ${color} inline-flex items-center justify-center`}>
-            {label}
-        </div>
-    );
-};
-
-// Priority Badge Component
-const PriorityBadge = ({ priority }: { priority: string }) => {
-    const priorityMap: Record<string, { label: string, color: string }> = {
-        'low': { label: 'Düşük', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-        'medium': { label: 'Orta', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' },
-        'high': { label: 'Yüksek', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' },
-        'critical': { label: 'Kritik', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-        'urgent': { label: 'Acil', color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }
-    };
-    
-    const { label, color } = priorityMap[priority] || { label: priority, color: 'bg-gray-100 text-gray-800' };
     
     return (
         <div className={`px-2 py-1 rounded-full text-xs font-medium ${color} inline-flex items-center justify-center`}>

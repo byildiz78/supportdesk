@@ -123,6 +123,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     url: "/reports/heatmap"
                   },
                   {
+                    title: "Isı Haritası-Departman",
+                    icon: LucideIcons.FolderKanban, 
+                    url: "/reports/heatmap-department"
+                  },
+                  {
+                    title: "Isı Haritası-Müşteri",
+                    icon: LucideIcons.FolderKanban, 
+                    url: "/reports/heatmap-customer"
+                  },
+                  {
                     title: "Çözüm Analizi",
                     icon: LucideIcons.Timer, 
                     url: "/reports/resolution-analysis"
