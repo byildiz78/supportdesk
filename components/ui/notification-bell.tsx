@@ -264,7 +264,7 @@ export function NotificationBell() {
                   <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 </Button>
                 
-                {filteredNotifications.length > 0 && (
+                {/* {filteredNotifications.length > 0 && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -276,7 +276,7 @@ export function NotificationBell() {
                     <span className="hidden sm:inline">Tümünü Okundu İşaretle</span>
                     <span className="sm:hidden">Okundu</span>
                   </Button>
-                )}
+                )} */}
               </div>
             </CardHeader>
             

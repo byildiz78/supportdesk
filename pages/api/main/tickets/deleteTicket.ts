@@ -19,7 +19,9 @@ export default async function handler(
     // Soft delete by setting is_deleted to true
     const query = `
       UPDATE tickets
-      SET is_deleted = true, updated_at = CURRENT_TIMESTAMP
+      SET is_deleted = true,
+      status = 'deleted',
+      updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING id;
     `;

@@ -29,6 +29,7 @@ import { extractTenantId } from "@/lib/utils";
 // Destek merkezi dashboard verilerine dair arayüzler
 interface RecentTicket {
     TicketID: string;
+    TicketNo: string;
     Subject: string;
     Status: string;
     CreatedAt: string;
@@ -62,11 +63,8 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-    const { activeTab } = useTabStore();
     const { selectedFilter, setFilter } = useFilterStore();
-    const { settings } = useSettingsStore();
-    const pathname = usePathname();
-    const currentDate = new Date().toISOString().split('T')[0];
+    const { addTab, setActiveTab, tabs, activeTab } = useTabStore()
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(false);
     const [loadingCards, setLoadingCards] = useState({
@@ -164,7 +162,7 @@ export default function Dashboard() {
         // Yalnızca dashboard sekmesi şu anda aktifken ve daha önce de aktifse filtre değişikliklerini işle
         // Bu wasTabActive kontrolü, sekme değişikliğinde bu useEffect'in tetiklenmesini engeller
         if (activeTab === "dashboard" && wasTabActive.current === true) {
-            // Filtre değişikliği olduysa ve bu değişiklik önceki değerlenmemiş değişiklikse
+            // Filtre değişikliği olduysa ve bu değişiklik önceki değerlenmemiş değişikse
             if (selectedFilter.appliedAt && selectedFilter.appliedAt !== appliedAtRef.current) {
                 // Uygulama zamanını güncelle
                 appliedAtRef.current = selectedFilter.appliedAt;
@@ -259,6 +257,27 @@ export default function Dashboard() {
             shouldResetBranches.current = false;
         }
     }, [activeTab, filterApplied, selectedFilter.selectedBranches, loading, hasFetched, setFilter]);
+
+    const getDetails = (ticketId: string, ticketNo: string) => {
+        const TabID = `ticket-${ticketNo}`;
+        // Sekme zaten açık mı kontrol et
+        const isTabAlreadyOpen = tabs.some(tab => tab.id === TabID)
+
+        if (!isTabAlreadyOpen) {
+            addTab({
+                id: TabID,
+                title: `Talep #${ticketNo}`,
+                lazyComponent: () => import('@/app/[tenantId]/(main)/tickets/detail/page').then(module => ({
+                    default: (props: any) => <module.default {...props} ticketId={ticketId} forceRefresh={true} />
+                }))
+            })
+        } else {
+            // Sekme zaten açıksa, önbelleği temizle
+            const { clearTicketCache } = require('@/app/[tenantId]/(main)/tickets/detail/page');
+            clearTicketCache(TabID);
+        }
+        setActiveTab(TabID)
+    }
 
     return (
         <div className="h-full flex">
@@ -525,6 +544,7 @@ export default function Dashboard() {
                                             <div
                                                 key={index}
                                                 className="flex items-center justify-between p-4 rounded-lg bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm border border-sky-100/20 dark:border-sky-900/20 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
+                                                onClick={() => getDetails(ticket.TicketID, ticket.TicketNo)}
                                             >
                                                 <div className="flex flex-col gap-1">
                                                     <div className="flex items-center gap-2">
@@ -541,7 +561,7 @@ export default function Dashboard() {
                                                         </span>
                                                     </div>
                                                     <span className="text-xs text-muted-foreground">
-                                                        #{ticket.TicketID} · {ticket.CreatedAt}
+                                                        #{ticket.TicketNo} · {ticket.CreatedAt}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2">

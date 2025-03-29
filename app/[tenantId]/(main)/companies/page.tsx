@@ -11,6 +11,7 @@ import { useFilterStore } from "@/stores/filters-store"
 import { useTabStore } from '@/stores/tab-store'
 import axios from '@/lib/axios'
 import { createExcelExportHandler } from '@/lib/export-utils'
+import { formatCompaniesData } from '@/lib/export-utils'
 
 export default function CompaniesPage() {
     const { selectedFilter } = useFilterStore()
@@ -145,8 +146,9 @@ export default function CompaniesPage() {
     )
 
     const handleExportToExcel = createExcelExportHandler(
-        paginatedCompanies,
-        'Şirketler'
+        () => filteredCompanies,
+        'Şirketler',
+        formatCompaniesData
     )
 
     return (

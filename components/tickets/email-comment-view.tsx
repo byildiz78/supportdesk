@@ -205,7 +205,6 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                             className="flex items-center gap-1"
                             onClick={() => {
                                 try {
-                                    console.log("Reply button clicked", comment);
                                     onReply(comment, false);
                                 } catch (error) {
                                     console.error("Error in Reply button:", error);
@@ -221,7 +220,6 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                             className="flex items-center gap-1"
                             onClick={() => {
                                 try {
-                                    console.log("Reply All button clicked", comment);
                                     onReply(comment, true);
                                 } catch (error) {
                                     console.error("Error in Reply All button:", error);

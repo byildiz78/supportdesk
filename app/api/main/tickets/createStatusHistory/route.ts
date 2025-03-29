@@ -7,10 +7,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Gerekli alanları kontrol et
-    if (!body.ticket_id || !body.new_status || !body.changed_by) {
+    if (!body.ticket_id || !body.changed_by) {
       return NextResponse.json({ 
         success: false, 
-        message: 'Eksik bilgi: ticket_id, new_status ve changed_by zorunlu alanlardır' 
+        message: 'Eksik bilgi: ticket_id ve changed_by zorunlu alanlardır' 
       }, { status: 400 });
     }
 
@@ -23,12 +23,13 @@ export async function POST(request: NextRequest) {
       console.warn('Tenant ID could not be extracted from URL');
     }
 
-    // Atanan kişi değişikliği mi kontrol et
+    // Değişiklik tipini kontrol et
     const isAssignmentChange = body.is_assignment_change === true;
+    const isCategoryChange = body.is_category_change === true;
 
     // Eğer önceki durum değişikliği varsa, o durumda geçirilen süreyi hesapla
     let timeInStatus = null;
-    if (body.previous_status && !isAssignmentChange) {
+    if (body.previous_status && !isAssignmentChange && !isCategoryChange) {
       try {
         // Önceki durum değişikliğinin zamanını bul
         const previousStatusEntry = await executeQuery<any[]>({
@@ -57,38 +58,70 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Durum değişikliği kaydını oluştur
-    const result = await executeQuery<any[]>({
-      query: `
+    let query = '';
+    let params = [];
+
+    if (isCategoryChange) {
+      // Kategori değişikliği kaydını oluştur
+      query = `
+        INSERT INTO ticket_status_history 
+        (ticket_id, changed_by, is_category_change, 
+        previous_category_id, new_category_id,
+        previous_subcategory_id, new_subcategory_id,
+        previous_group_id, new_group_id, new_status) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+        RETURNING *
+      `;
+      params = [
+        body.ticket_id,
+        body.changed_by,
+        true,
+        body.previous_category_id || null,
+        body.new_category_id || null,
+        body.previous_subcategory_id || null,
+        body.new_subcategory_id || null,
+        body.previous_group_id || null,
+        body.new_group_id || null,
+        body.new_status || 'unchanged'
+      ];
+    } else {
+      // Durum değişikliği veya atama değişikliği kaydını oluştur
+      query = `
         INSERT INTO ticket_status_history 
         (ticket_id, previous_status, new_status, changed_by, time_in_status, is_assignment_change) 
         VALUES ($1, $2, $3, $4, $5, $6) 
         RETURNING *
-      `,
-      params: [
+      `;
+      params = [
         body.ticket_id,
         body.previous_status || null,
         body.new_status,
         body.changed_by,
         timeInStatus,
         isAssignmentChange || false
-      ],
+      ];
+    }
+
+    // Kayıt oluştur
+    const result = await executeQuery<any[]>({
+      query,
+      params,
       tenantId
     });
 
     // Başarılı yanıt döndür
     return NextResponse.json({ 
       success: true, 
-      message: 'Durum değişikliği kaydı başarıyla oluşturuldu', 
+      message: 'Değişiklik kaydı başarıyla oluşturuldu', 
       data: result && result.length > 0 ? result[0] : null 
     });
   } catch (error: any) {
-    console.error('Durum değişikliği kaydı oluşturulurken hata:', error);
+    console.error('Değişiklik kaydı oluşturulurken hata:', error);
     
     // Hata yanıtı döndür
     return NextResponse.json({ 
       success: false, 
-      message: error.message || 'Durum değişikliği kaydı oluşturulurken bir hata oluştu' 
+      message: error.message || 'Değişiklik kaydı oluşturulurken bir hata oluştu' 
     }, { status: 500 });
   }
 }

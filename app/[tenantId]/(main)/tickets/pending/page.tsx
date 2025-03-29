@@ -58,20 +58,12 @@ export default function PendingTicketsPage() {
                 branchParam = []
             }
             
-            console.log('Sending filters to API:', filters)
-            console.log('Sending tenant ID to API:', branchParam)
-            console.log('Sending API request data:', {
-                tenantId: branchParam,
-                filters: filters
-            })
-            
             const response = await axios.post('/api/main/tickets/ticketsList', {
                 tenantId: branchParam,
                 filters: filters
             })
             
             if (response.data) {
-                console.log('Received tickets:', response.data.length)
                 setTickets(response.data)
             }
         } catch (err: any) {
@@ -106,14 +98,12 @@ export default function PendingTicketsPage() {
 
     // Handle filter changes
     const handleFilterChange = (newFilters: any) => {
-        console.log('Filter changed:', newFilters);
         // Always keep the status as "pending"
         const updatedFilters = { 
             ...filters, 
             ...newFilters,
             status: ["pending"] // Ensure status is always "pending"
         };
-        console.log('Updated filters:', updatedFilters);
         setFilters(updatedFilters);
         setCurrentPage(1); // Reset to first page when filters change
     }

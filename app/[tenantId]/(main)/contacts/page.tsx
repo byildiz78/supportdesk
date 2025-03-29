@@ -9,7 +9,7 @@ import { useCompanies } from '@/providers/companies-provider'
 // Components
 
 import axios from '@/lib/axios'
-import { createExcelExportHandler } from '@/lib/export-utils'
+import { createExcelExportHandler, formatContactsData } from '@/lib/export-utils'
 import { Card } from '@/components/ui/card'
 import { ContactHeader } from './components/ContactHeader'
 import { ContactFilters } from './components/ContactFilters'
@@ -136,15 +136,32 @@ export default function ContactsPage() {
         return matchesSearch
     })
 
+    // Şirket adlarını içeren genişletilmiş kişi listesi oluştur (Excel dışa aktarma için)
+    const contactsWithCompanyNames = filteredContacts.map(contact => {
+        let companyName = "-";
+        if (contact.companyId) {
+            const company = companies.find((c) => c.id === contact.companyId);
+            companyName = company ? company.name : "-";
+        }
+        
+        // Yeni bir nesne oluştur, orijinal contact nesnesini değiştirmeden
+        return {
+            ...contact,
+            companyName
+        };
+    });
+
     const total = filteredContacts.length
     const paginatedContacts = filteredContacts.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     )
 
+    // Excel dışa aktarma için şirket adlarını içeren listeyi kullan
     const handleExportToExcel = createExcelExportHandler(
-        paginatedContacts,
-        'Kişiler2'
+        () => contactsWithCompanyNames, 
+        'Kişiler',
+        formatContactsData
     )
 
     return (

@@ -47,6 +47,7 @@ const convertToStoreTicket = (ticket: Ticket): StoreTicket => {
 
 interface TicketDetailPageProps {
     ticketId: string;
+    forceRefresh?: boolean;
 }
 
 // Her tab için ticket verilerini saklayacak global obje
@@ -59,7 +60,7 @@ export const clearTicketCache = (tabId: string) => {
     }
 };
 
-export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
+export default function TicketDetailPage({ ticketId, forceRefresh = false }: TicketDetailPageProps) {
     const { selectedTicket, setSelectedTicket } = useTicketStore()
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -92,8 +93,8 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
             setError(null)
             
             try {
-                // Eğer bu tab için daha önce veri yüklendiyse, onu kullan
-                if (tabTickets[activeTab]) {
+                // Eğer forceRefresh true değilse ve bu tab için daha önce veri yüklendiyse, onu kullan
+                if (!forceRefresh && tabTickets[activeTab]) {
                     setTabTicket(tabTickets[activeTab]);
                     setIsLoading(false);
                     return;
@@ -118,7 +119,7 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
         if (ticketId) {
             fetchTicketDetails()
         }
-    }, [ticketId, setSelectedTicket])
+    }, [ticketId, setSelectedTicket, forceRefresh])
 
     // Bilet güncelleme işleyicisi
     const handleTicketUpdate = (updatedTicket: Ticket) => {
@@ -175,10 +176,42 @@ export default function TicketDetailPage({ ticketId }: TicketDetailPageProps) {
                             createdAt={tabTicket.created_at}
                             resolved_by={(tabTicket.resolved_by_name || tabTicket.resolved_by || tabTicket.resolvedBy || tabTicket.resolvedByName)}
                             resolution_notes={(tabTicket.resolution_notes || tabTicket.resolutionNotes)}
+                            description={tabTicket.description}
+                            customerName={tabTicket.customer_name}
+                            customerEmail={tabTicket.customer_email}
+                            customerPhone={tabTicket.customer_phone}
+                            companyName={tabTicket.company_name}
+                            companyId={tabTicket.company_id}
+                            contactPosition={tabTicket.contact_position}
+                            dueDate={tabTicket.due_date}
+                            parentCompanyId={tabTicket.parent_company_id}
+                            contactId={tabTicket.contact_id}
+                            slaBreached={tabTicket.sla_breach}
+                            priority={tabTicket.priority}
+                            source={tabTicket.source}
+                            categoryId={tabTicket.category_id}
+                            subcategoryId={tabTicket.subcategory_id}
+                            groupId={tabTicket.group_id}
+                            onUpdate={handleTicketUpdate}
+                            due_date={tabTicket.due_date}
+                            ticket_created_by_name={tabTicket.ticket_created_by_name}
+                            assigned_user_name={tabTicket.assigned_user_name}
                         />
                         
+                        {/* Stylish Divider */}
+                        <div className="my-2 relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-gray-50 dark:bg-gray-900 px-3 text-sm text-gray-500 dark:text-gray-400">
+                                    Bilet İçeriği
+                                </span>
+                            </div>
+                        </div>
+                        
                         {/* Main Content Area */}
-                        <div className="flex-1 mt-4 overflow-hidden">
+                        <div className="flex-1 mt-2 overflow-hidden">
                             {/* Content */}
                             <div className="h-full flex flex-col overflow-hidden">
                                 <ScrollArea className="flex-1 h-[calc(100vh-250px)]">

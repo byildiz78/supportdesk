@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { User } from "lucide-react"
+import { CheckCircle2, User, MessageSquare, Paperclip, Reply, Upload, PenSquare, History, Calendar, Download, FileIcon, Tag } from "lucide-react"
 import { CommentTimeline } from "@/components/tickets/comment-timeline"
 import { CommentForm } from "@/components/tickets/comment-form"
 import { FileUpload } from "./file-upload"
@@ -15,9 +15,9 @@ import axios from "@/lib/axios"
 import { EmailReplyForm } from "@/components/tickets/email-reply-form"
 import { TicketComment, FileAttachment } from "@/types/tickets"
 import DOMPurify from 'dompurify';
-import { MessageSquare, Paperclip, Reply, Upload, PenSquare, History, Calendar, Download, FileIcon, Tag } from "lucide-react";
 import { getTabIcon, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import TicketResolved from "./ticket-resolved"
 
 interface TicketContentProps {
     ticket: {
@@ -69,22 +69,22 @@ export function TicketContent({ ticket }: TicketContentProps) {
     // Dosya boyutunu formatla (bytes -> KB/MB/GB)
     const formatFileSize = (bytes: number): string => {
         if (!bytes) return "0 B";
-        
+
         const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        
+
         return `${Math.round(bytes / Math.pow(1024, i))} ${sizes[i]}`;
     };
 
     // Tarihi formatla
     const formatDate = (dateString: string | Date): string => {
         if (!dateString) return "";
-        
+
         const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-        
+
         // Tarih geçerli değilse
         if (isNaN(date.getTime())) return "";
-        
+
         return date.toLocaleDateString('tr-TR', {
             year: 'numeric',
             month: 'short',
@@ -345,7 +345,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
             // Eğer ticketno değeri varsa ve subject içinde bu format yoksa ekle
             if (ticket.ticketno && ticketNoPattern && !emailSubject.includes(ticketNoPattern)) {
                 emailSubject = `${emailSubject} ${ticketNoPattern}`;
-            } 
+            }
 
             // API çağrısı için veri hazırla
             const emailData = {
@@ -362,7 +362,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                 userName: getUserName(),
                 attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null
             };
-            
+
             const response = await axios.post('/api/main/tickets/sendEmailReply', emailData);
             if (!response.data.success) {
                 throw new Error('Failed to send email reply');
@@ -433,9 +433,9 @@ export function TicketContent({ ticket }: TicketContentProps) {
 
                         addAttachments(ticket.id, formattedAttachments);
                     }
-                } 
+                }
                 setReplyingToEmail(null);
-            } 
+            }
         } catch (error) {
             console.error('Email reply gönderilirken hata oluştu:', error);
         } finally {
@@ -445,7 +445,6 @@ export function TicketContent({ ticket }: TicketContentProps) {
 
     const handleReplyToEmail = (comment: TicketComment, replyAll: boolean) => {
         try {
-            console.log("Reply to email clicked:", comment, replyAll);
             setReplyingToEmail(comment);
             setReplyAll(replyAll);
         } catch (error) {
@@ -459,27 +458,17 @@ export function TicketContent({ ticket }: TicketContentProps) {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Original Description */}
-            <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-                <div className="border-b border-gray-100 dark:border-gray-700">
-                    <EditableTicketDetails
-                        ticket={ticket}
-                        onUpdate={handleTicketUpdate}
-                    />
-                </div>
-            </Card>
-
+        <div className="space-y-4">
             {/* Comments */}
             {sortedComments && sortedComments.length > 0 ? (
-                <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-                    <div className="p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-full">
-                                <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Card className="overflow-hidden border-0 shadow-sm rounded-lg bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
+                    <div className="p-2">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-md">
+                                <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                                Yorumlar <span className="ml-2 px-2.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-xs font-medium">{sortedComments.length}</span>
+                            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">
+                                Yorumlar <span className="ml-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">{sortedComments.length}</span>
                             </h3>
                         </div>
                         <div className="pr-2">
@@ -527,8 +516,8 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                                 {attachment.originalFilename || attachment.filename || attachment.name}
                                             </span>
                                         </div>
-                                        <a 
-                                            href={`api/images/${attachment.name || attachment.url}`} 
+                                        <a
+                                            href={`api/images/${attachment.name || attachment.url}`}
                                             download={`api/images/${attachment.name || attachment.url}`}
                                             className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                             target="_blank"
@@ -576,7 +565,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
             )}
 
             <Card className="overflow-hidden border-0 shadow-md rounded-2xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-                <div className="p-6">
+                <div className="p-2">
                     <Tabs defaultValue="comment" value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-3">
                             <TabsList className="bg-transparent border-b pb-px w-full flex justify-start">
@@ -597,14 +586,6 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                     <span className="sm:hidden">Dosya</span>
                                 </TabsTrigger>
                                 <TabsTrigger
-                                    value="history"
-                                    className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-600 data-[state=active]:text-cyan-700 dark:data-[state=active]:text-cyan-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
-                                    icon={getTabIcon("history")}
-                                >
-                                    <span className="hidden sm:inline">Durum Geçmişi</span>
-                                    <span className="sm:hidden">Geçmiş</span>
-                                </TabsTrigger>
-                                <TabsTrigger
                                     value="tags"
                                     className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-gray-600 data-[state=active]:text-gray-700 dark:data-[state=active]:text-gray-300 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
                                     icon={getTabIcon("tags")}
@@ -612,10 +593,28 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                     <span className="hidden sm:inline">Etiketler</span>
                                     <span className="sm:hidden">Etiket</span>
                                 </TabsTrigger>
+                                {ticket.status === "resolved" && (
+                                    <TabsTrigger
+                                        value="resolved"
+                                        className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
+                                        icon={getTabIcon("resolved")}
+                                    >
+                                        <span className="hidden sm:inline">Çözüm Notları</span>
+                                        <span className="sm:hidden">Çözüm Notları</span>
+                                    </TabsTrigger>
+                                )}
+                                <TabsTrigger
+                                    value="history"
+                                    className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-600 data-[state=active]:text-cyan-700 dark:data-[state=active]:text-cyan-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
+                                    icon={getTabIcon("history")}
+                                >
+                                    <span className="hidden sm:inline">Durum Geçmişi</span>
+                                    <span className="sm:hidden">Geçmiş</span>
+                                </TabsTrigger>
                             </TabsList>
                         </div>
 
-                        <TabsContent value="comment" className="mt-6">
+                        <TabsContent value="comment" className="mt-2">
                             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900/50 dark:to-indigo-800/50 p-5 rounded-xl shadow-sm">
                                 <div className="flex items-center gap-2 mb-4">
                                     <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-full">
@@ -626,7 +625,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                     </h3>
                                 </div>
                                 {ticket && (
-                                    <CommentForm 
+                                    <CommentForm
                                         ticketId={ticket.id}
                                         onSubmit={handleSubmitComment}
                                     />
@@ -634,7 +633,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="file" className="mt-6">
+                        <TabsContent value="file" className="mt-2">
                             <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-gray-900/50 dark:to-amber-800/50 p-5 rounded-xl shadow-sm">
                                 <div className="flex items-center gap-2 mb-4">
                                     <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-full">
@@ -654,7 +653,37 @@ export function TicketContent({ ticket }: TicketContentProps) {
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="history" className="mt-6">
+                        <TabsContent value="tags" className="mt-2">
+                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 p-5 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full">
+                                        <Tag className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                        Etiketler
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bileti kategorize etmek için etiketleri yönetin</p>
+                                <TicketTags ticketId={ticket.id} />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="resolved" className="mt-2">
+                            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-gray-900/50 dark:to-red-900/30 p-5 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="bg-red-200 dark:bg-red-800/50 p-2 rounded-full">
+                                        <CheckCircle2 className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                        Çözüm Notları
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bilet çözüm detayları ve durumu</p>
+                                <TicketResolved ticketId={ticket.id} />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="history" className="mt-2">
                             <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-900/50 dark:to-cyan-800/50 p-5 rounded-xl shadow-sm">
                                 <div className="flex items-center gap-2 mb-4">
                                     <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-full">
@@ -669,20 +698,6 @@ export function TicketContent({ ticket }: TicketContentProps) {
                             </div>
                         </TabsContent>
 
-                        <TabsContent value="tags" className="mt-6">
-                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 p-5 rounded-xl shadow-sm">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full">
-                                        <Tag className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                                    </div>
-                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                                        Etiketler
-                                    </h3>
-                                </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bileti kategorize etmek için etiketleri yönetin</p>
-                                <TicketTags ticketId={ticket.id} />
-                            </div>
-                        </TabsContent>
                     </Tabs>
                 </div>
             </Card>

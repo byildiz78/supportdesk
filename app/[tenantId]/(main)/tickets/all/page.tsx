@@ -52,20 +52,12 @@ export default function AllTicketsPage() {
                 branchParam = []
             }
             
-            console.log('Sending filters to API:', filters)
-            console.log('Sending tenant ID to API:', branchParam)
-            console.log('Sending API request data:', {
-                tenantId: branchParam,
-                filters: filters
-            })
-            
             const response = await axios.post('/api/main/tickets/ticketsList', {
                 tenantId: branchParam,
                 filters: filters
             })
             
             if (response.data) {
-                console.log('Received tickets:', response.data.length)
                 setTickets(response.data)
             }
         } catch (err: any) {
@@ -100,10 +92,7 @@ export default function AllTicketsPage() {
 
     // Handle filter changes
     const handleFilterChange = (newFilters: any) => {
-        console.log('Filter changed:', newFilters);
-        console.log('Current filters:', filters);
         const updatedFilters = { ...filters, ...newFilters };
-        console.log('Updated filters:', updatedFilters);
         setFilters(updatedFilters);
         setCurrentPage(1); // Reset to first page when filters change
     }

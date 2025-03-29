@@ -288,11 +288,11 @@ export default function CreateCompany({ companyId }: CreateCompanyProps) {
                 <div>
                   <Label>Aktif</Label>
                   <div className="flex items-center space-x-2 mt-2">
-                    <Switch 
-                      checked={companyData.isActive} 
-                      onCheckedChange={(checked) => setCompanyData(prev => ({ ...prev, isActive: checked }))}
+                  <Switch
+                      checked={true}
+                      disabled={false}
                     />
-                    <span>{companyData.isActive ? "Aktif" : "Pasif"}</span>
+                    <p className="text-gray-500">Pasif Yapmak için Firmalar Listesindeki İşlemlerden Silebilirsiniz.</p>
                   </div>
                 </div>
               </div>

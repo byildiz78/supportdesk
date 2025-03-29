@@ -113,6 +113,7 @@ export default async function handler(
                 userId: user.UserID, 
                 userName: user.UserName,
                 userCategory: user.UserCategory,
+                userRole: user.Role,
                 name: user.Name,
                 email: user.Email,
                 message: 'Login successful' 

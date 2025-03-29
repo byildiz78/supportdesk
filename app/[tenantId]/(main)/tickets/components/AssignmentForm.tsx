@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { motion } from "framer-motion"
-import { Users, Loader2, CalendarIcon } from "lucide-react"
+import { Users, Loader2, CalendarIcon, RefreshCw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import ReactDatePicker from "react-datepicker"
@@ -38,7 +38,15 @@ export default function AssignmentForm({
   onSlaBreachChange
 }: AssignmentFormProps) {
   // UsersProvider'dan kullanıcıları al
-  const { users, isLoading, error } = useUsers();
+  const { users, isLoading, error, refetchUsers } = useUsers();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Kullanıcıları yenile
+  const handleRefreshUsers = async () => {
+    setIsRefreshing(true);
+    await refetchUsers();
+    setIsRefreshing(false);
+  };
 
   return (
     <motion.div
@@ -51,7 +59,7 @@ export default function AssignmentForm({
           <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
             <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-xl font-semibold text-purple-600 dark:text-purple-400">
               Atama Bilgileri
             </h3>
@@ -59,6 +67,20 @@ export default function AssignmentForm({
               Talebin atanacağı kişi ve diğer bilgiler
             </p>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshUsers}
+            disabled={isRefreshing}
+            className="h-8 px-2 text-purple-600 border-purple-200 hover:bg-purple-100 dark:text-purple-400 dark:border-purple-800 dark:hover:bg-purple-900/50"
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span className="ml-1">Yenile</span>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

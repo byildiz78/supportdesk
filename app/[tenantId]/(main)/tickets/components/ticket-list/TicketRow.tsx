@@ -20,6 +20,7 @@ import { Ticket } from "@/types/tickets"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { statusConfig, priorityConfig, sourceConfig, calculateElapsedTime, calculateSlaTime } from "../config/ticket-config"
+import { getUserRole } from "@/utils/user-utils"
 
 // Define types for status and priority
 type TicketStatus = keyof typeof statusConfig
@@ -30,12 +31,13 @@ interface TicketRowProps {
     onView: (ticket: Ticket) => void
     onEdit: (ticket: Ticket) => void
     onDelete: (ticket: Ticket) => void
-    showStatusColumn?: boolean
+    showStatusColumn?: boolean,
+    userRole?: string
 }
 
-export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn = true }: TicketRowProps) {
+export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn = true, userRole }: TicketRowProps) {
     const isUnassigned = !ticket.assignedUserName;
-    
+ 
     return (
         <TableRow 
             className={cn(
@@ -195,10 +197,12 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
                             <Edit className="mr-2 h-4 w-4" />
                             <span>Düzenle</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDelete(ticket)} className="text-red-600 dark:text-red-400">
-                            <Trash className="mr-2 h-4 w-4" />
-                            <span>Sil</span>
-                        </DropdownMenuItem>
+                        {(userRole == 'admin' || userRole == 'manager') && (
+                            <DropdownMenuItem onClick={() => onDelete(ticket)} className="text-red-600 dark:text-red-400">
+                                <Trash className="mr-2 h-4 w-4" />
+                                <span>Sil</span>
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </TableCell>

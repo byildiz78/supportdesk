@@ -18,6 +18,8 @@ interface TicketFiltersProps {
     onFilterChange?: (filters: Partial<TicketFilter>) => void
     disableStatusFilter?: boolean
     hideAssignedUserFilter?: boolean
+    hideResolvedClosedStatus?: boolean
+    showOnlyResolvedClosedStatus?: boolean
 }
 
 export function TicketFilters({ 
@@ -26,7 +28,9 @@ export function TicketFilters({
     filters = {}, 
     onFilterChange = () => {}, 
     disableStatusFilter = false,
-    hideAssignedUserFilter = false
+    hideAssignedUserFilter = false,
+    hideResolvedClosedStatus = false,
+    showOnlyResolvedClosedStatus = false
 }: TicketFiltersProps) {
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const { users, isLoading: isLoadingUsers } = useUsers()
@@ -92,11 +96,19 @@ export function TicketFilters({
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="">Tüm durumlar</SelectItem>
-                                                            <SelectItem value="open">Açık</SelectItem>
-                                                            <SelectItem value="in_progress">İşlemde</SelectItem>
-                                                            <SelectItem value="pending">Beklemede</SelectItem>
-                                                            <SelectItem value="resolved">Çözüldü</SelectItem>
-                                                            <SelectItem value="closed">Kapalı</SelectItem>
+                                                            {!showOnlyResolvedClosedStatus && (
+                                                                <>
+                                                                    <SelectItem value="open">Açık</SelectItem>
+                                                                    <SelectItem value="in_progress">İşlemde</SelectItem>
+                                                                    <SelectItem value="pending">Beklemede</SelectItem>
+                                                                </>
+                                                            )}
+                                                            {!hideResolvedClosedStatus && (
+                                                                <>
+                                                                    <SelectItem value="resolved">Çözüldü</SelectItem>
+                                                                    <SelectItem value="closed">Kapalı</SelectItem>
+                                                                </>
+                                                            )}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>

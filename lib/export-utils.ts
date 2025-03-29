@@ -147,6 +147,59 @@ export const formatCollectionTransactionsData = (data: any[]) => {
 };
 
 /**
+ * Format parent companies data for Excel export
+ */
+export const formatParentCompaniesData = (data: any[]) => {
+  return data.map(item => ({
+    'Şirket Adı': item.name || '',
+    'Vergi No': item.taxId || '',
+    'E-posta': item.email || '',
+    'Telefon': item.phone || '',
+    'Adres': item.address || '',
+    'Şehir': item.city || '',
+    'Ülke': item.country || '',
+    'Durum': item.isActive ? 'Aktif' : 'Pasif',
+    'Oluşturulma Tarihi': item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''
+  }));
+};
+
+/**
+ * Format contacts data for Excel export
+ */
+export const formatContactsData = (data: any[]) => {
+  return data.map(item => ({
+    'Ad': item.firstName || '',
+    'Soyad': item.lastName || '',
+    'E-posta': item.email || '',
+    'Telefon': item.phone || '',
+    'Cep Telefonu': item.mobile || '',
+    'Pozisyon': item.position || '',
+    'Şirket': item.companyName || '-',
+    'Şehir': item.city || '',
+    'Adres': item.address || '',
+    'Durum': item.isActive ? 'Aktif' : 'Pasif',
+    'Oluşturulma Tarihi': item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''
+  }));
+};
+
+/**
+ * Format companies data for Excel export
+ */
+export const formatCompaniesData = (data: any[]) => {
+  return data.map(item => ({
+    'Şirket Adı': item.name || '',
+    'Vergi No': item.taxId || '',
+    'E-posta': item.email || '',
+    'Telefon': item.phone || '',
+    'Adres': item.address || '',
+    'Şehir': item.city || '',
+    'Ülke': item.country || '',
+    'Durum': item.isActive ? 'Aktif' : 'Pasif',
+    'Oluşturulma Tarihi': item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : ''
+  }));
+};
+
+/**
  * Helper function to create a generic Excel export handler
  * @param getData Function to get the data to export
  * @param reportName Name of the report

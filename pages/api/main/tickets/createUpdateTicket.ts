@@ -67,7 +67,6 @@ const createStatusHistoryEntry = async (
       timeInStatus
     ]);
 
-    console.log(`Durum geçmişi kaydı oluşturuldu: ${ticketId}, ${previousStatus} -> ${newStatus}`);
   } catch (error) {
     console.error("Durum geçmişi kaydı oluşturulurken hata:", error);
     // Hata durumunda işlemi engellememek için hatayı yutuyoruz
@@ -188,6 +187,90 @@ export default async function handler(
           req
         );
       } else {
+        // Kişi işleme mantığı - contact_id kontrolü ve oluşturma
+        let contactId: string | null = safeTicketData.contact_id;
+      
+        // Telefon numarası veya email varsa, contacts tablosunda kontrol et
+        if (safeTicketData.customer_phone || safeTicketData.customer_email) {
+          try {
+            // Önce telefon numarası veya email ile kişiyi ara
+            const checkContactQuery = `
+              SELECT id FROM contacts 
+              WHERE (mobile = $1 OR email = $2)
+              AND (is_deleted = false OR is_deleted IS NULL)
+            `;
+            
+            const contactResult = await client.query(checkContactQuery, [
+              safeTicketData.customer_phone || '',
+              safeTicketData.customer_email || ''
+            ]);
+            
+            if (contactResult.rows.length > 0) {
+              // Kişi bulundu, ID'sini al ve güncelle
+              contactId = contactResult.rows[0].id;
+              
+              // Kişiyi güncelle
+              const updateContactQuery = `
+                UPDATE contacts
+                SET 
+                  first_name = CASE WHEN $1 != '' THEN SPLIT_PART($1, ' ', 1) ELSE first_name END,
+                  last_name = CASE WHEN $1 != '' THEN SPLIT_PART($1, ' ', 2) ELSE last_name END,
+                  email = COALESCE($2, email),
+                  position = COALESCE($3, position),
+                  updated_at = CURRENT_TIMESTAMP
+                WHERE id = $4
+                RETURNING id, first_name, last_name, email
+              `;
+              
+              const updateResult = await client.query(updateContactQuery, [
+                safeTicketData.customer_name || '',
+                safeTicketData.customer_email,
+                safeTicketData.contact_position,
+                contactId
+              ]);
+            } else if (safeTicketData.customer_name) {
+              // Kişi bulunamadı ve isim veya email varsa yeni kişi oluştur
+              const createContactQuery = `
+                INSERT INTO contacts (
+                  first_name,
+                  last_name,
+                  email,
+                  mobile,
+                  position,
+                  created_at,
+                  updated_at,
+                  is_deleted
+                )
+                VALUES (
+                  SPLIT_PART($1, ' ', 1),
+                  SPLIT_PART($1, ' ', 2),
+                  $2,
+                  $3,
+                  $4,
+                  CURRENT_TIMESTAMP,
+                  CURRENT_TIMESTAMP,
+                  false
+                )
+                RETURNING id, first_name, last_name, email
+              `;
+              const newContactResult = await client.query(createContactQuery, [
+                safeTicketData.customer_name || '',
+                safeTicketData.customer_email,
+                safeTicketData.customer_phone,
+                safeTicketData.contact_position
+              ]);
+              
+              if (newContactResult.rows.length > 0) {
+                contactId = newContactResult.rows[0].id;
+                safeTicketData.contact_id = contactId; // Yeni oluşturulan kişi ID'sini ticket'a ata
+              }
+            }
+          } catch (contactError) {
+            console.error('Error in contact processing:', contactError);
+            // Hata olsa bile işleme devam et, sadece contact_id null olacak
+          }
+        }
+
         // Check for duplicate tickets with the same title and company_id
         const checkDuplicateQuery = `
           SELECT id FROM tickets 
@@ -263,7 +346,7 @@ export default async function handler(
             safeTicketData.due_date,
             safeTicketData.resolution_time,
             safeTicketData.parent_company_id,
-            safeTicketData.contact_id,
+            contactId,
             safeTicketData.sla_breach !== undefined ? safeTicketData.sla_breach : false,
             safeTicketData.createdBy
           ]);

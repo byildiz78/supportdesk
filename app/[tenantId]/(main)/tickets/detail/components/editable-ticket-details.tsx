@@ -12,6 +12,8 @@ import { processHtmlContent, normalizeNewlines } from "@/utils/text-utils"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
+import axios from "@/lib/axios"
+import { getUserId } from "@/utils/user-utils"
 
 interface EditableTicketDetailsProps {
     ticket: {
@@ -72,38 +74,26 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
 
         setIsSubmitting(true)
         try {
-            const updatedTicket = await TicketService.updateTicket({
-                id: ticket.id,
+            const userId = getUserId();
+            const response = await axios.post('/api/main/tickets/updateTicketHeader', {
                 title,
                 description,
-                status: ticket.status || 'open',
-                priority: ticket.priority || 'medium',
-                source: ticket.source || 'web',
-                category_id: ticket.category_id,
-                subcategory_id: ticket.subcategory_id,
-                group_id: ticket.group_id,
-                assigned_to: ticket.assigned_to,
-                customer_name: ticket.customer_name,
-                customer_email: ticket.customer_email,
-                customer_phone: ticket.customer_phone,
-                company_name: ticket.company_name,
-                company_id: ticket.company_id,
-                contact_position: ticket.contact_position,
-                due_date: ticket.due_date,
-                parent_company_id: ticket.parent_company_id,
-                contact_id: ticket.contact_id,
-                sla_breach: ticket.sla_breach || false,
-                updated_by: 'current-user',
-                isUpdate: true
-            })
+                updated_by: userId,
+                id: ticket.id
+            });
 
-            toast({
-                title: "Başarılı",
-                description: "Bilet başarıyla güncellendi",
-            })
-
-            onUpdate(updatedTicket)
-            setIsEditing(false)
+            if (response.data.success) {
+                toast({
+                    title: "Başarılı",
+                    description: "Bilet başarıyla güncellendi",
+                });
+                
+                // API'den dönen veriyi kullan
+                onUpdate(response.data.data);
+                setIsEditing(false);
+            } else {
+                throw new Error(response.data.message || "Bilet güncellenirken bir hata oluştu");
+            }
         } catch (error: any) {
             toast({
                 title: "Hata",
@@ -119,7 +109,7 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
         <Card className="border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
             {/* Üst Renkli Şerit */}
             <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-            
+
             <div className="p-4">
                 <div className="flex gap-3">
                     <div className="flex-shrink-0">
@@ -133,8 +123,8 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                 <div className="font-medium text-gray-900 dark:text-gray-100 text-base">
                                     {ticket.customer_name || "İsimsiz Müşteri"}
                                 </div>
-                                <Badge 
-                                    variant="outline" 
+                                <Badge
+                                    variant="outline"
                                     className="bg-blue-50 text-blue-700 dark:bg-blue-900/10 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 px-1.5 py-0.5 text-xs rounded-full"
                                 >
                                     {ticket.company_name || "Bireysel"}
@@ -148,9 +138,9 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                     <span>{format(new Date(ticket.created_at), "HH:mm")}</span>
                                 </div>
                                 {!isEditing ? (
-                                    <Button 
-                                        variant="outline" 
-                                        size="sm" 
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
                                         onClick={handleEdit}
                                         className="h-7 px-2 text-xs rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                     >
@@ -159,9 +149,9 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                     </Button>
                                 ) : (
                                     <div className="flex gap-1.5">
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
                                             onClick={handleCancel}
                                             className="h-7 px-2 text-xs rounded-full border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                             disabled={isSubmitting}
@@ -169,9 +159,9 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                             <X className="h-3 w-3 mr-1 text-red-500" />
                                             <span>İptal</span>
                                         </Button>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
                                             onClick={handleSave}
                                             className="h-7 px-2 text-xs rounded-full bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/10 dark:text-green-300 dark:border-green-800/50 dark:hover:bg-green-800/20 transition-colors"
                                             disabled={isSubmitting}
@@ -183,7 +173,7 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                 )}
                             </div>
                         </div>
-                        
+
                         {isEditing ? (
                             <div className="space-y-3 mt-1">
                                 <div className="relative">

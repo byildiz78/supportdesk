@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CustomLoader } from "@/components/ui/custom-loader"
 import { MoreHorizontal, Eye, Edit, Trash2, Building, Mail, Phone, Hash, Building2, AlertCircle, Calendar, FileText } from "lucide-react"
-import { Company } from "@/stores/main/companies-store"
+import { Company, useCompaniesStore } from "@/stores/main/companies-store"
 import { useTabStore } from "@/stores/tab-store"
 import { useState } from "react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import axios from "@/lib/axios"
-import { toast } from "@/components/ui/toast/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatDate } from "@/lib/formatters"
+import { useToast } from "@/hooks/use-toast"
 
 interface CompanyListProps {
     companies: Company[]
@@ -22,10 +22,12 @@ interface CompanyListProps {
 }
 
 export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: CompanyListProps) {
-    const { addTab, setActiveTab } = useTabStore()
+    const { addTab, setActiveTab, tabs, activeTab } = useTabStore()
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+    const { toast } = useToast()
+    const { deleteCompany } = useCompaniesStore()
 
     const handleViewCompany = (company: Company) => {
         const tabId = `company-${company.id}`
@@ -41,13 +43,16 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
 
     const handleEditCompany = (company: Company) => {
         const tabId = `edit-company-${company.id}`
-        addTab({
-            id: tabId,
-            title: `${company.name} (Düzenle)`,
-            lazyComponent: () => import('@/app/[tenantId]/(main)/companies/crud-components/CreateCompany').then(module => ({
-                default: (props: any) => <module.default {...props} companyId={company.id} />
-            }))
-        })
+        const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId)
+        if (!isTabAlreadyOpen) {
+            addTab({
+                id: tabId,
+                title: `${company.name} (Düzenle)`,
+                lazyComponent: () => import('@/app/[tenantId]/(main)/companies/crud-components/CreateCompany').then(module => ({
+                    default: (props: any) => <module.default {...props} companyId={company.id} />
+                }))
+            })
+        }
         setActiveTab(tabId)
     }
 
@@ -64,11 +69,20 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
             await axios.post('/api/main/companies/deleteCompany', {
                 id: companyToDelete.id
             })
-            toast.success('Şirket başarıyla silindi')
-            onCompanyDeleted()
-        } catch (error) {
+            deleteCompany(companyToDelete.id)
+            toast({
+                title: "Başarılı",
+                description: "Şirket başarıyla silindi",
+                variant: "default",
+            })
+
+        } catch (error: any) {
             console.error('Şirket silinirken hata:', error)
-            toast.error('Şirket silinemedi')
+            toast({
+                title: "Hata",
+                description: error.message || "Şirket silinirken bir hata oluştu",
+                variant: "destructive",
+            })
         } finally {
             setIsDeleting(false)
             setDeleteDialogOpen(false)

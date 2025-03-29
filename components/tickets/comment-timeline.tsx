@@ -6,11 +6,13 @@ import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow, isValid } from "date-fns"
 import { tr } from "date-fns/locale"
-import { Download, FileIcon, FileText, Image, Paperclip } from "lucide-react"
+import { Download, FileIcon, FileText, Image, Paperclip, ChevronDown, ChevronUp } from "lucide-react"
 import DOMPurify from 'dompurify';
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { processHtmlContent, decodeHtml, normalizeNewlines } from "@/utils/text-utils"
 import { EmailCommentView } from "./email-comment-view"
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface CommentTimelineProps {
     comments: TicketComment[];
@@ -52,6 +54,7 @@ function FilePreview({ file }: { file: FileAttachment }) {
 
 function CommentContent({ content }: { content: string }) {
     const contentRef = useRef<HTMLDivElement>(null);
+    const [isOpen, setIsOpen] = useState(false);
     
     // Use our enhanced processHtmlContent function to handle all text processing
     const processedContent = processHtmlContent(content);
@@ -70,12 +73,64 @@ function CommentContent({ content }: { content: string }) {
         }
     }, [content]);
     
+    // HTML etiketlerini kaldırarak düz metni elde et
+    let plainText = '';
+    if (typeof content === 'string') {
+        // HTML içeriğini düz metne çevir
+        plainText = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    
+    // İçerik uzunluğu kontrolü - 50 karakterden uzunsa daraltılabilir yap
+    const CHARACTER_LIMIT = 100;
+    const isLongContent = plainText.length > CHARACTER_LIMIT;
+    
+    // Kısa bir önizleme metni oluştur
+    const previewText = plainText.length > 0 
+        ? plainText.substring(0, CHARACTER_LIMIT) + (plainText.length > CHARACTER_LIMIT ? '...' : '')
+        : 'Yorum içeriğini görmek için tıklayın';
+    
+    // Kısa içerik için doğrudan göster
+    if (!isLongContent) {
+        return (
+            <div 
+                ref={contentRef}
+                className="text-sm text-foreground/90 ticket-description"
+                dangerouslySetInnerHTML={{ __html: typeof processedContent === 'string' ? processedContent : content }}
+            />
+        );
+    }
+    
+    // Uzun içerik için daraltılabilir yapı kullan
     return (
-        <div 
-            ref={contentRef}
-            className="text-sm text-foreground/90 ticket-description"
-        >
-            {processedContent}
+        <div className="text-sm text-foreground/90">
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+                {/* Önizleme metni - sadece kapalıyken göster */}
+                {!isOpen && (
+                    <div className="text-sm text-foreground/90 line-clamp-2 mt-1">
+                        {previewText}
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 ml-1 inline-flex items-center justify-center">
+                                <ChevronDown className="h-3 w-3" />
+                            </Button>
+                        </CollapsibleTrigger>
+                    </div>
+                )}
+                
+                <CollapsibleContent>
+                    <div className="flex items-center justify-end mb-1">
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                                <ChevronUp className="h-3 w-3" />
+                            </Button>
+                        </CollapsibleTrigger>
+                    </div>
+                    <div 
+                        ref={contentRef}
+                        className="ticket-description"
+                        dangerouslySetInnerHTML={{ __html: typeof processedContent === 'string' ? processedContent : content }}
+                    />
+                </CollapsibleContent>
+            </Collapsible>
         </div>
     );
 }
@@ -110,16 +165,16 @@ export function CommentTimeline({ comments, onReplyToEmail }: CommentTimelinePro
                     <Card 
                         key={comment.id} 
                         className={cn(
-                            "p-4",
+                            "p-3",
                             comment.is_internal 
                                 ? "bg-amber-50/50 dark:bg-amber-900/20 border-amber-200/50 dark:border-amber-800/30"
                                 : "bg-white/50 dark:bg-gray-900/50"
                         )}
                     >
-                        <div className="flex items-start gap-4">
-                            <Avatar className="h-10 w-10">
+                        <div className="flex items-start gap-3">
+                            <Avatar className="h-8 w-8">
                                 <AvatarFallback className={cn(
-                                    "text-white",
+                                    "text-white text-xs",
                                     comment.is_internal 
                                         ? "bg-amber-500 dark:bg-amber-700"
                                         : "bg-blue-500 dark:bg-blue-700"
@@ -130,9 +185,9 @@ export function CommentTimeline({ comments, onReplyToEmail }: CommentTimelinePro
                                 </AvatarFallback>
                             </Avatar>
                             
-                            <div className="flex-1 space-y-2">
+                            <div className="flex-1 space-y-1.5">
                                 <div className="flex items-center justify-between">
-                                    <div className="font-medium">
+                                    <div className="font-medium text-sm">
                                         {comment.created_by_name || 'Unknown User'}
                                         {comment.is_internal && (
                                             <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
@@ -140,7 +195,7 @@ export function CommentTimeline({ comments, onReplyToEmail }: CommentTimelinePro
                                             </span>
                                         )}
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="text-xs text-muted-foreground flex items-center gap-1">
                                         {(() => {
                                             try {
                                                 if (!comment.created_at) return "Tarih bilinmiyor";

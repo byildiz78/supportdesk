@@ -38,8 +38,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       req
     });
 
-    console.log('Sorgu sonucu:', result ? `${result.length || 0} kayıt bulundu` : 'Sonuç yok');
-    
     return res.status(200).json(result);
   } catch (error) {
     console.error('Atanan biletler alınırken hata oluştu:', error);

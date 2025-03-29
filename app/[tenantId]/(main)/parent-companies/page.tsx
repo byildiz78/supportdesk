@@ -11,7 +11,7 @@ import { ParentCompanyFilters } from './components/ParentCompanyFilters'
 import { ParentCompanyList } from './components/ParentCompanyList'
 import { ParentCompanyPagination } from './components/ParentCompanyPagination'
 import axios from '@/lib/axios'
-import { createExcelExportHandler } from '@/lib/export-utils'
+import { createExcelExportHandler, formatParentCompaniesData } from '@/lib/export-utils'
 import { Card } from '@/components/ui/card'
 
 export default function ParentCompaniesPage() {
@@ -128,8 +128,9 @@ export default function ParentCompaniesPage() {
     )
 
     const handleExportToExcel = createExcelExportHandler(
-        paginatedCompanies,
-        'Ana Şirketler'
+        () => filteredCompanies, 
+        'Ana Şirketler',
+        formatParentCompaniesData
     )
 
     return (

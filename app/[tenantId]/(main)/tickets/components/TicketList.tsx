@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Table, TableBody } from "@/components/ui/table"
 import axios from "@/lib/axios"
 import { toast } from "@/components/ui/toast/use-toast"
@@ -17,6 +17,9 @@ import { TicketEmptyState } from "./ticket-list/TicketEmptyState"
 import { TicketLoadingState } from "./ticket-list/TicketLoadingState"
 import { TicketErrorState } from "./ticket-list/TicketErrorState"
 import { sortTickets } from "./ticket-list/ticket-sort-utils"
+import { usePathname } from "next/navigation"
+import { StatusHistoryService } from "@/app/[tenantId]/(main)/services/status-history-service"
+import { useTicketStore } from "@/stores/ticket-store"
 
 interface TicketListProps {
     tickets: Ticket[]
@@ -26,25 +29,37 @@ interface TicketListProps {
     showStatusColumn?: boolean
 }
 
-export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => {}, showStatusColumn = true }: TicketListProps) {
+export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => { }, showStatusColumn = true }: TicketListProps) {
     const { addTab, setActiveTab } = useTabStore()
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [sortField, setSortField] = useState<SortField>('ticketno')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+    const [userdata, setUserdata] = useState({ name: "", email: "", usercategory: "", userrole: "" })
+    const pathname = usePathname();
+    const tenantId = pathname?.split("/")[1] || "";
+    const {deleteTicket} = useTicketStore();
+
+    useEffect(() => {
+        const storedUserData = localStorage.getItem(`userData_${tenantId}`);
+        if (storedUserData) {
+            setUserdata(JSON.parse(storedUserData));
+        }
+    }, [tenantId]);
+
 
     // Handle ticket actions
     const handleViewTicket = (ticket: Ticket) => {
         const tabId = `ticket-${ticket.id}`
-        
+
         // Önce bu ID'ye sahip bir tab var mı kontrol et
         const tabs = useTabStore.getState().tabs
         const existingTab = tabs.find(tab => tab.id === tabId)
-        
+
         // Her tıklamada önbelleği temizle, böylece her zaman API'den taze veri alınacak
         clearTicketCache(tabId)
-        
+
         if (existingTab) {
             // Tab zaten açıksa, sadece o taba geçiş yap
             setActiveTab(tabId)
@@ -63,11 +78,11 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
 
     const handleEditTicket = (ticket: Ticket) => {
         const tabId = `edit-ticket-${ticket.id}`
-        
+
         // Önce bu ID'ye sahip bir tab var mı kontrol et
         const tabs = useTabStore.getState().tabs
         const existingTab = tabs.find(tab => tab.id === tabId)
-        
+
         if (existingTab) {
             // Tab zaten açıksa, sadece o taba geçiş yap
             setActiveTab(tabId)
@@ -97,12 +112,30 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
             await axios.post('/api/main/tickets/deleteTicket', {
                 id: ticketToDelete.id
             })
+
+            // Durum geçmişi tablosuna kaydet
+            try {
+                await StatusHistoryService.createStatusHistoryEntry(
+                    ticketToDelete.id,
+                    ticketToDelete.status,
+                    "deleted"
+                );
+            } catch (error) {
+                console.log('Destek talebi history tablosuna kaydedilirken hata:', error)
+                toast({
+                    title: "Hata",
+                    description: "Destek talebi kayıt edilmedi",
+                    variant: "destructive",
+                })
+            }
+
             toast({
                 title: "Başarılı",
                 description: "Destek talebi başarıyla silindi",
                 variant: "default",
             })
-            onTicketDeleted()
+            deleteTicket(ticketToDelete.id)
+            // onTicketDeleted()
         } catch (error) {
             console.error('Destek talebi silinirken hata:', error)
             toast({
@@ -129,8 +162,8 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
     }
 
     // Sort tickets based on current sort field and direction
-    const sortedTickets = useMemo(() => 
-        sortTickets(tickets, sortField, sortDirection), 
+    const sortedTickets = useMemo(() =>
+        sortTickets(tickets, sortField, sortDirection),
         [tickets, sortField, sortDirection]
     )
 
@@ -151,7 +184,7 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
                 <div className="min-w-full inline-block align-middle">
                     <div className="overflow-hidden">
                         <Table className="min-w-full table-fixed">
-                            <TicketListHeader 
+                            <TicketListHeader
                                 sortField={sortField}
                                 sortDirection={sortDirection}
                                 onSort={handleSort}
@@ -163,12 +196,13 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
                                     <TicketEmptyState />
                                 ) : (
                                     sortedTickets.map(ticket => (
-                                        <TicketRow 
+                                        <TicketRow
                                             key={ticket.id}
                                             ticket={ticket}
                                             onView={handleViewTicket}
                                             onEdit={handleEditTicket}
                                             onDelete={handleDeleteClick}
+                                            userRole={userdata.userrole}
                                         />
                                     ))
                                 )}
@@ -178,7 +212,7 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
                 </div>
             </div>
 
-            <TicketDeleteDialog 
+            <TicketDeleteDialog
                 ticket={ticketToDelete}
                 open={deleteDialogOpen}
                 isDeleting={isDeleting}

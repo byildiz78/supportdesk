@@ -33,7 +33,7 @@ interface ParentCompaniesState {
   updateParentCompany: (parentCompany: ParentCompany) => void;
   setParentCompanies: (parentCompanies: ParentCompany[]) => void;
   setSelectedParentCompany: (parentCompany: ParentCompany | null) => void;
-  deleteParentCompany: (ParentCompanyID: number) => void;
+  deleteParentCompany: (ParentCompanyID: string) => void;
 }
 
 export const useParentCompaniesStore = create<ParentCompaniesState>((set) => ({

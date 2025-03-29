@@ -48,6 +48,27 @@ export const getUserData = () => {
 };
 
 /**
+ * localStorage'dan kullanıcı rolünü alır
+ * @returns Kullanıcı rolü veya null
+ */
+export const getUserRole = (): string | null => {
+  try {
+    const userData = localStorage.getItem('userData_login');
+    if (userData) {
+      const parsedUserData = JSON.parse(userData);
+      if (parsedUserData && parsedUserData.userrole) {
+        return parsedUserData.userrole;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Kullanıcı rolü alınırken hata oluştu:', error);
+    return null;
+  }
+};
+
+/**
  * localStorage'dan kullanıcı adını alır
  * @returns Kullanıcı adı veya null
  */

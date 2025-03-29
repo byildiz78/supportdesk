@@ -144,19 +144,14 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
         createdBy: "current-user", // Gerçek uygulamada oturum verilerinden alınmalı
         tenantId: tenantId
       }
-
-      // Call the API to create or update the ticket
-      console.log(`Form gönderiliyor - ${ticketId ? 'Güncelleme' : 'Yeni'} talep verisi:`, ticketPayload);
       
       try {
         const response = await axios.post('/api/main/tickets/createUpdateTicket', ticketPayload)
-        console.log("API yanıtı:", response.data);
         
         if (response.data.success) {
           // If there are files, upload them as attachments
           if (files.length > 0) {
             try {
-              console.log('Dosyalar yükleniyor...');
               // Ticket ID'yi API yanıtından al
               const ticketId = response.data.data.id;
               
@@ -326,7 +321,6 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
         
         if (response.data.success) {
           const ticketData = response.data.data;
-          console.log('Yüklenen ticket verileri:', ticketData);
           
           // Ticket verilerini forma doldur
           setTicketData({
@@ -451,7 +445,6 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
 
             {/* Contact Form */}
             <ContactForm 
-              companyId={ticketData.companyId}
               contactId={ticketData.contactId}
               contactName={ticketData.contactName}
               contactEmail={ticketData.contactEmail}

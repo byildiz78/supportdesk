@@ -27,7 +27,8 @@ import {
     KeyRound,
     Search,
     ChevronDown,
-    Edit
+    Edit,
+    RefreshCw
 } from "lucide-react"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
@@ -67,13 +68,13 @@ const ticketContactInfo: Record<string, {
 
 export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
     const { companies, loading: loadingCompanies } = useCompanies()
-    const { users, isLoading: loadingUsers } = useUsers()
+    const { users, isLoading: loadingUsers, refetchUsers } = useUsers()
     const { contacts, loading: loadingContacts } = useContacts()
     const { categories, loading: loadingCategories, groups } = useCategories()
     const { removeResolvedClosedTickets } = useTicketStore();
     const [updatedTicket, setUpdatedTicket] = useState<any>(ticket || {})
     const [isSaving, setIsSaving] = useState(false)
-    const { removeTab, setActiveTab } = useTabStore();
+    const { removeTab, setActiveTab, previousActiveTab } = useTabStore();
     const [tags, setTags] = useState<any[]>([])
     const [loadingTags, setLoadingTags] = useState(false)
     const [isResolveModalOpen, setIsResolveModalOpen] = useState(false)
@@ -171,7 +172,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                         email: ticket.customer_email || "",
                         phone: ticket.customer_phone || ""
                     };
-                    
+
                     setContactInfo(newContactInfo);
                     // Ticket için iletişim bilgisini kaydet
                     if (ticket.id) {
@@ -207,7 +208,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                     email: contactData.email || "",
                     phone: contactData.phone || phoneNumber || ""
                 };
-                
+
                 setContactInfo(newContactInfo);
                 // Ticket için iletişim bilgisini kaydet
                 if (ticket.id) {
@@ -229,7 +230,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                     email: updatedTicket.customer_email || email || "",
                     phone: phoneNumber || ""
                 };
-                
+
                 setContactInfo(newContactInfo);
                 // Ticket için iletişim bilgisini kaydet
                 if (ticket.id) {
@@ -245,7 +246,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                 email: updatedTicket.customer_email || email || "",
                 phone: phoneNumber || ""
             };
-            
+
             setContactInfo(newContactInfo);
             // Ticket için iletişim bilgisini kaydet
             if (ticket.id) {
@@ -396,24 +397,22 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
     // Kategori bilgileri değiştiğinde SLA hesaplamayı tetikle
     useEffect(() => {
         if (ticket && ticket.category_id && ticket.subcategory_id && ticket.group_id) {
-            console.log('Kategori bilgileri mevcut, SLA hesaplaması yapılıyor...');
-            
+
             // Due date hesaplaması yap
             const calculatedDueDate = calculateDueDate(
                 ticket.created_at || ticket.createdAt,
                 ticket.group_id || ticket.groupId
             );
-            
+
             // Eğer hesaplanan tarih varsa ve mevcut due date farklıysa güncelle
             if (calculatedDueDate && (!ticket.due_date || new Date(ticket.due_date).getTime() !== calculatedDueDate.getTime())) {
-                console.log('SLA tarihi hesaplandı:', calculatedDueDate);
-                
+
                 // Form state'ini güncelle
                 setUpdatedTicket((prev: any) => ({
                     ...prev,
                     due_date: calculatedDueDate.toISOString(),
                 }));
-                
+
                 // Ana ticket verilerini de güncelle
                 if (onTicketUpdate) {
                     onTicketUpdate({
@@ -422,8 +421,6 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                     });
                 }
             }
-        } else {
-            console.log('Kategori bilgileri eksik, SLA hesaplaması yapılamıyor.');
         }
     }, [ticket?.category_id, ticket?.subcategory_id, ticket?.group_id]);
 
@@ -690,7 +687,35 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                             updatedTicketData.status
                         );
                     } catch (logError) {
-                        console.error("Log oluşturulurken hata:", logError);
+                        console.error("Durum değişikliği log oluşturulurken hata:", logError);
+                        // Log hatası bilet güncellemeyi etkilemeyecek
+                    }
+                }
+
+                // Kategori, alt kategori veya grup değişikliği varsa kaydet
+                const categoryChanged =
+                    originalTicket.category_id !== updatedTicketData.category_id ||
+                    originalTicket.subcategory_id !== updatedTicketData.subcategory_id ||
+                    originalTicket.group_id !== updatedTicketData.group_id;
+
+                if (categoryChanged) {
+                    try {
+                        // Kategori değişikliklerini kaydet
+                        await StatusHistoryService.createCategoryHistoryEntry(
+                            updatedTicketData.id,
+                            {
+                                category_id: originalTicket.category_id || null,
+                                subcategory_id: originalTicket.subcategory_id || null,
+                                group_id: originalTicket.group_id || null
+                            },
+                            {
+                                category_id: updatedTicketData.category_id || null,
+                                subcategory_id: updatedTicketData.subcategory_id || null,
+                                group_id: updatedTicketData.group_id || null
+                            }
+                        );
+                    } catch (logError) {
+                        console.error("Kategori değişikliği log oluşturulurken hata:", logError);
                         // Log hatası bilet güncellemeyi etkilemeyecek
                     }
                 }
@@ -742,21 +767,22 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                     onTicketUpdate(updatedTicketData)
                 }
 
-                if (updatedTicketData.status === "resolved" || updatedTicketData.status === "closed") {
-                    removeResolvedClosedTickets('Tüm Talepler');
+                // Değişiklikleri Kaydet Butonu Kullanıldığında TAB kapatılmaz Güncellenir.
+                // if (updatedTicketData.status === "resolved" || updatedTicketData.status === "closed") {
+                //     removeResolvedClosedTickets('Tüm Talepler');
 
-                    // Başarı mesajı göster
-                    toast({
-                        title: "Bilgi",
-                        description: `Bilet ${updatedTicketData.status === "resolved" ? "çözümlendi" : "kapalı"} olarak işaretlendi ve listeden kaldırıldı.`,
-                        variant: "default",
-                    })
+                //     // Başarı mesajı göster
+                //     toast({
+                //         title: "Bilgi",
+                //         description: `Bilet ${updatedTicketData.status === "resolved" ? "çözümlendi" : "kapalı"} olarak işaretlendi ve listeden kaldırıldı.`,
+                //         variant: "default",
+                //     })
 
-                    // Bilet güncellemesi tamamlandıktan sonra sekmeyi kapat ve bilet listesine dön
-                    const tabId = updatedTicketData.id ? `ticket-${updatedTicketData.id}` : `ticket-detail-${updatedTicketData.id}`;
-                    removeTab(tabId);
-                    setActiveTab('Tüm Talepler');
-                }
+                //     // Bilet güncellemesi tamamlandıktan sonra sekmeyi kapat ve bilet listesine dön
+                //     const tabId = updatedTicketData.id ? `ticket-${updatedTicketData.id}` : `ticket-detail-${updatedTicketData.id}`;
+                //     removeTab(tabId);
+                //     setActiveTab('Tüm Talepler');
+                // }
             }
         } catch (error: any) {
             console.error("Bilet güncellenirken hata oluştu:", error)
@@ -831,6 +857,19 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
         setIsResolvingTicket(true)
         try {
+            // Önce yapılan tüm değişiklikleri kaydet
+            // Eğer değişiklik yapılmışsa (validationError yoksa) handleSave fonksiyonunu çağır
+            if (JSON.stringify(ticket) !== JSON.stringify(updatedTicket) && !validationError) {
+                // Değişiklikleri kaydet
+                await handleSave();
+
+                // Eğer kaydetme sırasında bir hata olursa, çözümleme işlemini durdur
+                if (validationError) {
+                    setIsResolvingTicket(false);
+                    return;
+                }
+            }
+
             // Orijinal bilet durumunu sakla (audit log için)
             const originalTicket = { ...ticket };
 
@@ -899,8 +938,25 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             // Bilet güncellemesi tamamlandıktan sonra sekmeyi kapat ve bilet listesine dön
             const tabId = ticket.id ? `ticket-${ticket.id}` : `ticket-detail-${ticket.id}`;
             removeTab(tabId);
-            setActiveTab('Tüm Talepler');
-            removeResolvedClosedTickets('Tüm Talepler');
+
+            // Bilet durumuna göre uygun taba yönlendir
+            // Eğer önceki aktif tab varsa, o taba dön
+            if (previousActiveTab) {
+                setActiveTab(previousActiveTab);
+                removeResolvedClosedTickets(previousActiveTab);
+            } else {
+                // Önceki tab yoksa, bilet durumuna göre yönlendir
+                if (originalTicket.status === "resolved" || originalTicket.status === "closed") {
+                    setActiveTab('Çözülen Talepler');
+                    removeResolvedClosedTickets('Çözülen Talepler');
+                } else if (originalTicket.status === "pending" || originalTicket.status === "waiting") {
+                    setActiveTab('Bekleyen Talepler');
+                    removeResolvedClosedTickets('Bekleyen Talepler');
+                } else {
+                    setActiveTab('Tüm Talepler');
+                    removeResolvedClosedTickets('Tüm Talepler');
+                }
+            }
         } catch (error: any) {
             console.error('Bilet çözümlenirken hata oluştu:', error)
             toast({
@@ -964,8 +1020,8 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
         { value: "open", label: "Açık" },
         { value: "in_progress", label: "İşlemde" },
         { value: "waiting", label: "Beklemede" },
-        { value: "closed", label: "Kapalı" },
-        { value: "resolved", label: "Çözümlendi" }
+        // { value: "closed", label: "Kapalı" },
+        // { value: "resolved", label: "Çözümlendi" }
     ]
 
     // Combobox için öncelik seçenekleri
@@ -1037,186 +1093,28 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             <Card className="flex-1 overflow-hidden max-w-full">
                 <ScrollArea className="h-[calc(90vh-80px)]">
                     <div className="p-3 md:p-6 space-y-3 max-w-full mb-4">
-                        {/* Firma */}
-                        <div>
-                            <h3 className="text-sm font-semibold mb-1.5">Firma</h3>
-                            {loadingCompanies ? (
-                                <div className="flex items-center space-x-2 p-2 border rounded-md">
-                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                                    <span className="text-xs text-gray-500">Firmalar yükleniyor...</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-start space-x-2">
-                                    <Building className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
-                                    <div className="w-full relative">
-                                        <ReactSelect
-                                            options={filteredCompanies.map(company => ({
-                                                value: company.id,
-                                                label: company.name
-                                            }))}
-                                            value={companyOptions.find(option => option.value === updatedTicket?.company_id)}
-                                            onChange={(option) => handleCompanyChange(option?.value)}
-                                            onInputChange={handleCompanyInputChange}
-                                            placeholder="Seçiniz"
-                                            className="w-full max-w-full"
-                                            classNames={selectClassNames}
-                                            styles={selectStyles}
-                                            menuPortalTarget={menuPortalTarget}
-                                            unstyled
-                                            theme={selectTheme}
-                                            isClearable
-                                            filterOption={() => true}
-                                            noOptionsMessage={() => "Firma bulunamadı"}
-                                            loadingMessage={() => "Yükleniyor..."}
-                                            isLoading={loadingCompanies}
-                                            components={{
-                                                LoadingIndicator: () => (
-                                                    <div className="flex items-center">
-                                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                                    </div>
-                                                )
-                                            }}
-                                        />
-                                        {companies.length > 100 && companySearch.length === 0 && (
-                                            <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                                                <Search className="h-3 w-3 mr-1" />
-                                                <span>Aramak için yazmaya başlayın (toplam {companies.length} firma)</span>
-                                            </div>
-                                        )}
+                        {/* Firma, İletişim Kişisi ve Atanan Kişi - Birleştirilmiş */}
+                        <div className="border rounded-md p-2 space-y-3">
+                            {/* Firma */}
+                            <div>
+                                <h3 className="text-sm font-semibold mb-1.5">Firma</h3>
+                                {loadingCompanies ? (
+                                    <div className="flex items-center space-x-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                        <span className="text-xs text-gray-500">Firmalar yükleniyor...</span>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* İletişim Kişisi */}
-                        <div>
-                            <h3 className="text-sm font-semibold mb-1.5">İletişim Kişisi</h3>
-                            {loadingContacts || loadingContactInfo ? (
-                                <div className="flex items-center space-x-2">
-                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                                    <span className="text-xs text-gray-500">Kişi bilgileri yükleniyor...</span>
-                                </div>
-                            ) : (
-                                <div className="border rounded-md p-2 space-y-1.5">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-xs font-medium text-gray-500">İletişim Bilgileri</h4>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={() => setIsEditingContact(!isEditingContact)}
-                                        >
-                                            <Edit className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        {isEditingContact ? (
-                                            <>
-                                                <div className="flex items-center space-x-2">
-                                                    <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                                    <Input
-                                                        value={contactInfo.phone}
-                                                        onChange={(e) => handleContactInfoChange('phone', e.target.value)}
-                                                        className="h-7 text-sm"
-                                                        placeholder="Telefon"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                                    <Input
-                                                        value={contactInfo.name}
-                                                        onChange={(e) => handleContactInfoChange('name', e.target.value)}
-                                                        className="h-7 text-sm"
-                                                        placeholder="Ad Soyad"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                                    <Input
-                                                        value={contactInfo.email}
-                                                        onChange={(e) => handleContactInfoChange('email', e.target.value)}
-                                                        className="h-7 text-sm"
-                                                        placeholder="E-posta"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                                    <Input
-                                                        value={contactInfo.position}
-                                                        onChange={(e) => handleContactInfoChange('position', e.target.value)}
-                                                        className="h-7 text-sm"
-                                                        placeholder="Pozisyon"
-                                                    />
-                                                </div>
-                                                <div className="flex justify-end space-x-2 mt-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-7 text-xs"
-                                                        onClick={() => setIsEditingContact(false)}
-                                                    >
-                                                        İptal
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
-                                                        onClick={() => setIsEditingContact(false)}
-                                                    >
-                                                        Tamam
-                                                    </Button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                {contactInfo.phone && (
-                                                    <div className="flex items-center text-xs">
-                                                        <Phone className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                                                        <span className="truncate">{contactInfo.phone}</span>
-                                                    </div>
-                                                )}
-                                                {contactInfo.name && (
-                                                    <div className="flex items-center text-xs">
-                                                        <User className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                                                        <span className="truncate">{contactInfo.name}</span>
-                                                    </div>
-                                                )}
-                                                {contactInfo.email && (
-                                                    <div className="flex items-center text-xs">
-                                                        <Mail className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                                                        <span className="truncate">{contactInfo.email}</span>
-                                                    </div>
-                                                )}
-                                                {contactInfo.position && (
-                                                    <div className="flex items-center text-xs">
-                                                        <Building2 className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                                                        <span className="truncate">{contactInfo.position}</span>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Atanan Kişi */}
-                        <div>
-                            <h3 className="text-sm font-semibold mb-1.5">Atanan Kişi</h3>
-                            {loadingUsers ? (
-                                <div className="flex items-center space-x-2 p-2 border rounded-md">
-                                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                                    <span className="text-xs text-gray-500">Kullanıcılar yükleniyor...</span>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col space-y-1.5">
+                                ) : (
                                     <div className="flex items-start space-x-2">
-                                        <User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                                        <Building className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
                                         <div className="w-full relative">
                                             <ReactSelect
-                                                options={assignedToOptions}
-                                                value={assignedToOptions.find(option => option.value === updatedTicket?.assigned_to)}
-                                                onChange={(option) => handleAssignedToChange(option?.value)}
+                                                options={filteredCompanies.map(company => ({
+                                                    value: company.id,
+                                                    label: company.name
+                                                }))}
+                                                value={companyOptions.find(option => option.value === updatedTicket?.company_id)}
+                                                onChange={(option) => handleCompanyChange(option?.value)}
+                                                onInputChange={handleCompanyInputChange}
                                                 placeholder="Seçiniz"
                                                 className="w-full max-w-full"
                                                 classNames={selectClassNames}
@@ -1224,45 +1122,210 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                                 menuPortalTarget={menuPortalTarget}
                                                 unstyled
                                                 theme={selectTheme}
+                                                isClearable
+                                                filterOption={() => true}
+                                                noOptionsMessage={() => "Firma bulunamadı"}
+                                                loadingMessage={() => "Yükleniyor..."}
+                                                isLoading={loadingCompanies}
+                                                components={{
+                                                    LoadingIndicator: () => (
+                                                        <div className="flex items-center">
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                        </div>
+                                                    )
+                                                }}
                                             />
+                                            {companies.length > 100 && companySearch.length === 0 && (
+                                                <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                                                    <Search className="h-3 w-3 mr-1" />
+                                                    <span>Aramak için yazmaya başlayın (toplam {companies.length} firma)</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* İletişim Kişisi */}
+                            <div>
+                                {loadingContacts || loadingContactInfo ? (
+                                    <div className="flex items-center space-x-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                        <span className="text-xs text-gray-500">Kişi bilgileri yükleniyor...</span>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1.5 mt-5">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-sm font-semibold">İletişim Kişisi Bilgileri</h3>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0"
+                                                onClick={() => setIsEditingContact(!isEditingContact)}
+                                            >
+                                                <Edit className="h-3.5 w-3.5" />
+                                            </Button>
                                         </div>
 
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs h-8 px-2 bg-green-600 hover:bg-green-700 hover:text-white text-white dark:text-white md:text-sm"
-                                            onClick={() => {
-                                                const currentUserId = getUserId();
-                                                const currentUserName = getUserName();
-
-                                                if (currentUserId) {
-                                                    handleAssignedToChange(currentUserId);
-
-                                                    toast({
-                                                        title: "Bilgi",
-                                                        description: "Bilet size devredildi. Değişiklikleri kaydetmek için 'Kaydet' butonuna tıklayın.",
-                                                        variant: "default",
-                                                    });
-                                                } else {
-                                                    toast({
-                                                        title: "Hata",
-                                                        description: "Kullanıcı bilgisi bulunamadı.",
-                                                        variant: "destructive",
-                                                    });
-                                                }
-                                            }}
-                                        >
-                                            Devir Al
-                                        </Button>
+                                        <div className="space-y-1.5">
+                                            {isEditingContact ? (
+                                                <>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <Input
+                                                            value={contactInfo.phone}
+                                                            onChange={(e) => handleContactInfoChange('phone', e.target.value)}
+                                                            className="h-7 text-sm"
+                                                            placeholder="Telefon"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <Input
+                                                            value={contactInfo.name}
+                                                            onChange={(e) => handleContactInfoChange('name', e.target.value)}
+                                                            className="h-7 text-sm"
+                                                            placeholder="Ad Soyad"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Mail className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <Input
+                                                            value={contactInfo.email}
+                                                            onChange={(e) => handleContactInfoChange('email', e.target.value)}
+                                                            className="h-7 text-sm"
+                                                            placeholder="E-posta"
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Building2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                                        <Input
+                                                            value={contactInfo.position}
+                                                            onChange={(e) => handleContactInfoChange('position', e.target.value)}
+                                                            className="h-7 text-sm"
+                                                            placeholder="Pozisyon"
+                                                        />
+                                                    </div>
+                                                    <div className="flex justify-end space-x-2 mt-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-7 text-xs"
+                                                            onClick={() => setIsEditingContact(false)}
+                                                        >
+                                                            İptal
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+                                                            onClick={() => setIsEditingContact(false)}
+                                                        >
+                                                            Tamam
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {contactInfo.phone && (
+                                                        <div className="flex items-center text-xs">
+                                                            <Phone className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
+                                                            <span className="truncate">{contactInfo.phone}</span>
+                                                        </div>
+                                                    )}
+                                                    {contactInfo.name && (
+                                                        <div className="flex items-center text-xs">
+                                                            <User className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
+                                                            <span className="truncate">{contactInfo.name}</span>
+                                                        </div>
+                                                    )}
+                                                    {contactInfo.email && (
+                                                        <div className="flex items-center text-xs">
+                                                            <Mail className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
+                                                            <span className="truncate">{contactInfo.email}</span>
+                                                        </div>
+                                                    )}
+                                                    {contactInfo.position && (
+                                                        <div className="flex items-center text-xs">
+                                                            <Building2 className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
+                                                            <span className="truncate">{contactInfo.position}</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                    {updatedTicket?.assigned_to && updatedTicket?.assigned_user_name && (
-                                        <span className="text-xs text-gray-500">Atanan: {updatedTicket.assigned_user_name}</span>
-                                    )}
+                                )}
+                            </div>
 
-                                </div>
-                            )}
+                            {/* Atanan Kişi */}
+                            <div>
+                                <h3 className="text-sm font-semibold mb-1.5 mt-5">Atanan Kişi</h3>
+                                {loadingUsers ? (
+                                    <div className="flex items-center space-x-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                        <span className="text-xs text-gray-500">Kullanıcılar yükleniyor...</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col space-y-1.5">
+                                        <div className="flex items-start space-x-2">
+                                            <User className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
+                                            <div className="w-full relative">
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="flex-1">
+                                                        <ReactSelect
+                                                            options={assignedToOptions}
+                                                            value={assignedToOptions.find(option => option.value === updatedTicket?.assigned_to)}
+                                                            onChange={(option) => handleAssignedToChange(option?.value)}
+                                                            placeholder="Seçiniz"
+                                                            className="w-full max-w-full"
+                                                            classNames={selectClassNames}
+                                                            styles={selectStyles}
+                                                            menuPortalTarget={menuPortalTarget}
+                                                            unstyled
+                                                            theme={selectTheme}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs h-8 px-2 bg-green-600 hover:bg-green-700 hover:text-white text-white md:text-sm"
+                                                onClick={() => {
+                                                    const currentUserId = getUserId();
+                                                    const currentUserName = getUserName();
+
+                                                    if (currentUserId) {
+                                                        handleAssignedToChange(currentUserId);
+
+                                                        toast({
+                                                            title: "Bilgi",
+                                                            description: "Bilet size devredildi. Değişiklikleri kaydetmek için 'Kaydet' butonuna tıklayın.",
+                                                            variant: "default",
+                                                        });
+                                                    } else {
+                                                        toast({
+                                                            title: "Hata",
+                                                            description: "Kullanıcı bilgisi bulunamadı.",
+                                                            variant: "destructive",
+                                                        });
+                                                    }
+                                                }}
+                                            >
+                                                Devir Al
+                                            </Button>
+                                        </div>
+                                        {updatedTicket?.assigned_to && updatedTicket?.assigned_user_name && (
+                                            <span className="text-xs text-gray-500">Atanan: {updatedTicket.assigned_user_name}</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="space-y-3 z-999">
+
+                        {/* Kategori Bilgileri */}
+                        <div className="border rounded-md p-2 space-y-3 z-999">
                             <CategoryForm
                                 categoryId={updatedTicket?.category_id}
                                 subcategoryId={updatedTicket?.subcategory_id}
@@ -1274,7 +1337,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                         </div>
 
                         {/* Durum */}
-                        <div>
+                        <div className="border rounded-md p-2 space-y-3">
                             <h3 className="text-sm font-semibold mb-1.5">Durum</h3>
                             <div className="flex items-start space-x-2">
                                 <Flag className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
@@ -1293,10 +1356,9 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                     />
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Öncelik */}
-                        <div>
+                            {/* Öncelik */}
+
                             <h3 className="text-sm font-semibold mb-1.5">Öncelik</h3>
                             <div className="flex items-start space-x-2">
                                 <AlertCircle className="h-4 w-4 mt-1 text-gray-500 flex-shrink-0" />
@@ -1318,7 +1380,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                         </div>
 
                         {/* Etiketler Bölümü */}
-                        <div className="space-y-1.5">
+                        <div className="border rounded-md p-2 space-y-3">
                             <h3 className="text-sm font-semibold">Etiketler</h3>
                             {loadingTags ? (
                                 <div className="flex items-center space-x-2">
@@ -1341,38 +1403,39 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                             ) : (
                                 <div className="text-xs text-gray-500">Etiket bulunamadı</div>
                             )}
-                        </div>
 
-                        {/* Tarih Bilgileri */}
-                        <div className="space-y-1.5">
-                            <h3 className="text-sm font-semibold">Tarih Bilgileri</h3>
-                            <div className="space-y-1.5 max-w-full overflow-hidden">
-                                {updatedTicket.created_at && (
-                                    <div className="flex items-center text-xs max-w-full">
-                                        <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                                        <span className="truncate max-w-[calc(100%-2rem)]">
-                                            Oluşturulma: {format(new Date(updatedTicket.created_at), 'd MMMM yyyy HH:mm', { locale: tr })}
-                                        </span>
-                                    </div>
-                                )}
-                                {updatedTicket.updated_at && (
-                                    <div className="flex items-center text-xs max-w-full">
-                                        <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
-                                        <span className="truncate max-w-[calc(100%-2rem)]">
-                                            Güncelleme: {format(new Date(updatedTicket.updated_at), 'd MMMM yyyy HH:mm', { locale: tr })}
-                                        </span>
-                                    </div>
-                                )}
-                                {updatedTicket.due_date && (
-                                    <div className="flex items-center text-xs max-w-full">
-                                        <Clock className="h-3.5 w-3.5 mr-1.5 text-red-500 flex-shrink-0" />
-                                        <span className="truncate max-w-[calc(100%-2rem)] font-medium">
-                                            SLA Bitiş: {format(new Date(updatedTicket.due_date), 'd MMMM yyyy HH:mm', { locale: tr })}
-                                        </span>
-                                    </div>
-                                )}
+                            {/* Tarih Bilgileri */}
+                            <div className="space-y-1.5">
+                                <h3 className="text-sm font-semibold">Tarih Bilgileri</h3>
+                                <div className="space-y-1.5 max-w-full overflow-hidden">
+                                    {updatedTicket.created_at && (
+                                        <div className="flex items-center text-xs max-w-full">
+                                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
+                                            <span className="truncate max-w-[calc(100%-2rem)]">
+                                                Oluşturulma: {format(new Date(updatedTicket.created_at), 'd MMMM yyyy HH:mm', { locale: tr })}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {updatedTicket.updated_at && (
+                                        <div className="flex items-center text-xs max-w-full">
+                                            <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-500 flex-shrink-0" />
+                                            <span className="truncate max-w-[calc(100%-2rem)]">
+                                                Güncelleme: {format(new Date(updatedTicket.updated_at), 'd MMMM yyyy HH:mm', { locale: tr })}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {updatedTicket.due_date && (
+                                        <div className="flex items-center text-xs max-w-full">
+                                            <Clock className="h-3.5 w-3.5 mr-1.5 text-red-500 flex-shrink-0" />
+                                            <span className="truncate max-w-[calc(100%-2rem)] font-medium">
+                                                SLA Bitiş: {format(new Date(updatedTicket.due_date), 'd MMMM yyyy HH:mm', { locale: tr })}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
+
                     </div>
                     <div className="sticky bottom-6 p-3 md:p-4 bg-background border-t space-y-2">
                         <Button
@@ -1392,16 +1455,16 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                 </>
                             )}
                         </Button>
-
-                        <Button
-                            onClick={handleResolveClick}
-                            disabled={isSaving || isResolvingTicket}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm"
-                        >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Çözümlendi olarak Kapat
-                        </Button>
-
+                        {ticket.status !== "resolved" && ticket.status !== "closed" && (
+                            <Button
+                                onClick={handleResolveClick}
+                                disabled={isSaving || isResolvingTicket}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm"
+                            >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Çözümlendi olarak Kapat
+                            </Button>
+                        )}
                         {validationError && (
                             <div className="text-xs text-red-500 mt-1">{validationError}</div>
                         )}

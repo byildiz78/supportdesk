@@ -23,8 +23,14 @@ interface NavItem {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
     const tenantId = pathname?.split("/")[1] || "";
-    const [userData, setUserData] = useState({ name: "", email: "" });
+    const [userData, setUserData] = useState({ name: "", email: "" ,usercategory: "" ,userrole: ""});
     
+    React.useEffect(() => {
+        const storedUserData = localStorage.getItem(`userData_${tenantId}`);
+        if (storedUserData) {
+            setUserData(JSON.parse(storedUserData));
+        }
+    }, [tenantId]);
 
     const navItems = useMemo(() => {
         const items = [
@@ -33,29 +39,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 icon: LucideIcons.LayoutDashboard,
                 isActive: true,
                 url: "/dashboard"
-            },
-            {
-                title: "Müşteriler",
-                icon: LucideIcons.Users,
-                isActive: true,
-                expanded: true,
-                items: [
-                    {
-                        title: "Ana Firmalar",
-                        icon: LucideIcons.Building2,
-                        url: "/parent-companies"
-                    },
-                    {
-                        title: "Firmalar",
-                        icon: LucideIcons.Building,
-                        url: "/companies"
-                    },
-                    {
-                        title: "Kişiler",
-                        icon: LucideIcons.User,
-                        url: "/contacts"
-                    },
-                ]
             },
             {
                 title: "Destek Talepleri",
@@ -89,7 +72,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 title: "Departmanlar",
                 icon: LucideIcons.LayoutDashboard, // Genel departmanlar için uygun bir ikon
                 isActive: true,
-                expanded: true,
+                expanded: false,
                 items: [
                   {
                     title: "Çağrı Merkezi",
@@ -122,13 +105,46 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     url: "/software"
                   }
                 ]
+              },
+              {
+                title: "Raporlar",
+                icon: LucideIcons.ChartBarIncreasing, 
+                isActive: true,
+                expanded: false,
+                items: [
+                  {
+                    title: "Tüm Ticket Raporları",
+                    icon: LucideIcons.ReceiptText, 
+                    url: "/reports/alltickets"
+                  },
+                  {
+                    title: "Isı Haritası",
+                    icon: LucideIcons.ReceiptText, 
+                    url: "/reports/heatmap"
+                  },
+                ]
               },              
             {
                 title: "Ayarlar",
                 icon: LucideIcons.Settings,
                 isActive: true,
-                expanded: true,
+                expanded: false,
                 items: [
+                    {
+                        title: "Ana Firmalar",
+                        icon: LucideIcons.Building2,
+                        url: "/parent-companies"
+                    },
+                    {
+                        title: "Firmalar",
+                        icon: LucideIcons.Building,
+                        url: "/companies"
+                    },
+                    {
+                        title: "Kişiler",
+                        icon: LucideIcons.User,
+                        url: "/contacts"
+                    },
                     {
                         title: "Kullanıcı Ayarları",
                         icon: LucideIcons.UserCog,
@@ -147,8 +163,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 ]
             }
         ];
-        return items;
-    }, []);
+
+        return items.filter(item => {
+            if (item.title === "Ayarlar") {
+                return userData.userrole && (userData.userrole == "admin" || userData.userrole == "manager");
+            }
+            return true;
+        });
+    }, [userData.userrole]);
 
     useEffect(() => {
         const storedUserData = localStorage.getItem(`userData_${tenantId}`);

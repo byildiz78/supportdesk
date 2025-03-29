@@ -30,8 +30,6 @@ export default function NewContactPage() {
     setError("")
 
     try {
-      // API call will be implemented here
-      console.log("Form submitted:", contactData)
       
     } catch (error) {
       console.error('Error submitting form:', error)

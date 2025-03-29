@@ -41,6 +41,69 @@ export const StatusHistoryService = {
   },
 
   /**
+   * Bilet kategori, alt kategori ve grup değişikliği kaydı oluşturur
+   * @param ticketId Bilet ID'si
+   * @param previousData Önceki veriler (kategori, alt kategori, grup)
+   * @param newData Yeni veriler (kategori, alt kategori, grup)
+   * @returns Oluşturulan kayıt
+   */
+  createCategoryHistoryEntry: async (
+    ticketId: string,
+    previousData: {
+      category_id: string | null;
+      subcategory_id: string | null;
+      group_id: string | null;
+    },
+    newData: {
+      category_id: string | null;
+      subcategory_id: string | null;
+      group_id: string | null;
+    }
+  ): Promise<any> => {
+    try {
+      // Değişiklik var mı kontrol et (null ve undefined güvenli karşılaştırma)
+      const categoryChanged = String(previousData.category_id || '') !== String(newData.category_id || '');
+      const subcategoryChanged = String(previousData.subcategory_id || '') !== String(newData.subcategory_id || '');
+      const groupChanged = String(previousData.group_id || '') !== String(newData.group_id || '');
+      
+      const hasChanges = categoryChanged || subcategoryChanged || groupChanged;
+      
+      // Değişiklik yoksa işlem yapma
+      if (!hasChanges) {
+        return null;
+      }
+
+      // Kullanıcı ID'sini localStorage'dan al
+      const userId = getUserId();
+
+      // Kategori değişikliği kaydı için gerekli bilgileri topla
+      const categoryHistoryData = {
+        ticket_id: ticketId,
+        previous_category_id: previousData.category_id,
+        new_category_id: newData.category_id,
+        previous_subcategory_id: previousData.subcategory_id,
+        new_subcategory_id: newData.subcategory_id,
+        previous_group_id: previousData.group_id,
+        new_group_id: newData.group_id,
+        changed_by: userId,
+        is_category_change: true
+      };
+
+      // API endpoint'ine istek gönder
+      const response = await axios.post('/api/main/tickets/createStatusHistory', categoryHistoryData);
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || "Kategori değişikliği kaydı oluşturulamadı");
+      }
+    } catch (error: any) {
+      console.error("Kategori değişikliği kaydı oluşturulurken hata:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Bir biletin durum geçmişini getirir
    * @param ticketId Bilet ID'si
    * @returns Durum geçmişi kayıtları

@@ -2,11 +2,12 @@
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, KeyRound, AlertCircle, ChevronDown, Info, MessageSquare, Clock, UserCheck, Calendar, CheckCircle2, AlertTriangle, XCircle, HelpCircle } from "lucide-react"
+import { User, KeyRound, AlertCircle, ChevronDown, Info, MessageSquare, Clock, UserCheck, Calendar, CheckCircle2, AlertTriangle, XCircle, HelpCircle, Hash } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 import { tr } from "date-fns/locale"
 import { useState } from "react"
 import { getStatusChange } from "@/lib/utils"
+import { EditableTicketDetails } from "./editable-ticket-details"
 
 interface TicketHeaderProps {
     id: string;
@@ -20,6 +21,26 @@ interface TicketHeaderProps {
     createdAt: string;
     resolved_by?: string | null;
     resolution_notes?: string | null;
+    description: string;
+    customerName: string | null;
+    customerEmail?: string | null;
+    customerPhone?: string | null;
+    companyName?: string | null;
+    companyId?: string | null;
+    contactPosition?: string | null;
+    dueDate?: string | null;
+    parentCompanyId?: string | null;
+    contactId?: string | null;
+    slaBreached?: boolean | null;
+    priority?: string;
+    source?: string | null;
+    categoryId?: string | null;
+    subcategoryId?: string | null;
+    groupId?: string | null;
+    ticket_created_by_name: string | null;
+    assigned_user_name: string | null;
+    due_date: string | null;
+    onUpdate: (updatedTicket: any) => void;
 }
 
 export function TicketHeader({
@@ -33,7 +54,27 @@ export function TicketHeader({
     isLicenseExpired,
     createdAt,
     resolved_by,
-    resolution_notes
+    resolution_notes,
+    description,
+    customerName,
+    customerEmail,
+    customerPhone,
+    companyName,
+    companyId,
+    contactPosition,
+    dueDate,
+    parentCompanyId,
+    contactId,
+    slaBreached,
+    priority,
+    source,
+    categoryId,
+    subcategoryId,
+    groupId,
+    ticket_created_by_name,
+    assigned_user_name,
+    due_date,
+    onUpdate
 }: TicketHeaderProps) {
     const [isLicenseNotesOpen, setIsLicenseNotesOpen] = useState(false);
     const [isSupportNotesOpen, setIsSupportNotesOpen] = useState(false);
@@ -72,6 +113,22 @@ export function TicketHeader({
             gradient: 'from-gray-400 to-gray-600',
             iconComponent: XCircle
         },
+        waiting: {
+            bg: 'bg-purple-50 dark:bg-purple-900/10',
+            text: 'text-purple-700 dark:text-purple-300',
+            border: 'border-purple-100 dark:border-purple-800/50',
+            hover: 'hover:bg-purple-100 dark:hover:bg-purple-800/20',
+            gradient: 'from-purple-400 to-purple-600',
+            iconComponent: Clock
+        },
+        pending: {
+            bg: 'bg-indigo-50 dark:bg-indigo-900/10',
+            text: 'text-indigo-700 dark:text-indigo-300',
+            border: 'border-indigo-100 dark:border-indigo-800/50',
+            hover: 'hover:bg-indigo-100 dark:hover:bg-indigo-800/20',
+            gradient: 'from-indigo-400 to-indigo-600',
+            iconComponent: AlertTriangle
+        },
         default: {
             bg: 'bg-orange-50 dark:bg-orange-900/10',
             text: 'text-orange-700 dark:text-orange-300',
@@ -82,308 +139,232 @@ export function TicketHeader({
         }
     };
 
+    // Get the current status colors
     const currentStatus = statusColors[status as keyof typeof statusColors] || statusColors.default;
     const StatusIcon = currentStatus.iconComponent;
+
+    // Create ticket object for EditableTicketDetails
+    const ticket = {
+        id,
+        title,
+        description: description || '', // Ensure description is not undefined
+        customer_name: customerName,
+        created_at: createdAt,
+        status,
+        priority: priority || 'medium',
+        source: source || 'web',
+        category_id: categoryId,
+        subcategory_id: subcategoryId,
+        group_id: groupId,
+        assigned_to: assignedTo,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        company_name: companyName,
+        company_id: companyId,
+        contact_position: contactPosition,
+        due_date: dueDate,
+        parent_company_id: parentCompanyId,
+        contact_id: contactId,
+        created_by: createdBy,
+        sla_breach: slaBreached,
+        assigned_user_name: assigned_user_name
+    };
 
     return (
         <div className="mb-4">
             {/* Main Container */}
             <div className="flex flex-col md:flex-row gap-3">
                 {/* Main Card */}
-                <Card className={`overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm rounded-xl flex-1 transition-all duration-200 ${isLicenseExpired
-                    ? 'bg-gradient-to-br from-red-50/80 to-red-50/40 dark:from-red-900/10 dark:to-red-900/5'
-                    : 'bg-white dark:bg-gray-800/80'
+                <Card className={`overflow-hidden flex-1 shadow-sm transition-all duration-300 hover:shadow-md border ${isLicenseExpired
+                    ? 'border-red-300 dark:border-red-700/70 bg-white dark:bg-gray-900/95'
+                    : 'border-blue-200/80 dark:border-blue-800/50 bg-white dark:bg-gray-900/95'
                     }`}>
-                    {/* Top Color Strip */}
-                    <div className={`h-1 w-full bg-gradient-to-r ${currentStatus.gradient}`}></div>
-
-                    {/* Content */}
                     <div className="p-4">
-                        {/* Title and Ticket Number */}
-                        <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                                <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-100 leading-tight">
-                                    {title}
-                                </h1>
-                                <div className="flex items-center mt-1.5 text-xs text-gray-500 gap-2">
-                                    <Badge
-                                        className={`px-2 py-0.5 rounded-full font-medium ${currentStatus.bg} ${currentStatus.text} ${currentStatus.hover} border ${currentStatus.border} flex items-center gap-1 shadow-sm`}
-                                    >
-                                        <StatusIcon className="h-3 w-3" />
-                                        {getStatusChange(status)}
-                                    </Badge>
-                                    <span className="flex items-center gap-1 text-gray-500/90 dark:text-gray-400">
-                                        <Clock className="h-3 w-3" />
-                                        {createdAt ? (
-                                            <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: tr })}</span>
-                                        ) : (
-                                            "Tarih bilgisi yok"
-                                        )}
+                        {/* Compact Info Bar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-gray-800/70">
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                                    <User className="h-3 w-3 text-blue-500 dark:text-blue-400" />
+                                    <span className="font-medium">Oluşturan:</span>
+                                    <span>{ticket_created_by_name && ticket_created_by_name !== "Bilinmiyor" ? ticket_created_by_name : "Bilinmiyor"}</span>
+                                </div>
+
+                                <div className="h-3 w-px bg-gray-200 dark:bg-gray-700 mx-0.5"></div>
+
+                                <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                                    <Calendar className="h-3 w-3 text-green-500 dark:text-green-400" />
+                                    <span className="font-medium">Tarih:</span>
+                                    <span>{createdAt ? format(new Date(createdAt), "dd.MM.yyyy HH:mm") : "Belirtilmemiş"}</span>
+                                </div>
+
+                                <div className="h-3 w-px bg-gray-200 dark:bg-gray-700 mx-0.5 hidden sm:block"></div>
+
+                                <div className="hidden sm:inline-flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                                    <Clock className="h-3 w-3 text-gray-400 dark:text-gray-500" />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        {createdAt ? formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: tr }) : "Tarih bilgisi yok"}
                                     </span>
                                 </div>
+
+                                {/* Ayırıcı çizgi */}
+                                <div className="h-3 w-px bg-gray-200 dark:bg-gray-700 mx-0.5 hidden sm:block"></div>
+
+                                {/* SLA Bitiş Tarihi */}
+                                {due_date && (
+                                    <div className="hidden sm:flex items-center text-[11px] text-gray-600 dark:text-gray-300">
+                                        <Clock className="h-3 w-3 mr-1 text-red-500" />
+                                        <span className="font-medium">
+                                            SLA: {format(new Date(due_date), 'd MMMM yyyy HH:mm', { locale: tr })}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                            <div className="flex flex-col items-end">
-                                <Badge variant="outline" className="px-2 py-0.5 text-xs font-medium rounded-full shadow-sm border bg-white dark:bg-gray-800/90 hover:bg-gray-50 dark:hover:bg-gray-700/80 transition-all">
-                                    #{id}
+
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                                    <UserCheck className="h-3 w-3 text-purple-500 dark:text-purple-400" />
+                                    <span className="text-xs font-medium">Atanan:</span>
+                                    {assigned_user_name ? (
+                                        <span className="text-xs text-blue-600 dark:text-blue-400">{assigned_user_name}</span>
+                                    ) : (
+                                        <Badge variant="outline" className="px-1 py-0 text-xs bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                                            Atanmamış
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                <Badge
+                                    className={`px-2 py-0.5 ${currentStatus.bg} ${currentStatus.text} border ${currentStatus.border} flex items-center gap-1 transition-all duration-300 group text-xs`}
+                                >
+                                    <StatusIcon className="h-3 w-3 transition-transform group-hover:scale-110 duration-300" />
+                                    <span className="font-medium">{getStatusChange(status)}</span>
                                 </Badge>
                             </div>
                         </div>
 
-                        {/* Info Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
-                            {/* Created By */}
-                            <Card className="bg-white dark:bg-gray-800/40 rounded-lg p-2.5 shadow-sm border-0 hover:shadow-md transition-all duration-200 group">
-                                <div className="flex items-start gap-2">
-                                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-1.5 rounded-md shadow-sm group-hover:scale-105 transition-transform">
-                                        <User className="h-3.5 w-3.5 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-xs uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">
-                                            Oluşturan
-                                        </h3>
-                                        <p className="mt-0.5 text-xs font-medium text-gray-800 dark:text-gray-200">
-                                            {createdByName && createdByName !== "Bilinmiyor"
-                                                ? createdByName
-                                                : "Kullanıcı adı gösterilemiyor"}
-                                        </p>
-                                    </div>
-                                </div>
-                            </Card>
-
-                            {/* Created Date */}
-                            <Card className="bg-white dark:bg-gray-800/40 rounded-lg p-2.5 shadow-sm border-0 hover:shadow-md transition-all duration-200 group">
-                                <div className="flex items-start gap-2">
-                                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-1.5 rounded-md shadow-sm group-hover:scale-105 transition-transform">
-                                        <Calendar className="h-3.5 w-3.5 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-xs uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">
-                                            Tarih
-                                        </h3>
-                                        {createdAt ? (
-                                            <div>
-                                                <p className="mt-0.5 text-xs font-medium text-gray-800 dark:text-gray-200">
-                                                    {format(new Date(createdAt), "dd.MM.yyyy")}
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    {format(new Date(createdAt), "HH:mm")}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <p className="mt-0.5 text-xs text-gray-500">Tarih bilgisi yok</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </Card>
-
-                            {/* Status */}
-                            <Card className="bg-white dark:bg-gray-800/40 rounded-lg p-2.5 shadow-sm border-0 hover:shadow-md transition-all duration-200 group">
-                                <div className="flex items-start gap-2">
-                                    <div className={`bg-gradient-to-br ${currentStatus.gradient} p-1.5 rounded-md shadow-sm group-hover:scale-105 transition-transform`}>
-                                        <StatusIcon className="h-3.5 w-3.5 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-xs uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">
-                                            Durum
-                                        </h3>
-                                        <div className="mt-0.5">
-                                            <Badge
-                                                className={`px-2 py-0.5 text-xs font-medium rounded-full ${currentStatus.bg} ${currentStatus.text} ${currentStatus.hover} border ${currentStatus.border} flex items-center gap-1 shadow-sm`}
-                                            >
-                                                <StatusIcon className="h-2.5 w-2.5" />
-                                                {getStatusChange(status)}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-
-                            {/* Assigned To */}
-                            <Card className={`${assignedTo ? 'bg-gradient-to-br from-blue-50/70 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5' : 'bg-white dark:bg-gray-800/40'} rounded-lg p-2.5 shadow-sm border-0 hover:shadow-md transition-all duration-200 group`}>
-                                <div className="flex items-start gap-2">
-                                    <div className={`${assignedTo ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'} p-1.5 rounded-md shadow-sm group-hover:scale-105 transition-transform`}>
-                                        <UserCheck className="h-3.5 w-3.5 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-xs uppercase tracking-wide font-medium text-gray-500 dark:text-gray-400">
-                                            Atanan
-                                        </h3>
-                                        {assignedTo ? (
-                                            <p className="mt-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
-                                                {assignedTo}
-                                            </p>
-                                        ) : (
-                                            <div className="mt-0.5 flex items-center">
-                                                <Badge variant="outline" className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 px-1.5 py-0.5 text-xs">
-                                                    Atanmamış
-                                                </Badge>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </Card>
+                        {/* Ticket Content Area - EditableTicketDetails */}
+                        <div>
+                            <EditableTicketDetails
+                                ticket={ticket}
+                                onUpdate={onUpdate}
+                            />
                         </div>
                     </div>
                 </Card>
 
-                {/* License Info and Support Notes side by side */}
-                <div className="flex flex-col gap-3 md:w-[260px]">
+                {/* Side Panel - Collapsed on mobile, expandable */}
+                <div className="flex flex-col gap-2 md:w-[250px]">
                     {/* License Information Card */}
-                    {selectedCompany && selectedCompany.id && (
-                        <Card className={`overflow-hidden shadow-sm rounded-lg border border-gray-100 dark:border-gray-800 ${isLicenseExpired
-                            ? 'bg-gradient-to-br from-red-50/80 to-red-50/40 dark:from-red-900/10 dark:to-red-900/5'
-                            : 'bg-white dark:bg-gray-800/80'}`}>
-                            {/* Top Color Strip */}
-                            <div className={`h-0.5 w-full ${isLicenseExpired ? 'bg-gradient-to-r from-red-400 to-red-500' : 'bg-gradient-to-r from-gray-300 to-gray-400'}`}></div>
+                    <Card className={`overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md border ${isLicenseExpired
+                        ? 'border-red-300 dark:border-red-700/70 bg-white dark:bg-gray-900/95'
+                        : 'border-amber-200/80 dark:border-amber-800/50 bg-white dark:bg-gray-900/95'
+                        }`}>
+                        <div className="p-3">
+                            <div className={`flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-800/70 ${isLicenseExpired ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                <div className="flex items-center">
+                                    <KeyRound className={`h-3.5 w-3.5 mr-1.5 ${isLicenseExpired ? 'text-red-500' : 'text-gray-500'}`} />
+                                    <span className="text-xs font-medium">BA Bilgileri</span>
+                                </div>
+                                {isLicenseExpired && (
+                                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800/50">
+                                        Süresi Dolmuş
+                                    </Badge>
+                                )}
+                            </div>
 
-                            <div className="p-3">
-                                <div className={`font-medium mb-1.5 flex items-center ${isLicenseExpired ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                                    <KeyRound className={`h-3.5 w-3.5 mr-1 ${isLicenseExpired ? 'text-red-500' : 'text-gray-500'}`} />
-                                    <span className="text-xs">
-                                        BA Bilgileri
+                            {isLicenseExpired ? (
+                                <div className="flex items-center py-1.5 px-2.5 bg-red-50/80 dark:bg-red-900/20 rounded-md text-xs border border-red-200/70 dark:border-red-800/50">
+                                    <AlertCircle className="h-3 w-3 mr-1.5 text-red-500 flex-shrink-0" />
+                                    <span className="font-medium text-red-600 dark:text-red-400">
+                                        BA bulunmamaktadır
                                     </span>
                                 </div>
-
-                                {isLicenseExpired ? (
-                                    <div className="flex items-center py-1.5 px-2 bg-red-100 dark:bg-red-900/20 rounded-md text-xs shadow-sm">
-                                        <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-red-500" />
-                                        <span className="font-medium text-red-600 dark:text-red-400">
-                                            BA bulunmamaktadır
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-1.5">
-                                        <div className="grid grid-cols-2 gap-1.5 text-xs">
-                                            <div className="font-medium text-gray-500 dark:text-gray-400">Başlangıç:</div>
-                                            <div className="font-medium text-gray-700 dark:text-gray-300">
-                                                {selectedCompany.flow_ba_starting_date ?
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="bg-gray-50/80 dark:bg-gray-800/60 rounded-md p-2.5 border border-amber-200/60 dark:border-amber-800/30 transition-all duration-200 hover:shadow-sm">
+                                        <div className="grid grid-cols-2 gap-1 text-xs">
+                                            <div className="text-gray-500 dark:text-gray-400">Başlangıç:</div>
+                                            <div className="font-medium text-gray-900 dark:text-gray-100 text-right">
+                                                {selectedCompany?.flow_ba_starting_date ?
                                                     format(new Date(selectedCompany.flow_ba_starting_date), 'dd.MM.yyyy') :
                                                     'Belirtilmemiş'}
                                             </div>
 
-                                            <div className="font-medium text-gray-500 dark:text-gray-400">Bitiş:</div>
-                                            <div className="font-medium text-gray-700 dark:text-gray-300">
-                                                {selectedCompany.flow_ba_end_date ?
+                                            <div className="text-gray-500 dark:text-gray-400">Bitiş:</div>
+                                            <div className="font-medium text-gray-900 dark:text-gray-100 text-right">
+                                                {selectedCompany?.flow_ba_end_date ?
                                                     format(new Date(selectedCompany.flow_ba_end_date), 'dd.MM.yyyy') :
                                                     'Belirtilmemiş'}
                                             </div>
                                         </div>
-
-                                        {selectedCompany.flow_licence_notes && (
-                                            <div className="mt-1.5 border-t border-gray-200 dark:border-gray-700/50 pt-1.5">
-                                                <button
-                                                    onClick={() => setIsLicenseNotesOpen(!isLicenseNotesOpen)}
-                                                    className="w-full text-left flex items-center justify-between text-gray-600 dark:text-gray-400 text-xs font-medium py-0.5 px-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700/20 transition-colors focus:outline-none"
-                                                >
-                                                    <span className="flex items-center">
-                                                        <Info className="h-3 w-3 mr-1" />
-                                                        Lisans Notları
-                                                    </span>
-                                                    <ChevronDown className={`h-3 w-3 transition-transform ${isLicenseNotesOpen ? 'transform rotate-180' : ''}`} />
-                                                </button>
-                                                {isLicenseNotesOpen && (
-                                                    <div className="whitespace-pre-line mt-1.5 p-2 bg-gray-50 dark:bg-gray-700/20 rounded-md text-xs shadow-sm">
-                                                        {selectedCompany.flow_licence_notes}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </Card>
-                    )}
 
-                    {/* Support Notes Card */}
-                    {selectedCompany && selectedCompany.id && selectedCompany.flow_support_notes && (
-                        <Card className="overflow-hidden shadow-sm rounded-lg border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/80">
-                            {/* Top Color Strip */}
-                            <div className="h-0.5 w-full bg-gradient-to-r from-blue-400 to-blue-500"></div>
-
-                            <div className="p-3">
-                                <div className="font-medium mb-1.5 flex items-center text-gray-700 dark:text-gray-300">
-                                    <MessageSquare className="h-3.5 w-3.5 mr-1 text-blue-500" />
-                                    <span className="text-xs">
-                                        Destek Notları
-                                    </span>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <button
-                                        onClick={() => setIsSupportNotesOpen(!isSupportNotesOpen)}
-                                        className="w-full text-left flex items-center justify-between text-gray-600 dark:text-gray-400 text-xs font-medium py-0.5 px-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700/20 transition-colors focus:outline-none"
-                                    >
-                                        <span className="flex items-center">
-                                            <Info className="h-3 w-3 mr-1" />
-                                            Detaylar
-                                        </span>
-                                        <ChevronDown className={`h-3 w-3 transition-transform ${isSupportNotesOpen ? 'transform rotate-180' : ''}`} />
-                                    </button>
-                                    {isSupportNotesOpen && (
-                                        <div className="whitespace-pre-line mt-1.5 p-2 bg-gray-50 dark:bg-gray-700/20 rounded-md text-xs shadow-sm">
-                                            {selectedCompany.flow_support_notes}
+                                    {selectedCompany?.flow_licence_notes && (
+                                        <div>
+                                            <button
+                                                onClick={() => setIsLicenseNotesOpen(!isLicenseNotesOpen)}
+                                                className="w-full text-left flex items-center justify-between text-gray-700 dark:text-gray-300 text-xs font-medium py-1.5 px-2.5 rounded-md hover:bg-gray-50/80 dark:hover:bg-gray-800/60 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-gray-700 focus:ring-opacity-50 group"
+                                            >
+                                                <span className="flex items-center">
+                                                    <Info className="h-3 w-3 mr-1.5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors" />
+                                                    Lisans Notları
+                                                </span>
+                                                <ChevronDown className={`h-3 w-3 transition-transform duration-300 text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300 ${isLicenseNotesOpen ? 'transform rotate-180' : ''}`} />
+                                            </button>
+                                            {isLicenseNotesOpen && (
+                                                <div className="whitespace-pre-line mt-1.5 p-2.5 bg-gray-50/80 dark:bg-gray-800/60 rounded-md text-xs border border-amber-200/60 dark:border-amber-800/30 animate-fadeIn shadow-sm">
+                                                    {selectedCompany?.flow_licence_notes || 'Lisans notu bulunmamaktadır.'}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* Support Notes Card */}
+                    <Card className="overflow-hidden shadow-sm border border-purple-200/80 dark:border-purple-800/50 bg-white dark:bg-gray-900/95 transition-all duration-300 hover:shadow-md">
+                        <div className="p-3">
+                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-800/70 text-gray-700 dark:text-gray-300">
+                                <div className="flex items-center">
+                                    <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-blue-500" />
+                                    <span className="text-xs font-medium">Destek Notları</span>
+                                </div>
                             </div>
-                        </Card>
-                    )}
+
+                            <div>
+                                <button
+                                    onClick={() => setIsSupportNotesOpen(!isSupportNotesOpen)}
+                                    className="w-full text-left flex items-center justify-between text-gray-700 dark:text-gray-300 text-xs font-medium py-1.5 px-2.5 rounded-md hover:bg-gray-50/80 dark:hover:bg-gray-800/60 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-gray-200 dark:focus:ring-gray-700 focus:ring-opacity-50 group"
+                                >
+                                    <span className="flex items-center">
+                                        <Info className="h-3 w-3 mr-1.5 text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors" />
+                                        Detaylar
+                                    </span>
+                                    <ChevronDown className={`h-3 w-3 transition-transform duration-300 text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300 ${isSupportNotesOpen ? 'transform rotate-180' : ''}`} />
+                                </button>
+                                {isSupportNotesOpen && (
+                                    <div className="whitespace-pre-line mt-1.5 p-2.5 bg-gray-50/80 dark:bg-gray-800/60 rounded-md text-xs border border-purple-200/60 dark:border-purple-800/30 animate-fadeIn shadow-sm min-h-[80px] max-h-[120px] overflow-y-auto">
+                                        {selectedCompany?.flow_support_notes || 'Destek notu bulunmamaktadır.'}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
                 </div>
             </div>
 
-            {/* Çözüm Bilgileri - Status resolved ise göster */}
-            {status === "resolved" && (
-                <Card className="overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mt-3">
-                    {/* Left Accent Border instead of top strip for better design */}
-                    <div className="flex">
-                        <div className="w-1 bg-purple-500 dark:bg-purple-600 self-stretch"></div>
-
-                        <div className="flex-1 p-3">
-                            <div className="font-medium mb-2 flex items-center text-gray-800 dark:text-gray-200">
-                                <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-purple-600 dark:text-purple-400" />
-                                <span className="text-xs">
-                                    Çözüm Bilgileri
-                                </span>
-                            </div>
-
-                            <div className="space-y-2.5">
-                                {resolution_notes && (
-                                    <div className="flex items-start gap-2">
-                                        <MessageSquare className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                                        <div className="flex-1">
-                                            <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                Çözüm Notları
-                                            </h3>
-                                            <div className="mt-1 p-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded">
-                                                <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                                                    {resolution_notes}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex items-start gap-2">
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                            Durum
-                                        </h3>
-                                        <div className="mt-1">
-                                            <Badge
-                                                className="px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 flex items-center gap-1"
-                                            >
-                                                <CheckCircle2 className="h-3 w-3" />
-                                                {getStatusChange(status)}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-            )}
+            {/* Add a subtle animation keyframe for fade-in effect */}
+            <style jsx global>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-3px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fadeIn {
+                    animation: fadeIn 0.2s ease-out forwards;
+                }
+            `}</style>
         </div>
     )
 }

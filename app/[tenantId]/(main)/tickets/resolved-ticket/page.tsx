@@ -262,6 +262,7 @@ export default function ResolvedTicketsPage() {
                 setSearchTerm={setSearchTerm}
                 filters={filters}
                 onFilterChange={handleFilterChange}
+                showOnlyResolvedClosedStatus={true}
             />
 
             <Card className="border-0 shadow-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm flex-1 overflow-hidden rounded-xl">

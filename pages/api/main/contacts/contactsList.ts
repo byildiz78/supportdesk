@@ -40,6 +40,7 @@ export default async function handler(
           is_deleted as "isDeleted"
       FROM contacts
       WHERE is_deleted = false
+      and is_active = true
     `;
     
     // If companyId is provided, filter contacts by company

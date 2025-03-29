@@ -17,7 +17,6 @@ export default async function handler(
 
   try {
     const { id } = req.body;
-    const tenantId = extractTenantFromBody(req);
 
     if (!id) {
       return res.status(400).json({ success: false, message: 'Ana şirket ID\'si gerekli' });
@@ -48,6 +47,7 @@ export default async function handler(
       UPDATE parent_companies
       SET 
         is_deleted = true,
+        is_active = false,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING id;

@@ -51,7 +51,7 @@ export default function LoginPage() {
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                 .join(" ");
             setTenantName(formattedName);
-            document.title = `${formattedName} - Giriş`;
+            document.title = `SupportDesk - ${formattedName}`;
         }
     }, [pathname]);
 
@@ -119,6 +119,7 @@ export default function LoginPage() {
                         userId: response.data.userId,
                         username: response.data.username,
                         usercategory: response.data.userCategory,
+                        userrole: response.data.userRole
                     }));
                     
                     // Save userId globally
@@ -129,7 +130,8 @@ export default function LoginPage() {
                         email: response.data.email,
                         userId: response.data.userId,
                         username: response.data.username,
-                        usercategory: response.data.usercategory,
+                        usercategory: response.data.userCategory,
+                        userrole: response.data.userRole
                     }));
                     
                     // Save userId globally

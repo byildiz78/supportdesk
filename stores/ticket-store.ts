@@ -50,6 +50,8 @@ interface TicketStore {
     addAttachments: (ticketId: string, attachments: any[]) => void;
     // Yeni fonksiyon: Belirli bir bileti günceller
     updateTicket: (updatedTicket: Ticket) => void;
+    // Yeni fonksiyon: Belirli bir bileti siler
+    deleteTicket: (ticketId: string) => void;
     // Yeni fonksiyon: Çözümlendi veya kapalı olan ticketları listeden kaldır
     removeResolvedClosedTickets: (tabName: string) => void;
 }
@@ -642,6 +644,29 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
         });
     },
     
+    // Yeni fonksiyon: Belirli bir bileti siler
+    deleteTicket: (ticketId: string) => {
+        set((state) => {
+            const updatedTicketsByTab: Record<string, Ticket[]> = {};
+            
+            // Tüm tab'ları dolaş ve ilgili biletleri temizle
+            Object.keys(state.ticketsByTab).forEach(tabName => {
+                const ticketsInTab = state.ticketsByTab[tabName];
+                updatedTicketsByTab[tabName] = ticketsInTab.filter(ticket => ticket.id !== ticketId);
+            });
+            
+            // selectedTicket'ı kontrol et ve ilgili bilet varsa temizle
+            let updatedSelectedTicket = state.selectedTicket;
+            if (state.selectedTicket && state.selectedTicket.id === ticketId) {
+                updatedSelectedTicket = null;
+            }
+            
+            return {
+                ticketsByTab: updatedTicketsByTab,
+                selectedTicket: updatedSelectedTicket
+            };
+        });
+    },
     // Yeni fonksiyon: Çözümlendi veya kapalı olan ticketları listeden kaldır
     removeResolvedClosedTickets: (tabName: string) => {
         set((state) => {

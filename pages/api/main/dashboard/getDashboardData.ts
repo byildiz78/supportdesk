@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 // Destek merkezi dashboard verilerine dair arayüzler
 interface RecentTicket {
     TicketID: string;
+    TicketNo: string;
     Subject: string;
     Status: string;
     CreatedAt: string;
@@ -146,6 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const recentTicketsQuery = `
             SELECT 
                 id as "TicketID",
+                ticketno as "TicketNo",
                 title as "Subject",
                 status as "Status",
                 created_at as "CreatedAt",
@@ -337,6 +339,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             return {
                 TicketID: ticket.TicketID || ticket.id,
+                TicketNo: ticket.TicketNo || ticket.ticketno,
                 Subject: ticket.Subject || ticket.title,
                 Status: status,
                 CreatedAt: timeAgo,

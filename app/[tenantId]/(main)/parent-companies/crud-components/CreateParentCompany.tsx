@@ -253,10 +253,10 @@ export default function CreateParentCompany({ companyId }: CreateParentCompanyPr
                   <Label>Aktif</Label>
                   <div className="flex items-center space-x-2 mt-2">
                     <Switch
-                      checked={parentCompanyData.isActive}
-                      onCheckedChange={(checked) => setParentCompanyData((prev) => ({ ...prev, isActive: checked }))}
+                      checked={true}
+                      disabled={false}
                     />
-                    <span>{parentCompanyData.isActive ? "Aktif" : "Pasif"}</span>
+                    <p className="text-gray-500">Pasif Yapmak için Ana Firmalar Listesindeki İşlemlerden Silebilirsiniz.</p>
                   </div>
                 </div>
               </div>

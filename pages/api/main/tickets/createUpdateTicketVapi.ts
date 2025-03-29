@@ -290,6 +290,10 @@ export default async function handler(
           }
         }
       } else {
+        // YENİ: Description'ı saklayalım ve ticket'ı boş description ile kaydedelim
+        const originalDescription = safeTicketData.description;
+        safeTicketData.description = '';
+        
         // Check for duplicate tickets with the same title and company_id
         const checkDuplicateQuery = `
           SELECT id FROM tickets 
@@ -340,7 +344,7 @@ export default async function handler(
           ) 
           VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-            CURRENT_TIMESTAMP, $21, CURRENT_TIMESTAMP, false
+            CURRENT_TIMESTAMP, 'efa579e5-6d64-43d0-b12a-a078ab357e90', CURRENT_TIMESTAMP, false
           )
           RETURNING id, ticketno;
         `;
@@ -350,7 +354,7 @@ export default async function handler(
           
           const result = await client.query(insertQuery, [
             safeTicketData.title,
-            safeTicketData.description,
+            safeTicketData.description, // Artık boş string olacak
             safeTicketData.status,
             safeTicketData.priority,
             safeTicketData.source,
@@ -369,7 +373,6 @@ export default async function handler(
             safeTicketData.parent_company_id,
             safeTicketData.contact_id,
             safeTicketData.sla_breach !== undefined ? safeTicketData.sla_breach : false,
-            safeTicketData.createdBy
           ]);
 
           if (result.rows.length === 0) {
@@ -379,6 +382,39 @@ export default async function handler(
           ticketId = result.rows[0].id;
           ticketNo = result.rows[0].ticketno;
           isNewTicket = true;
+          
+          // YENİ: Sakladığımız description değerini bir yorum olarak ekleyelim, HTML uyumlu formatlama ile
+          if (originalDescription) {
+            const insertCommentQuery = `
+              INSERT INTO ticket_comments (
+                ticket_id,
+                content,
+                is_internal,
+                created_at,
+                created_by,
+                updated_at,
+                is_deleted
+              )
+              VALUES (
+                $1, $2, false, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP, false
+              )
+              RETURNING id, created_at as "createdAt";
+            `;
+            
+            // HTML uyumlu formatlama ile içeriği hazırla
+            const commentContent = `Ticket Açıklaması:\n\n${originalDescription}`;
+            
+            // Sistem kullanıcısı ID'si
+            const systemUserId = "efa579e5-6d64-43d0-b12a-a078ab357e90";
+            
+            await client.query(insertCommentQuery, [
+              ticketId,
+              commentContent,
+              systemUserId
+            ]);
+            
+            console.log(`Ticket açıklaması yorum olarak eklendi: ${ticketId}`);
+          }
           
           // Durum geçmişi kaydı oluştur
           if (safeTicketData.status) {

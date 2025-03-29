@@ -246,9 +246,11 @@ export const getStatusChange = (status: string | undefined): string => {
         case 'waiting':
             return 'BEKLEMEDE';
         case 'pending':
-            return 'BEKLEMEDE';
+            return 'ONAY BEKLIYOR';
         case 'resolved':
-            return 'ÇÖZÜMLÜ';
+            return 'ÇÖZÜLDÜ';
+        case 'deleted':
+            return 'SİLİNDİ';
         default:
             return 'Belirtilmemiş';
     }

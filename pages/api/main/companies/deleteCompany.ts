@@ -19,7 +19,9 @@ export default async function handler(
     // Soft delete by setting is_deleted to true
     const query = `
       UPDATE companies
-      SET is_deleted = true, updated_at = CURRENT_TIMESTAMP
+      SET is_deleted = true,
+      is_active = false,
+      updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING id;
     `;

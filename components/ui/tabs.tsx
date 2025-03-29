@@ -9,7 +9,7 @@ import {
   BarChart, PieChart, LineChart, Table, Folder,
   FileJson, FileSpreadsheet, Filter, List,
   PenSquare, Upload,History,
-  XCircle,
+  XCircle, Rocket,
   Paperclip,
   Tag
 } from "lucide-react"
@@ -106,7 +106,7 @@ const getRandomIcon = () => {
     FileText, Code, Database, Bot, MessageSquare, 
     BarChart, PieChart, LineChart, Table, Folder,
     FileJson, FileSpreadsheet, Filter, List,
-    PenSquare, Upload,History
+    PenSquare, Upload,History, Rocket
   ]
   const RandomIcon = icons[Math.floor(Math.random() * icons.length)]
   return RandomIcon
@@ -123,6 +123,7 @@ export const getTabIcon = (label: string) => {
     attachments: <Paperclip className="w-4 h-4 mr-2" />,
     history: <History className="w-4 h-4 mr-2" />,
     tags: <Tag className="w-4 h-4 mr-2" />,
+    resolved: <Rocket className="w-4 h-4 mr-2" />,
   }
   return iconMap[label.toLowerCase()]
 }

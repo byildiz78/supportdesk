@@ -378,10 +378,10 @@ export default function CreateContact({ contactId }: CreateContactProps) {
                     <Label>Aktif</Label>
                     <div className="flex items-center space-x-2 mt-2">
                       <Switch
-                        checked={contactData.isActive}
-                        onCheckedChange={(checked) => setContactData((prev) => ({ ...prev, isActive: checked }))}
+                        checked={true}
+                        disabled={false}
                       />
-                      <span>{contactData.isActive ? "Aktif" : "Pasif"}</span>
+                      <p className="text-gray-500">Kişiyi Pasif Yapmak Kişiler Listesindeki İşlemlerden Silebilirsiniz.</p>
                     </div>
                   </div>
                 </div>

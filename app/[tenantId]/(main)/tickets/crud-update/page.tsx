@@ -591,11 +591,6 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
             <CompanyForm
               companyId={ticketData.companyId}
               companyName={ticketData.companyName}
-              contactId={ticketData.contactId}
-              contactName={ticketData.contactName}
-              contactEmail={ticketData.contactEmail}
-              contactPhone={ticketData.contactPhone}
-              contactPosition={ticketData.contactPosition}
               onCompanyIdChange={(value) => setTicketData(prev => ({
                 ...prev,
                 companyId: value,
@@ -607,16 +602,10 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
                 contactPosition: ""
               }))}
               onCompanyNameChange={(value) => setTicketData(prev => ({ ...prev, companyName: value }))}
-              onContactIdChange={(value) => setTicketData(prev => ({ ...prev, contactId: value }))}
-              onContactNameChange={(value) => setTicketData(prev => ({ ...prev, contactName: value }))}
-              onContactEmailChange={(value) => setTicketData(prev => ({ ...prev, contactEmail: value }))}
-              onContactPhoneChange={(value) => setTicketData(prev => ({ ...prev, contactPhone: value }))}
-              onContactPositionChange={(value) => setTicketData(prev => ({ ...prev, contactPosition: value }))}
             />
 
             {/* Contact Form */}
             <ContactForm
-              companyId={ticketData.companyId}
               contactId={ticketData.contactId}
               contactName={ticketData.contactName}
               contactEmail={ticketData.contactEmail}

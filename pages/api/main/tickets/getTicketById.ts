@@ -38,6 +38,7 @@ interface Ticket {
   is_deleted: boolean;
   parent_company_id: string | null;
   sla_breach: boolean | null;
+  ticket_created_by_name: string | null;
 }
 
 interface Comment {
@@ -132,6 +133,7 @@ export default async function handler(
         t.created_by,
         t.updated_at,
         t.updated_by,
+        us.name as ticket_created_by_name,
         t.is_deleted,
         t.parent_company_id,
         t.sla_breach,
@@ -143,6 +145,7 @@ export default async function handler(
       LEFT JOIN groups g ON g.id = t.group_id
       LEFT JOIN contacts ct ON t.contact_id = ct.id
       LEFT JOIN users u ON t.assigned_to = u.id
+      LEFT JOIN users us ON t.created_by = us.id::VARCHAR
       WHERE t.id = $1::uuid
     `;
 

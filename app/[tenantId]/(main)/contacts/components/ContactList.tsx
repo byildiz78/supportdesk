@@ -32,7 +32,7 @@ interface ContactListProps {
 }
 
 export function ContactList({ contacts, isLoading, error, onContactDeleted }: ContactListProps) {
-    const { addTab, setActiveTab } = useTabStore()
+    const { addTab, setActiveTab, tabs } = useTabStore()
     const { deleteContact } = useContactsStore()
     const { companies } = useCompanies()
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -59,17 +59,20 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
         setActiveTab(tabId)
     }
 
-    const handleEditContact = (contact: Contact) => {
+    const handleEditContact = (contact: Contact) => {   
         const tabId = `edit-contact-${contact.id}`
-        addTab({
-            id: tabId,
-            title: `${contact.firstName} ${contact.lastName} (Düzenle)`,
-            lazyComponent: () => import('@/app/[tenantId]/(main)/contacts/crud-components/CreateContact').then(module => ({
-                default: (props: any) => <module.default {...props} contactId={contact.id} />
-            }))
-        })
+        const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId)
+        if (!isTabAlreadyOpen) {
+            addTab({
+                id: tabId,
+                title: `${contact.firstName} ${contact.lastName} (Düzenle)`,
+                lazyComponent: () => import('@/app/[tenantId]/(main)/contacts/crud-components/CreateContact').then(module => ({
+                    default: (props: any) => <module.default {...props} contactId={contact.id} />
+                }))
+            })
+        }
         setActiveTab(tabId)
-    }
+    }   
 
     const handleDeleteClick = (contact: Contact) => {
         setContactToDelete(contact)
@@ -78,24 +81,21 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
 
     const handleDeleteConfirm = async () => {
         if (!contactToDelete) return
-        
+
         setIsDeleting(true)
         try {
             // API üzerinden silme işlemi
-            await axios.delete(`/api/main/contacts/delete/${contactToDelete.id}`)
-            
+            await axios.post(`/api/main/contacts/deleteContact`, { id: contactToDelete.id })
+
             // Store'dan silme işlemi
             deleteContact(contactToDelete.id)
-            
+
             toast({
                 title: "Başarılı",
                 description: "Kişi başarıyla silindi",
                 variant: "default",
             })
             setIsDeleteDialogOpen(false)
-            
-            // Yeniden yükleme için callback çağır
-            onContactDeleted(contactToDelete.id)
         } catch (error: any) {
             console.error("Kişi silinirken hata:", error)
             toast({
@@ -111,9 +111,9 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
     if (isLoading) {
         return (
             <div className="flex-1 flex items-center justify-center">
-                <CustomLoader 
-                    message="Yükleniyor" 
-                    description="Kişi verileri hazırlanıyor..." 
+                <CustomLoader
+                    message="Yükleniyor"
+                    description="Kişi verileri hazırlanıyor..."
                 />
             </div>
         )
@@ -213,7 +213,7 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
                 </TableHeader>
                 <TableBody>
                     {contacts.map((contact) => (
-                        <TableRow 
+                        <TableRow
                             key={contact.id}
                             className="group hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
                         >
@@ -268,7 +268,7 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
                                         <DropdownMenuItem onClick={() => handleEditContact(contact)}>
                                             <Edit className="h-4 w-4 mr-2 text-blue-600" /> Düzenle
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem 
+                                        <DropdownMenuItem
                                             onClick={() => handleDeleteClick(contact)}
                                             className="text-red-600 focus:text-red-600"
                                         >
@@ -279,7 +279,7 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
                             </TableCell>
                         </TableRow>
                     ))}
-                    
+
                     {contacts.length > 0 && (
                         <TableRow className="bg-gray-100 dark:bg-gray-800 font-bold">
                             <TableCell colSpan={6} className="text-right">
@@ -300,7 +300,7 @@ export function ContactList({ contacts, isLoading, error, onContactDeleted }: Co
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isDeleting}>İptal</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                             onClick={handleDeleteConfirm}
                             disabled={isDeleting}
                             className="bg-red-600 hover:bg-red-700"

@@ -17,7 +17,8 @@ import {
   XCircle, 
   User, 
   ArrowRightCircle, 
-  PlusCircle
+  PlusCircle,
+  X
 } from "lucide-react";
 import { getStatusChange } from "@/lib/utils";
 
@@ -90,12 +91,32 @@ const statusConfigs: Record<string, StatusConfig> = {
     lightBgColor: "bg-sky-50",
     darkBgColor: "dark:bg-sky-950/30",
     icon: <User className="h-3.5 w-3.5" />
+  },
+  category: {
+    color: "text-emerald-700 dark:text-emerald-400",
+    bgColor: "bg-emerald-500",
+    lightBgColor: "bg-emerald-50",
+    darkBgColor: "dark:bg-emerald-950/30",
+    icon: <ArrowRightCircle className="h-3.5 w-3.5" />
+  },
+  deleted: {
+    color: "text-red-700 dark:text-red-400",
+    bgColor: "bg-red-500",
+    lightBgColor: "bg-red-50",
+    darkBgColor: "dark:bg-red-950/30",
+    icon: <X className="h-3.5 w-3.5" />
   }
 };
 
-const getStatusConfig = (status: string, isAssignment: boolean = false): StatusConfig => {
+const getStatusConfig = (status: string, isAssignment: boolean = false, isCategory: boolean = false, isDeleted: boolean = false): StatusConfig => {
+  if (isCategory) {
+    return statusConfigs.category;
+  }
   if (isAssignment) {
     return statusConfigs.assignment;
+  }
+  if (isDeleted) {
+    return statusConfigs.deleted;
   }
   return statusConfigs[status.toLowerCase()] || {
     color: "text-gray-700 dark:text-gray-400",
@@ -177,7 +198,9 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
             <div className="space-y-3">
               {statusHistory.map((item, index) => {
                 const isAssignment = item.is_assignment_change;
-                const statusConfig = getStatusConfig(item.new_status, isAssignment);
+                const isCategory = item.is_category_change;
+                const isDeleted = item.new_status === 'deleted';
+                const statusConfig = getStatusConfig(item.new_status, isAssignment, isCategory, isDeleted);
                 
                 return (
                 <div key={item.id} className="relative pl-6 pb-4">
@@ -198,7 +221,7 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
                       <Badge variant="outline" className={`px-1.5 py-0.5 text-xs ${statusConfig.color} ${statusConfig.lightBgColor} ${statusConfig.darkBgColor} border-none`}>
                         <span className="flex items-center gap-1">
                           {statusConfig.icon}
-                          <span>{isAssignment ? "Atama Değişikliği" : getStatusChange(item.new_status)}</span>
+                          <span>{isCategory ? "Kategori Değişikliği" : isAssignment ? "Atama Değişikliği" : getStatusChange(item.new_status)}</span>
                         </span>
                       </Badge>
                       <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -208,7 +231,33 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
                     
                     <div className="mt-0.5 text-xs">
                       <span className="font-medium">{item.changed_by_name || 'Sistem'}</span> tarafından 
-                      {isAssignment ? (
+                      
+                      {isCategory ? (
+                        <span className="ml-1 text-gray-700 dark:text-gray-300">
+                          {item.previous_category_id !== item.new_category_id && (
+                            <>
+                              <span className="font-medium text-emerald-700 dark:text-emerald-400">Kategori: </span>
+                              <span className="font-medium">{item.previous_category_name || 'Yok'} → {item.new_category_name || 'Yok'}</span>
+                              <br />
+                            </>
+                          )}
+                          
+                          {item.previous_subcategory_id !== item.new_subcategory_id && (
+                            <>
+                              <span className="font-medium text-emerald-700 dark:text-emerald-400">Alt Kategori: </span>
+                              <span className="font-medium">{item.previous_subcategory_name || 'Yok'} → {item.new_subcategory_name || 'Yok'}</span>
+                              <br />
+                            </>
+                          )}
+                          
+                          {item.previous_group_id !== item.new_group_id && (
+                            <>
+                              <span className="font-medium text-emerald-700 dark:text-emerald-400">Grup: </span>
+                              <span className="font-medium">{item.previous_group_name || 'Yok'} → {item.new_group_name || 'Yok'}</span>
+                            </>
+                          )}
+                        </span>
+                      ) : isAssignment ? (
                         <span className="ml-1 text-gray-700 dark:text-gray-300">
                           <span className="font-medium text-sky-700 dark:text-sky-400">{processHtmlContent(item.previous_status || 'Atanmamış')}</span> kullanıcısından 
                           <span className="font-medium text-sky-700 dark:text-sky-400 ml-1">{processHtmlContent(item.new_status || '')}</span> kullanıcısına atandı.
@@ -243,7 +292,7 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
                       )}
                     </div>
                     
-                    {item.time_in_status && !isAssignment && (
+                    {item.time_in_status && !isAssignment && !isCategory && (
                       <div className="mt-1.5 text-xs flex items-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 p-1.5 rounded">
                         <Clock className="h-2.5 w-2.5 mr-1 text-gray-400" />
                         Önceki durumda geçirilen süre: 

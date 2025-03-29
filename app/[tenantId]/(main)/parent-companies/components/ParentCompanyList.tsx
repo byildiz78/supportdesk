@@ -53,11 +53,11 @@ interface ParentCompanyListProps {
     companies: ParentCompany[]
     isLoading: boolean
     error: string | null
-    onCompanyDeleted: (companyId: string) => void
+    onCompanyDeleted: (companyId: number) => void
 }
 
 export function ParentCompanyList({ companies, isLoading, error, onCompanyDeleted }: ParentCompanyListProps) {
-    const { addTab, setActiveTab } = useTabStore()
+    const { addTab, setActiveTab, tabs, activeTab } = useTabStore()
     const { deleteParentCompany } = useParentCompaniesStore()
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [companyToDelete, setCompanyToDelete] = useState<ParentCompany | null>(null)
@@ -78,13 +78,16 @@ export function ParentCompanyList({ companies, isLoading, error, onCompanyDelete
 
     const handleEditCompany = (company: ParentCompany) => {
         const tabId = `edit-company-${company.id}`
-        addTab({
-            id: tabId,
-            title: `${company.name} (Düzenle)`,
-            lazyComponent: () => import('@/app/[tenantId]/(main)/parent-companies/crud-components/CreateParentCompany').then(module => ({
-                default: (props: any) => <module.default {...props} companyId={company.id} />
-            }))
-        })
+        const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId)
+        if (!isTabAlreadyOpen) {
+            addTab({
+                id: tabId,  
+                title: `${company.name} (Düzenle)`,
+                lazyComponent: () => import('@/app/[tenantId]/(main)/parent-companies/crud-components/CreateParentCompany').then(module => ({
+                    default: (props: any) => <module.default {...props} companyId={company.id} />
+                }))
+            })
+        }
         setActiveTab(tabId)
     }
 
@@ -100,10 +103,10 @@ export function ParentCompanyList({ companies, isLoading, error, onCompanyDelete
         setIsDeleting(true)
         try {
             // API üzerinden silme işlemi
-            await axios.delete(`/api/main/parent-companies/delete/${companyToDelete.id}`)
+            await axios.post(`/api/main/parent-companies/deleteParentCompany`, { id: companyToDelete.id })
             
             // Store'dan silme işlemi
-            deleteParentCompany(parseInt(companyToDelete.id))
+            deleteParentCompany(String(companyToDelete.id))
             
             toast({
                 title: "Başarılı",
@@ -111,9 +114,6 @@ export function ParentCompanyList({ companies, isLoading, error, onCompanyDelete
                 variant: "default",
             })
             setIsDeleteDialogOpen(false)
-            
-            // Yeniden yükleme için callback çağır
-            onCompanyDeleted(companyToDelete.id)
         } catch (error: any) {
             console.error("Ana firma silinirken hata:", error)
             toast({
@@ -269,9 +269,9 @@ export function ParentCompanyList({ companies, isLoading, error, onCompanyDelete
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-52">
-                                        <DropdownMenuItem onClick={() => handleViewCompany(company)}>
+                                        {/* <DropdownMenuItem onClick={() => handleViewCompany(company)}>
                                             <Eye className="h-4 w-4 mr-2 text-indigo-600" /> Görüntüle
-                                        </DropdownMenuItem>
+                                        </DropdownMenuItem> */}
                                         <DropdownMenuItem onClick={() => handleEditCompany(company)}>
                                             <Edit className="h-4 w-4 mr-2 text-blue-600" /> Düzenle
                                         </DropdownMenuItem>
