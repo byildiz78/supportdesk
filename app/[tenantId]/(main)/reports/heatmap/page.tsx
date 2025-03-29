@@ -97,7 +97,7 @@ const HeatmapCell = ({ value, maxValue, onClick, day, hour }: {
 };
 
 export default function TicketHeatmapPage() {
-    const TAB_NAME = "Talep Isı Haritası"
+    const TAB_NAME = "Isı Haritası"
     const { activeTab, setActiveTab, addTab } = useTabStore()
     const { selectedFilter } = useFilterStore()
     

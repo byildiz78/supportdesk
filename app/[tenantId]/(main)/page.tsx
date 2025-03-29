@@ -75,6 +75,8 @@ export default function MainPage() {
                                             height: "100%",
                                             position: activeTab === "dashboard" ? "relative" : "absolute"
                                         }}
+                                        data-tab-id="dashboard"
+                                        tabIndex={-1}
                                     >
                                         <DashboardPage />
                                     </div>
@@ -95,6 +97,8 @@ export default function MainPage() {
                                                     position: activeTab === tab.id ? "relative" : "absolute",
                                                     width: "100%"
                                                 }}
+                                                data-tab-id={tab.id}
+                                                tabIndex={-1}
                                             >
                                                 {renderedComponents[tab.id]}
                                             </div>

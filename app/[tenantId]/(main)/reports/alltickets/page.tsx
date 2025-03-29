@@ -165,7 +165,7 @@ const TicketNoCellRenderer = (props: any) => {
 };
 
 export default function AllTicketsPage() {
-    const TAB_NAME = "Tüm Ticket Raporları"
+    const TAB_NAME = "Tüm Ticketlar"
     const { activeTab, setActiveTab, addTab } = useTabStore()
     const { selectedFilter } = useFilterStore()
     // UI State
