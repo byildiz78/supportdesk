@@ -16,7 +16,7 @@ export default async function handler(
     // Build the query based on the exact schema provided
     let query = `
         SELECT 
-       
+        t.id,
         t.ticketno,
         t.title,
         t.description,
