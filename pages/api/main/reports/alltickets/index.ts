@@ -16,7 +16,7 @@ export default async function handler(
     // Build the query based on the exact schema provided
     let query = `
         SELECT 
-        t.id,
+        
         t.ticketno,
         t.title,
         t.description,
@@ -26,14 +26,14 @@ export default async function handler(
         c.name as "categoryId",
         cs.name as "subcategoryId",
         g.name as "groupId",
-        t.assigned_to as "assignedTo",
+        
         u.name as "assignedUserName",
         t.customer_name as "customerName",
         t.customer_email as "customerEmail",
         t.customer_phone as "customerPhone",
         t.company_name as "companyName",
-        t.company_id as "companyId",
-        t.contact_position as "contactPosition",
+      
+      
         t.due_date as "dueDate",
         t.sla_breach as "slaBreach",
         t.resolution_time as "resolutionTime",
@@ -41,7 +41,14 @@ export default async function handler(
         t.created_by as "createdBy",
         t.updated_at as "updatedAt",
         t.updated_by as "updatedBy",
-        t.callcount as "callcount"
+        t.callcount as "callcount",
+         CASE 
+                    WHEN t.resolution_time IS NOT NULL THEN 
+                        ROUND(EXTRACT(EPOCH FROM (t.resolution_time - t.created_at))/60)::integer
+                    ELSE 
+                        NULL
+                END as "Çözüm Süresi (dk)",
+        t.resolution_notes as "Çözüm Notu"
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       LEFT JOIN categories c ON c.id = t.category_id

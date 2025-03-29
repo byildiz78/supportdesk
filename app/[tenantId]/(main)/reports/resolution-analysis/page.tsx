@@ -19,7 +19,7 @@ import 'ag-grid-enterprise'
 declare global {
     interface Window {
         // @ts-ignore
-        refreshTicketList?: () => Promise<void>;
+        refreshResolutionAnalysis?: () => Promise<void>;
     }
 }
 
@@ -108,23 +108,6 @@ const PriorityCellRenderer = (props: any) => {
     );
 };
 
-const SlaBreachCellRenderer = (props: any) => {
-    if (props.value === true) {
-        return (
-            <div className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 inline-flex items-center justify-center">
-                Evet
-            </div>
-        );
-    } else if (props.value === false) {
-        return (
-            <div className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 inline-flex items-center justify-center">
-                Hayır
-            </div>
-        );
-    }
-    return null;
-};
-
 const DateCellRenderer = (props: any) => {
     if (!props.value) return null;
     
@@ -164,8 +147,35 @@ const TicketNoCellRenderer = (props: any) => {
     );
 };
 
-export default function AllTicketsPage() {
-    const TAB_NAME = "Tüm Ticket Raporları"
+const ElapsedTimeCellRenderer = (props: any) => {
+    if (!props.value) return <div>Çözülmedi</div>;
+    
+    // Check if the value is a string containing "minutes"
+    if (typeof props.value === 'string' && props.value.includes('minutes')) {
+        return <div>{props.value}</div>;
+    }
+    
+    // If it's a number (minutes), format it
+    const minutes = Number(props.value);
+    if (isNaN(minutes)) return <div>{props.value}</div>;
+    
+    // Format the time
+    if (minutes < 60) {
+        return <div>{minutes} dakika</div>;
+    } else {
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
+        
+        if (remainingMinutes === 0) {
+            return <div>{hours} saat</div>;
+        } else {
+            return <div>{hours} saat {remainingMinutes} dakika</div>;
+        }
+    }
+};
+
+export default function ResolutionAnalysisPage() {
+    const TAB_NAME = "Çözüm Analizi"
     const { activeTab, setActiveTab, addTab } = useTabStore()
     const { selectedFilter } = useFilterStore()
     // UI State
@@ -173,7 +183,6 @@ export default function AllTicketsPage() {
     const [currentStep, setCurrentStep] = useState("Veriler hazırlanıyor...")
     const [rowData, setRowData] = useState<any[]>([])
     const [localIsLoading, setLocalIsLoading] = useState(false)
-    const [filters, setFilters] = useState<any>({})
     // Referanslar
     const hasInitializedRef = useRef(false)
     const appliedAtRef = useRef(selectedFilter.appliedAt)
@@ -183,111 +192,94 @@ export default function AllTicketsPage() {
     const { theme } = useTheme()
     
     // AG Grid column definitions
-    const [columnDefs, setColumnDefs] = useState<ColDef[]>([]);
-    
-    // Dinamik kolon oluşturma
-    useEffect(() => {
-        if (rowData.length > 0) {
-            // İlk veri satırından kolonları oluştur
-            const firstRow = rowData[0];
-            const dynamicColumns: ColDef[] = [];
-            
-            // Kolon adları için Türkçe karşılıklar
-            const columnLabels: Record<string, string> = {
-                'id': 'ID',
-                'ticketno': 'Talep No',
-                'title': 'Başlık',
-                'description': 'Açıklama',
-                'status': 'Durum',
-                'priority': 'Öncelik',
-                'source': 'Kaynak',
-                'categoryId': 'Kategori ID',
-                'subcategoryId': 'Alt Kategori ID',
-                'groupId': 'Grup ID',
-                'assignedTo': 'Atanan ID',
-                'assignedUserName': 'Atanan Kişi',
-                'customerName': 'Müşteri Adı',
-                'customerEmail': 'Müşteri E-posta',
-                'customerPhone': 'Müşteri Telefon',
-                'companyName': 'Firma Adı',
-                'companyId': 'Firma ID',
-                'contactPosition': 'İletişim Pozisyonu',
-                'dueDate': 'Son Tarih',
-                'slaBreach': 'SLA İhlali',
-                'resolutionTime': 'Çözüm Tarihi',
-                'createdAt': 'Oluşturulma Tarihi',
-                'createdBy': 'Oluşturan',
-                'updatedAt': 'Son Güncelleme',
-                'updatedBy': 'Güncelleyen',
-                'callcount': 'Çağrı Sayısı'
-            };
-            
-            // Özel hücre rendererlar için eşleştirme
-            const cellRendererComponents: Record<string, any> = {
-                'status': StatusCellRenderer,
-                'priority': PriorityCellRenderer,
-                'slaBreach': SlaBreachCellRenderer,
-                'createdAt': DateCellRenderer,
-                'updatedAt': DateCellRenderer,
-                'dueDate': DateCellRenderer,
-                'ticketno': TicketNoCellRenderer
-            };
-            
-            // Tarih alanları
-            const dateFields = ['createdAt', 'updatedAt', 'dueDate', 'resolutionTime'];
-            
-            // Öncelikli kolonlar - Her zaman en başta olacak kolonlar
-            if ('ticketno' in firstRow) {
-                dynamicColumns.push({
-                    headerName: columnLabels['ticketno'] || 'Talep No',
-                    field: 'ticketno',
-                    filter: 'agNumberColumnFilter',
-                    width: 120,
-                    pinned: 'left',
-                    cellRenderer: TicketNoCellRenderer
-                });
-            }
-            
-            if ('title' in firstRow) {
-                dynamicColumns.push({
-                    headerName: columnLabels['title'] || 'Başlık',
-                    field: 'title',
-                    filter: 'agTextColumnFilter',
-                    minWidth: 250,
-                    flex: 1,
-                });
-            }
-            
-            // Diğer tüm kolonları ekle
-            for (const key in firstRow) {
-                // Zaten eklenen kolonları atla
-                if (key === 'ticketno' || key === 'title') continue;
+    const [columnDefs] = useState<ColDef[]>([
+        {
+            headerName: 'Talep No',
+            field: 'TicketNo',
+            filter: 'agTextColumnFilter',
+            width: 120,
+            pinned: 'left',
+            cellRenderer: TicketNoCellRenderer
+        },
+        {
+            headerName: 'Konu',
+            field: 'Subject',
+            filter: 'agTextColumnFilter',
+            minWidth: 250,
+            flex: 1,
+        },
+        {
+            headerName: 'Durum',
+            field: 'Status',
+            filter: 'agSetColumnFilter',
+            width: 120,
+            cellRenderer: StatusCellRenderer
+        },
+        {
+            headerName: 'Öncelik',
+            field: 'Priority',
+            filter: 'agSetColumnFilter',
+            width: 120,
+            cellRenderer: PriorityCellRenderer
+        },
+        {
+            headerName: 'Oluşturulma Tarihi',
+            field: 'CreatedAt',
+            filter: 'agDateColumnFilter',
+            width: 180,
+            cellRenderer: DateCellRenderer
+        },
+        {
+            headerName: 'Çözüm Tarihi',
+            field: 'resolved_at',
+            filter: 'agDateColumnFilter',
+            width: 180,
+            cellRenderer: DateCellRenderer
+        },
+        {
+            headerName: 'Atanan Kişi',
+            field: 'assigned_to_name',
+            filter: 'agTextColumnFilter',
+            width: 150,
+        },
+
+        {
+            headerName: 'Çözüm Notu',
+            field: 'resolution_notes',
+            filter: 'agTextColumnFilter',
+            width: 150,
+        },
+
+        {
+            headerName: 'Firma Adı',
+            field: 'company_name',
+            filter: 'agTextColumnFilter',
+            width: 250,
+            pinned: 'left',
+        },
+
+
+
+        {
+            headerName: 'Çözüm Süresi',
+            field: 'elapsed_time',
+            filter: 'agNumberColumnFilter',
+            width: 150,
+            cellRenderer: ElapsedTimeCellRenderer,
+            // Extract numeric value for sorting (minutes)
+            valueGetter: (params) => {
+                if (!params.data || !params.data.elapsed_time) return 0;
                 
-                // Kolon tanımını oluştur
-                const columnDef: ColDef = {
-                    headerName: columnLabels[key] || key,
-                    field: key,
-                    filter: typeof firstRow[key] === 'number' 
-                        ? 'agNumberColumnFilter' 
-                        : typeof firstRow[key] === 'boolean'
-                            ? 'agSetColumnFilter'
-                            : dateFields.includes(key)
-                                ? 'agDateColumnFilter'
-                                : 'agTextColumnFilter',
-                    width: key === 'description' ? 300 : 150,
-                };
-                
-                // Özel hücre renderer ekle
-                if (cellRendererComponents[key]) {
-                    columnDef.cellRenderer = cellRendererComponents[key];
+                if (typeof params.data.elapsed_time === 'string') {
+                    // Extract number from "X minutes" format
+                    const match = params.data.elapsed_time.match(/(\d+)/);
+                    return match ? parseInt(match[1], 10) : 0;
                 }
                 
-                dynamicColumns.push(columnDef);
+                return params.data.elapsed_time;
             }
-            
-            setColumnDefs(dynamicColumns);
         }
-    }, [rowData]);
+    ]);
     
     // AG Grid default column definitions
     const defaultColDef = {
@@ -346,7 +338,7 @@ export default function AllTicketsPage() {
         common: {
             title: {
                 enabled: true,
-                text: 'Talep Raporları',
+                text: 'Çözüm Analizi',
                 fontWeight: 'bold',
                 fontSize: 16,
                 color: theme === 'dark' ? '#ffffff' : '#000000',
@@ -421,7 +413,7 @@ export default function AllTicketsPage() {
     // Hücre tıklama olayı
     const onCellClicked = (params: CellClickedEvent) => {
         // Sadece ticketno sütununa tıklandığında ve pinned row olmadığında çalış
-        if (params.column.getColId() === 'ticketno' && !params.node.rowPinned) {
+        if (params.column.getColId() === 'TicketNo' && !params.node.rowPinned) {
             const ticketNo = params.value;
             const ticketId = params.data.id;
             
@@ -434,8 +426,8 @@ export default function AllTicketsPage() {
     // AG Grid pinned bottom row data
     const [pinnedBottomRowData, setPinnedBottomRowData] = useState<any[]>([]);
 
-    // Veri yükleme fonksiyonu - Store'u kullanmadan doğrudan çalışacak
-    const fetchTicketsDirectly = useCallback(async () => {
+    // Veri yükleme fonksiyonu
+    const fetchResolutionData = useCallback(async () => {
         // Aktif tab kontrolü
         if (activeTab !== TAB_NAME) {
             return;
@@ -447,7 +439,7 @@ export default function AllTicketsPage() {
             setCurrentStep("Veriler getiriliyor...");
             const latestFilter = useTabStore.getState().getTabFilter(activeTab);
 
-            const response = await axios.post('/api/main/reports/alltickets', {
+            const response = await axios.post('/api/main/reports/resolution-analysis', {
                 date1: latestFilter?.date?.from || '2020-01-01',
                 date2: latestFilter?.date?.to || new Date().toISOString(),
             });
@@ -457,13 +449,13 @@ export default function AllTicketsPage() {
                 setRowData(response.data);
                 setPinnedBottomRowData([
                     {
-                        ticketno: `Toplam: ${response.data.length} kayıt`,
+                        TicketNo: `Toplam: ${response.data.length} kayıt`,
                     }
                 ]);
             }
         } catch (err: any) {
-            console.error('Error loading tickets:', err);
-            setError(err.response?.data?.message || 'Destek talepleri yüklenemedi');
+            console.error('Error loading resolution data:', err);
+            setError(err.response?.data?.message || 'Çözüm analizi verileri yüklenemedi');
         } finally {
             setLocalIsLoading(false);
             setCurrentStep("");
@@ -472,28 +464,28 @@ export default function AllTicketsPage() {
         }
     }, [activeTab, TAB_NAME]);
 
-    // Veri yükleme ve tab değişikliği izleme - TAB DEĞİŞİMİNDE VERİ KORUMA İÇİN DÜZELTİLDİ
+    // Veri yükleme ve tab değişikliği izleme
     useEffect(() => {
         // Tab aktif olduğunda ve veri henüz yüklenmemişse yükle
         if (activeTab === TAB_NAME && !dataLoadedRef.current) {
-            fetchTicketsDirectly();
+            fetchResolutionData();
         }
         
-        // Global window fonksiyonu olarak refreshTicketList'i tanımla
-        window.refreshTicketList = () => {
+        // Global window fonksiyonu olarak refreshResolutionAnalysis'i tanımla
+        window.refreshResolutionAnalysis = () => {
             if (activeTab === TAB_NAME) {
                 // Manuel tetiklendiğinde dataLoadedRef'i false yap ve veriyi yenile
                 dataLoadedRef.current = false;
-                return fetchTicketsDirectly();
+                return fetchResolutionData();
             }
             return Promise.resolve();
         };
         
         return () => {
             // Component unmount olduğunda global fonksiyonu temizle
-            window.refreshTicketList = undefined;
+            window.refreshResolutionAnalysis = undefined;
         };
-    }, [activeTab, fetchTicketsDirectly, TAB_NAME]);
+    }, [activeTab, fetchResolutionData, TAB_NAME]);
     
     // Component ilk mount olduğunda çalışır
     useEffect(() => {
@@ -518,9 +510,9 @@ export default function AllTicketsPage() {
             appliedAtRef.current = selectedFilter.appliedAt;
             // Filtre değiştiğinde dataLoadedRef'i sıfırla ve yeni veri yükle
             dataLoadedRef.current = false;
-            fetchTicketsDirectly();
+            fetchResolutionData();
         }
-    }, [selectedFilter.appliedAt, activeTab, TAB_NAME, fetchTicketsDirectly]);
+    }, [selectedFilter.appliedAt, activeTab, TAB_NAME, fetchResolutionData]);
     
     return (
         <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 h-[calc(85vh-4rem)] flex flex-col">
@@ -535,7 +527,7 @@ export default function AllTicketsPage() {
                                 <Button 
                                     variant="outline" 
                                     className="mt-4"
-                                    onClick={() => fetchTicketsDirectly()}
+                                    onClick={() => fetchResolutionData()}
                                 >
                                     Tekrar Dene
                                 </Button>
@@ -580,6 +572,7 @@ export default function AllTicketsPage() {
                                 rowGroupPanelShow="always"
                                 groupDisplayType="multipleColumns"
                                 groupDefaultExpanded={1}
+                                chartThemeOverrides={chartThemeOverrides}
                             />
                         </div>
                     )}

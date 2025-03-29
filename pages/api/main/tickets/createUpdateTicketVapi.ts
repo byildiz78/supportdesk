@@ -138,7 +138,7 @@ export default async function handler(
               is_deleted
             )
             VALUES (
-              $1, $2, false, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP, false
+              $1, $2, true, CURRENT_TIMESTAMP, $3, CURRENT_TIMESTAMP, false
             )
             RETURNING id, created_at as "createdAt";
           `;

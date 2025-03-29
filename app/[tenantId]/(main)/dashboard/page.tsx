@@ -12,7 +12,8 @@ import {
     AlertCircle, 
     Users, 
     UserCheck, 
-    ClipboardList 
+    ClipboardList,
+    Timer
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTabStore } from "@/stores/tab-store";
@@ -53,6 +54,10 @@ interface DashboardData {
         'Aktif Temsilci': string;
         'Müsait Temsilci': string;
     };
+    averageResolutionTime: {
+        'Ortalama Çözüm Süresi': string;
+        'Dakika Cinsinden': string;
+    };
     recentTickets: RecentTicket[];
     ticketStats: {
         'Gün': string;
@@ -72,6 +77,7 @@ export default function Dashboard() {
         openTickets: false,
         resolvedToday: false,
         activeAgents: false,
+        averageResolutionTime: false,
         trendsChart: false,
         recentTickets: false,
     });
@@ -102,6 +108,7 @@ export default function Dashboard() {
                 openTickets: true,
                 resolvedToday: true,
                 activeAgents: true,
+                averageResolutionTime: true,
                 trendsChart: true,
                 recentTickets: true,
             });
@@ -127,6 +134,7 @@ export default function Dashboard() {
                 openTickets: false,
                 resolvedToday: false,
                 activeAgents: false,
+                averageResolutionTime: false,
                 trendsChart: false,
                 recentTickets: false,
             });
@@ -150,6 +158,7 @@ export default function Dashboard() {
                 openTickets: false,
                 resolvedToday: false,
                 activeAgents: false,
+                averageResolutionTime: false,
                 trendsChart: false,
                 recentTickets: false,
             });
@@ -324,7 +333,7 @@ export default function Dashboard() {
                 <div className="p-3 space-y-4 md:space-y-6 pb-20">
 
                     {/* Summary Widgets */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {/* Toplam Talepler */}
                         <Card className="relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20" />
@@ -450,6 +459,39 @@ export default function Dashboard() {
                                     </div>
                                     <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl shadow-xl shadow-purple-500/10">
                                         <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Ortalama Çözüm Süresi */}
+                        <Card className="relative overflow-hidden group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20" />
+                            <div className="absolute inset-0 bg-grid-black/5 [mask-image:linear-gradient(0deg,transparent,black)] dark:bg-grid-white/5" />
+                            <div className="p-6 relative">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Ortalama Çözüm Süresi</p>
+                                        {loadingCards.averageResolutionTime ? (
+                                            <div className="h-8 mt-1 flex items-center">
+                                                <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                <span className="text-muted-foreground text-sm">Yükleniyor...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <h3 className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mt-1">
+                                                    {dashboardData?.averageResolutionTime?.['Ortalama Çözüm Süresi'] || "N/A"}
+                                                </h3>
+                                                <div className="flex items-center gap-1 mt-2 text-sm text-cyan-600/80 dark:text-cyan-400/80">
+                                                    <Clock className="h-4 w-4" />
+                                                    <span>{dashboardData?.averageResolutionTime?.['Dakika Cinsinden'] || "0"}</span>
+                                                    <span className="text-gray-600/60 dark:text-gray-400/60">dakika</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl shadow-xl shadow-cyan-500/10">
+                                        <Timer className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                                     </div>
                                 </div>
                             </div>

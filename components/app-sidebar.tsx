@@ -113,7 +113,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 expanded: false,
                 items: [
                   {
-                    title: "Tüm Ticket Raporları",
+                    title: "Tüm Ticketlar",
                     icon: LucideIcons.ReceiptText, 
                     url: "/reports/alltickets"
                   },
@@ -121,6 +121,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     title: "Isı Haritası",
                     icon: LucideIcons.ReceiptText, 
                     url: "/reports/heatmap"
+                  },
+                  {
+                    title: "Çözüm Analizi",
+                    icon: LucideIcons.Timer, 
+                    url: "/reports/resolution-analysis"
                   },
                 ]
               },              

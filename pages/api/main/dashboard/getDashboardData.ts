@@ -29,6 +29,10 @@ interface DashboardData {
         'Aktif Temsilci': string;
         'Müsait Temsilci': string;
     };
+    averageResolutionTime: {
+        'Ortalama Çözüm Süresi': string;
+        'Dakika Cinsinden': string;
+    };
     recentTickets: RecentTicket[];
     ticketStats: {
         'Gün': string;
@@ -199,6 +203,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ORDER BY day
         `;
 
+        // Seçili tarih aralığı için ortalama çözüm süresi
+        const avgResolutionTimeForRangeQuery = `
+            SELECT 
+                AVG(EXTRACT(EPOCH FROM (resolution_time - created_at))/60)::numeric(10,1) as avg_resolution_minutes
+            FROM tickets
+            WHERE (is_deleted = false OR is_deleted IS NULL)
+            AND status = 'resolved'
+            AND created_at >= $1 AND created_at <= $2
+            AND resolution_time IS NOT NULL
+            ${tenantFilter}
+        `;
+
         // Tüm sorguları çalıştır
         const [
             totalTicketsResult,
@@ -213,7 +229,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             recentTicketsResult,
             openedStatsResult,
             resolvedStatsResult,
-            avgResolutionTimeResult
+            avgResolutionTimeResult,
+            avgResolutionTimeForRangeResult
         ] = await Promise.all([
             db.executeQuery<any[]>({ query: totalTicketsQuery, params: [], req }),
             db.executeQuery<any[]>({ query: currentMonthTicketsQuery, params: [], req }),
@@ -227,7 +244,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             db.executeQuery<any[]>({ query: recentTicketsQuery, params: [], req }),
             db.executeQuery<any[]>({ query: openedStatsQuery, params: [], req }),
             db.executeQuery<any[]>({ query: resolvedStatsQuery, params: [], req }),
-            db.executeQuery<any[]>({ query: avgResolutionTimeQuery, params: [], req })
+            db.executeQuery<any[]>({ query: avgResolutionTimeQuery, params: [], req }),
+            db.executeQuery<any[]>({ query: avgResolutionTimeForRangeQuery, params: [date1, date2], req })
         ]);
 
         // Değişim yüzdesini hesapla
@@ -365,6 +383,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 'Aktif Temsilci': activeAgentsResult?.[0]?.active_agents?.toString() || '0',
                 'Müsait Temsilci': availableAgentsResult?.[0]?.available_agents?.toString() || '0'
             },
+            averageResolutionTime: {
+                'Ortalama Çözüm Süresi': formatResolutionTime(avgResolutionTimeForRangeResult?.[0]?.avg_resolution_minutes || 0),
+                'Dakika Cinsinden': Math.round(avgResolutionTimeForRangeResult?.[0]?.avg_resolution_minutes || 0).toString()
+            },
             recentTickets: formattedRecentTickets,
             ticketStats: Object.values(dailyStats)
         };
@@ -377,5 +399,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             message: 'Veritabanından dashboard verileri alınırken bir hata oluştu', 
             details: error.message 
         });
+    }
+}
+
+// Çözüm süresini formatla (dakikayı saat ve dakika olarak göster)
+function formatResolutionTime(minutes: number): string {
+    if (!minutes || isNaN(minutes)) return 'N/A';
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = Math.round(minutes % 60);
+    
+    if (hours === 0) {
+        return `${remainingMinutes} dk`;
+    } else if (remainingMinutes === 0) {
+        return `${hours} sa`;
+    } else {
+        return `${hours} sa ${remainingMinutes} dk`;
     }
 }
