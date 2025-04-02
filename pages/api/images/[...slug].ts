@@ -10,7 +10,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     try {
         const { slug } = req.query;
         const filePath = path.join(process.env.FILE_UPLOAD_DIR || process.cwd(), ...slug as string[]);
-        console.log(filePath)
         const extension = path.extname(filePath).toLowerCase().substr(1);
 
 

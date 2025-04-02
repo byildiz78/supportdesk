@@ -2,7 +2,71 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/database';
 import { extractTenantFromBody } from '@/lib/utils';
 import { sendEventToClients } from '../../events';
+import axios from '@/lib/axios';
 
+// SMS gönderme fonksiyonu
+const sendSmsNotification = async (phoneNumber: string | null, ticketNo: string, isNewTicket: boolean = true): Promise<void> => {
+  if (!phoneNumber) {
+    console.log('SMS gönderilemedi: Telefon numarası bulunamadı');
+    return;
+  }
+  
+  // Telefon numarasını formatlama (başındaki +90 varsa kaldır)
+  let formattedPhone = phoneNumber.replace(/^\+90/, '');
+  // Boşlukları ve tire işaretlerini kaldır
+  formattedPhone = formattedPhone.replace(/[\s-]/g, '');
+  
+  // Eğer numara 10 haneli değilse ve 0 ile başlıyorsa, baştaki 0'ı kaldır
+  if (formattedPhone.startsWith('0') && formattedPhone.length === 11) {
+    formattedPhone = formattedPhone.substring(1);
+  }
+  
+  // Numara 10 haneli değilse, hata logla ve devam et
+  if (formattedPhone.length !== 10) {
+    console.log(`SMS gönderilemedi: Geçersiz telefon numarası formatı: ${phoneNumber}, formatlanmış: ${formattedPhone}`);
+    return;
+  }
+  
+  try {
+    // Yeni ticket veya mevcut ticket'a göre farklı mesaj gönder
+    let smsMessage = '';
+    
+    if (isNewTicket) {
+      // Yeni ticket oluşturulduğunda
+      smsMessage = `Robotpos destek talebiniz #${ticketNo}# no ile olusturulmustur. Kisa sure icerisinde uzman bir arkadasimiz sizinle iletisime gececektir.`;
+    } else {
+      // Var olan ticket'a yorum eklendiğinde
+      smsMessage = `Robotpos destek sistemi: #${ticketNo}# numarali destek talebiniz guncellenmistir. Kisa sure icerisinde uzman bir arkadasimiz sizinle iletisime gececektir.`;
+    }
+    
+    const response = await axios({
+      method: 'post',
+      url: 'https://api.netgsm.com.tr/sms/rest/v2/send',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic MjE2NjA2NzAyNjpNYW50YXIzXw=='
+      },
+      data: {
+        msgheader: "RobotPOS",
+        startdate: "",
+        stopdate: "",
+        appname: "robotPOS",
+        iysfilter: "0",
+        encoding: "TR",
+        messages: [
+          {
+            msg: smsMessage,
+            no: formattedPhone
+          }
+        ]
+      }
+    });
+    
+    console.log('SMS gönderildi:', response.data);
+  } catch (error) {
+    console.error('SMS gönderme hatası:', error);
+  }
+};
 
 // UUID formatını doğrulama fonksiyonu
 const isValidUUID = (uuid: string | undefined | null): boolean => {
@@ -198,6 +262,17 @@ export default async function handler(
             console.error('SSE callcount güncelleme olayı gönderme hatası:', sseError);
           }
           
+          // Var olan ticket'a yorum eklendiğinde SMS gönder
+          if (phoneNumber) {
+            try {
+              const ticketNo = existingTicket.rows[0].ticketno || existingTicketId.substring(0, 8);
+              await sendSmsNotification(phoneNumber, ticketNo, false);
+            } catch (smsError) {
+              console.error('SMS gönderme hatası:', smsError);
+              // SMS hatası işlemi engellemeyecek
+            }
+          }
+          
           // Var olan ticket'a yorum eklendiğini bildir
           return res.status(200).json({
             success: true,
@@ -382,6 +457,16 @@ export default async function handler(
           ticketId = result.rows[0].id;
           ticketNo = result.rows[0].ticketno;
           isNewTicket = true;
+          
+          // Yeni ticket oluşturulduğunda SMS gönder
+          if (safeTicketData.customer_phone) {
+            try {
+              await sendSmsNotification(safeTicketData.customer_phone, ticketNo, true);
+            } catch (smsError) {
+              console.error('SMS gönderme hatası:', smsError);
+              // SMS hatası ticket oluşturmayı engellemeyecek
+            }
+          }
           
           // YENİ: Sakladığımız description değerini bir yorum olarak ekleyelim, HTML uyumlu formatlama ile
           if (originalDescription) {

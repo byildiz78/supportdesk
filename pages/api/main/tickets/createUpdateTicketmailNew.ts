@@ -648,10 +648,8 @@ export default async function handler(
         console.error('SSE olayı gönderme hatası:', sseError);
       }
 
-      const count = 1;
-      //Test İşlemi İçin
       // Send email notification for new ticket creation
-      if (count > 1) {
+      if (isNewTicket && safeTicketData.source === 'email' && sender_email) {
         console.log('Starting email notification process for new ticket:', {
           ticketId,
           ticketNo,

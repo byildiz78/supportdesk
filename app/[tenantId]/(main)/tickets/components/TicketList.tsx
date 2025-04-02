@@ -121,7 +121,6 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
                     "deleted"
                 );
             } catch (error) {
-                console.log('Destek talebi history tablosuna kaydedilirken hata:', error)
                 toast({
                     title: "Hata",
                     description: "Destek talebi kayıt edilmedi",

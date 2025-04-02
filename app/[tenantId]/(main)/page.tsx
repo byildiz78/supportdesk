@@ -5,7 +5,6 @@ import { useTabStore } from "@/stores/tab-store";
 import dynamic from 'next/dynamic';
 import { memo } from 'react';
 import { Home as HomeIcon } from 'lucide-react';
-import MobilePage from "@/app/[tenantId]/(main)/mobile/page";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
     CustomTabs, 
@@ -13,6 +12,7 @@ import {
     CustomTabsTrigger, 
     CustomTabsCSS 
 } from "@/components/custom-tabs";
+import { useHeartbeat } from "@/hooks/use-heartbeat";
 
 const DashboardPage = memo(dynamic(() => import('@/app/[tenantId]/(main)/dashboard/page'), {
     loading: () => <div>Loading...</div>,
@@ -20,6 +20,7 @@ const DashboardPage = memo(dynamic(() => import('@/app/[tenantId]/(main)/dashboa
 }));
 
 export default function MainPage() {
+    useHeartbeat();
     const { tabs, activeTab, setActiveTab, removeTab, removeAllTabs, renderedComponents, setRenderedComponent } = useTabStore();
     const isMobile = useIsMobile();
     const handleCloseTab = (tabId: string) => {
@@ -36,9 +37,6 @@ export default function MainPage() {
         removeTab(tabId);
     };
 
-    if(isMobile){
-        return <MobilePage />;
-    }
     return (
         <div className="flex h-screen overflow-hidden w-full">
             <AppSidebar />
@@ -75,8 +73,6 @@ export default function MainPage() {
                                             height: "100%",
                                             position: activeTab === "dashboard" ? "relative" : "absolute"
                                         }}
-                                        data-tab-id="dashboard"
-                                        tabIndex={-1}
                                     >
                                         <DashboardPage />
                                     </div>
@@ -97,8 +93,6 @@ export default function MainPage() {
                                                     position: activeTab === tab.id ? "relative" : "absolute",
                                                     width: "100%"
                                                 }}
-                                                data-tab-id={tab.id}
-                                                tabIndex={-1}
                                             >
                                                 {renderedComponents[tab.id]}
                                             </div>

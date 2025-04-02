@@ -73,15 +73,17 @@ export default async function handler(
                 first_name = CASE WHEN $1 != '' THEN SPLIT_PART($1, ' ', 1) ELSE first_name END,
                 last_name = CASE WHEN $1 != '' THEN SPLIT_PART($1, ' ', 2) ELSE last_name END,
                 email = COALESCE($2, email),
-                position = COALESCE($3, position),
+                mobile = COALESCE($3, mobile),
+                position = COALESCE($4, position),
                 updated_at = CURRENT_TIMESTAMP
-              WHERE id = $4
+              WHERE id = $5
               RETURNING id, first_name, last_name, email
             `;
             
             const updateResult = await client.query(updateContactQuery, [
               safeTicketData.customer_name || '',
               safeTicketData.customer_email,
+              safeTicketData.customer_phone,
               safeTicketData.contact_position,
               contactId
             ]);

@@ -1135,12 +1135,6 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                                     )
                                                 }}
                                             />
-                                            {companies.length > 100 && companySearch.length === 0 && (
-                                                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                                                    <Search className="h-3 w-3 mr-1" />
-                                         
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                 )}

@@ -8,6 +8,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { FaWhatsapp } from "react-icons/fa";
 
 interface NavItem {
     title: string;
@@ -23,8 +24,8 @@ interface NavItem {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
     const tenantId = pathname?.split("/")[1] || "";
-    const [userData, setUserData] = useState({ name: "", email: "" ,usercategory: "" ,userrole: ""});
-    
+    const [userData, setUserData] = useState({ name: "", email: "", usercategory: "", userrole: "" });
+
     React.useEffect(() => {
         const storedUserData = localStorage.getItem(`userData_${tenantId}`);
         if (storedUserData) {
@@ -74,71 +75,77 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 isActive: true,
                 expanded: false,
                 items: [
-                  {
-                    title: "Çağrı Merkezi",
-                    icon: LucideIcons.Headphones, // Çağrı merkezi için kulaklık ikonu mantıklı
-                    url: "/call-center"
-                  },
-                  {
-                    title: "Arge",
-                    icon: LucideIcons.FlaskConical, // AR-GE için laboratuvar şişesi ikonu uygun
-                    url: "/arge"
-                  },
-                  {
-                    title: "ERP",
-                    icon: LucideIcons.Server, // ERP sistemleri genellikle sunucu tabanlıdır
-                    url: "/erp"
-                  },
-                  {
-                    title: "Operasyon Destek",
-                    icon: LucideIcons.LifeBuoy, // Destek hizmetleri için can simidi ikonu anlamlı
-                    url: "/operationdesk"
-                  },
-                  {
-                    title: "Yerinde Servis",
-                    icon: LucideIcons.Truck, // Yerinde servis için araç (kamyon) ikonu kullanılabilir
-                    url: "/inhouse"
-                  },
-                  {
-                    title: "Yazılım",
-                    icon: LucideIcons.Code, // Yazılım departmanı için kod ikonu en uygunu
-                    url: "/software"
-                  }
+                    {
+                        title: "Çağrı Merkezi",
+                        icon: LucideIcons.Headphones, // Çağrı merkezi için kulaklık ikonu mantıklı
+                        url: "/call-center"
+                    },
+                    {
+                        title: "Arge",
+                        icon: LucideIcons.FlaskConical, // AR-GE için laboratuvar şişesi ikonu uygun
+                        url: "/arge"
+                    },
+                    {
+                        title: "ERP",
+                        icon: LucideIcons.Server, // ERP sistemleri genellikle sunucu tabanlıdır
+                        url: "/erp"
+                    },
+                    {
+                        title: "Operasyon Destek",
+                        icon: LucideIcons.LifeBuoy, // Destek hizmetleri için can simidi ikonu anlamlı
+                        url: "/operationdesk"
+                    },
+                    {
+                        title: "Yerinde Servis",
+                        icon: LucideIcons.Truck, // Yerinde servis için araç (kamyon) ikonu kullanılabilir
+                        url: "/inhouse"
+                    },
+                    {
+                        title: "Yazılım",
+                        icon: LucideIcons.Code, // Yazılım departmanı için kod ikonu en uygunu
+                        url: "/software"
+                    }
                 ]
-              },
-              {
+            },
+            {
+                title: "Whatsapp",
+                icon: FaWhatsapp,
+                isActive: true,
+                url: "/whatsapp"
+            },
+            {
                 title: "Raporlar",
-                icon: LucideIcons.ChartBarIncreasing, 
+                icon: LucideIcons.ChartBarIncreasing,
                 isActive: true,
                 expanded: false,
                 items: [
-                  {
-                    title: "Tüm Ticketlar",
-                    icon: LucideIcons.ReceiptText, 
-                    url: "/reports/alltickets"
-                  },
-                  {
-                    title: "Isı Haritası",
-                    icon: LucideIcons.ReceiptText, 
-                    url: "/reports/heatmap"
-                  },
-                  {
-                    title: "Isı Haritası-Departman",
-                    icon: LucideIcons.FolderKanban, 
-                    url: "/reports/heatmap-department"
-                  },
-                  {
-                    title: "Isı Haritası-Müşteri",
-                    icon: LucideIcons.FolderKanban, 
-                    url: "/reports/heatmap-customer"
-                  },
-                  {
-                    title: "Çözüm Analizi",
-                    icon: LucideIcons.Timer, 
-                    url: "/reports/resolution-analysis"
-                  },
+                    {
+                        title: "Tüm Ticketlar",
+                        icon: LucideIcons.ReceiptText,
+                        url: "/reports/alltickets"
+                    },
+                    {
+                        title: "Isı Haritası",
+                        icon: LucideIcons.ReceiptText,
+                        url: "/reports/heatmap"
+                    },
+                    {
+                        title: "Isı Haritası-Departman",
+                        icon: LucideIcons.FolderKanban,
+                        url: "/reports/heatmap-department"
+                    },
+                    {
+                        title: "Isı Haritası-Müşteri",
+                        icon: LucideIcons.FolderKanban,
+                        url: "/reports/heatmap-customer"
+                    },
+                    {
+                        title: "Çözüm Analizi",
+                        icon: LucideIcons.Timer,
+                        url: "/reports/resolution-analysis"
+                    },
                 ]
-              },              
+            },
             {
                 title: "Ayarlar",
                 icon: LucideIcons.Settings,

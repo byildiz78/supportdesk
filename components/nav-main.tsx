@@ -122,31 +122,12 @@ export const NavMain = ({ items }: { items: NavItem[] }) => {
         // Dashboard için özel kontrol
         if (title.toLowerCase() === 'dashboard') {
             setActiveTab('dashboard');
-            // Focus management for dashboard
-            setTimeout(() => {
-                const mainContentArea = document.querySelector('.flex-1.mt-4.overflow-hidden');
-                if (mainContentArea) {
-                    (mainContentArea as HTMLElement).focus();
-                }
-            }, 50);
             return;
         }
 
         const foundedTab = tabs.find(tab => tab.id === id);
         if (foundedTab) {
             setActiveTab(id);
-            // Focus management for existing tabs
-            setTimeout(() => {
-                const tabContent = document.querySelector(`[data-tab-id="${id}"]`);
-                if (tabContent) {
-                    (tabContent as HTMLElement).focus();
-                } else {
-                    const mainContentArea = document.querySelector('.flex-1.mt-4.overflow-hidden');
-                    if (mainContentArea) {
-                        (mainContentArea as HTMLElement).focus();
-                    }
-                }
-            }, 50);
         } else {
             const { settings } = useSettingsStore.getState();
             const daystart = parseInt(settings.find(setting => setting.Kod === "daystart")?.Value || '0');
@@ -178,9 +159,7 @@ export const NavMain = ({ items }: { items: NavItem[] }) => {
                     )
                 },
                 branches: selectedFilter.branches,
-                tags: selectedFilter.tags || [],
                 selectedBranches: selectedFilter.selectedBranches,
-                selectedTags: selectedFilter.selectedTags || [],
                 appliedAt: Date.now()
             };
     
@@ -200,14 +179,6 @@ export const NavMain = ({ items }: { items: NavItem[] }) => {
             
             setTabFilter(id, defaultFilter);
             setFilter(defaultFilter);
-            
-            // Focus management for new tabs
-            setTimeout(() => {
-                const mainContentArea = document.querySelector('.flex-1.mt-4.overflow-hidden');
-                if (mainContentArea) {
-                    (mainContentArea as HTMLElement).focus();
-                }
-            }, 100);
         }
     }
     const searchItems = (items: NavItem[], query: string): NavItem[] => {

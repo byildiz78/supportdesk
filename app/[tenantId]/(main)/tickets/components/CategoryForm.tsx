@@ -339,12 +339,6 @@ export default function CategoryForm({
                 }}
                 menuPortalTarget={menuPortalTarget}
               />
-              {categories.length > 100 && categoryInputValue.length === 0 && (
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <Search className="h-3 w-3 mr-1" />
-                  <span>Aramak için yazmaya başlayın (toplam {categories.length} kategori)</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -385,12 +379,6 @@ export default function CategoryForm({
                 }}
                 menuPortalTarget={menuPortalTarget}
               />
-              {subcategories.length > 100 && subcategoryInputValue.length === 0 && (
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <Search className="h-3 w-3 mr-1" />
-                  <span>Aramak için yazmaya başlayın (toplam {subcategories.length} alt kategori)</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -431,12 +419,6 @@ export default function CategoryForm({
                 }}
                 menuPortalTarget={menuPortalTarget}
               />
-              {groups.length > 100 && groupInputValue.length === 0 && (
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <Search className="h-3 w-3 mr-1" />
-                  <span>Aramak için yazmaya başlayın (toplam {groups.length} grup)</span>
-                </div>
-              )}
             </div>
           </div>
         </div>

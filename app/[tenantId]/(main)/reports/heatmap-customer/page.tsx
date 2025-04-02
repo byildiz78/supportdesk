@@ -225,12 +225,6 @@ export default function CustomerHeatmapPage() {
             setError(null);
         }
         
-        console.log("Heatmap data updated:", {
-            companies: Array.from(allCompanies).length,
-            categories: Array.from(allCategories).length,
-            hours: hours.length,
-            maxValue: newMaxValue
-        });
     }, [rawTicketData, hours]);
     
     // Isı haritası verilerini getir
@@ -257,12 +251,6 @@ export default function CustomerHeatmapPage() {
                 dateFrom.setDate(dateFrom.getDate() - 6);
                 dateFrom.setHours(0, 0, 0, 0);
             }
-            
-            console.log("Tarih aralığı:", {
-                from: dateFrom.toISOString(),
-                to: dateTo.toISOString(),
-                filter: latestFilter?.date
-            });
             
             // API isteği - Backend'in beklediği parametreleri kullan (date1, date2)
             const response = await axios.post('/api/main/reports/heatmap-customer', {
@@ -311,8 +299,6 @@ export default function CustomerHeatmapPage() {
                 
                 return ticketCompany === company && hourKey === hour;
             });
-            
-            console.log(`${company} şirketi, ${hour} saat aralığı için ${filteredTickets.length} talep bulundu`);
             
             setSelectedTickets(filteredTickets);
             setShowTicketDetails(true);
@@ -393,9 +379,7 @@ export default function CustomerHeatmapPage() {
     useEffect(() => {
         // Filtre değişikliği kontrolü
         if (activeTab === TAB_NAME) {
-            console.log("Filtre kontrolü:", selectedFilter.appliedAt, appliedAtRef.current);
             if (selectedFilter.appliedAt !== appliedAtRef.current) {
-                console.log("Filtre değişikliği algılandı:", selectedFilter);
                 appliedAtRef.current = selectedFilter.appliedAt;
                 // Filtre değiştiğinde dataLoadedRef'i sıfırla ve yeni veri yükle
                 dataLoadedRef.current = false;

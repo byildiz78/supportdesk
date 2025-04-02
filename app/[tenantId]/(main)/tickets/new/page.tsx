@@ -181,7 +181,6 @@ export default function NewTicketPage({ ticketId }: NewTicketPageProps) {
               const uploadResult = await uploadResponse.json();
               
               if (uploadResult.success) {
-                console.log(`${files.length} dosya başarıyla yüklendi`);
               } else {
                 throw new Error(uploadResult.message || 'Dosya yükleme başarısız');
               }

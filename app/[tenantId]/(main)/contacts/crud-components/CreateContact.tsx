@@ -311,12 +311,6 @@ export default function CreateContact({ contactId }: CreateContactProps) {
                       )
                     }}
                   />
-                  {companies.length > 100 && companyInputValue.length === 0 && (
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                      <Search className="h-3 w-3 mr-1" />
-                      <span>Aramak için yazmaya başlayın (toplam {companies.length} firma)</span>
-                    </div>
-                  )}
                 </div>
                 <div>
                   <Label>E-posta</Label>

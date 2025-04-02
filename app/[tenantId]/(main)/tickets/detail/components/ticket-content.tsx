@@ -18,6 +18,7 @@ import DOMPurify from 'dompurify';
 import { getTabIcon, Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import TicketResolved from "./ticket-resolved"
+import TicketCompanyHistory from "./ticket-company-history"
 
 interface TicketContentProps {
     ticket: {
@@ -603,6 +604,16 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                         <span className="sm:hidden">Çözüm Notları</span>
                                     </TabsTrigger>
                                 )}
+
+                                <TabsTrigger
+                                    value="companyHistory"
+                                    className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-600 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
+                                    icon={getTabIcon("companyHistory")}
+                                >
+                                    <span className="hidden sm:inline">Ticket Geçmişi</span>
+                                    <span className="sm:hidden">Geçmiş</span>
+                                </TabsTrigger>
+
                                 <TabsTrigger
                                     value="history"
                                     className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-600 data-[state=active]:text-cyan-700 dark:data-[state=active]:text-cyan-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
@@ -680,6 +691,21 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                 </div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Bilet çözüm detayları ve durumu</p>
                                 <TicketResolved ticketId={ticket.id} />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="companyHistory" className="mt-2">
+                            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-900/50 dark:to-purple-900/30 p-5 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-full">
+                                        <History className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                        Ticket Geçmişi
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Biletin durum değişikliklerinin kronolojik geçmişi</p>
+                                <TicketCompanyHistory ticketId={ticket.id} />
                             </div>
                         </TabsContent>
 

@@ -53,7 +53,6 @@ export default async function handler(
       ORDER BY created_at DESC
     `;
 
-    console.log('Kullanıcılar sorgusu çalıştırılıyor:', usersQuery);
 
     const usersResult = await db.executeQuery<User[]>({
       query: usersQuery,
@@ -61,7 +60,6 @@ export default async function handler(
       req
     });
 
-    console.log(`${usersResult.length} kullanıcı bulundu`);
 
     return res.status(200).json({
       success: true,

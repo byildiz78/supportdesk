@@ -59,8 +59,6 @@ export default async function handler(
   try {
     const { ticketId } = req.query;
     
-    console.log('Bilet Detayı API çağrıldı, ticketId:', ticketId);
-
     if (!ticketId) {
       return res.status(400).json({
         success: false,
@@ -109,17 +107,12 @@ export default async function handler(
       WHERE t.id = $1::uuid
     `;
 
-    console.log('Bilet sorgusu çalıştırılıyor:', ticketQuery);
-    console.log('Bilet ID:', ticketId);
-
     try {
       const ticketResult = await db.executeQuery<Ticket[]>({
         query: ticketQuery,
         params: [ticketId],
         req
       });
-
-      console.log('Bilet sorgu sonucu:', JSON.stringify(ticketResult));
 
       if (!ticketResult || ticketResult.length === 0) {
         return res.status(404).json({
@@ -130,7 +123,6 @@ export default async function handler(
 
       // Kişi bilgileri eksikse, contacts tablosundan tekrar sorgulayalım
       if (ticketResult[0].contact_id && (!ticketResult[0].contact_name || !ticketResult[0].contact_email || !ticketResult[0].contact_phone)) {
-        console.log('Kişi bilgileri eksik, contacts tablosundan sorgulanıyor...', ticketResult[0].contact_id);
         
         const contactQuery = `
           SELECT 
@@ -150,28 +142,15 @@ export default async function handler(
             req
           });
           
-          console.log('Kişi sorgu sonucu:', JSON.stringify(contactResult));
-          
           if (contactResult && contactResult.length > 0) {
-            console.log('Kişi bilgileri bulundu, bilet nesnesine ekleniyor...');
             ticketResult[0].contact_name = contactResult[0].contact_name;
             ticketResult[0].contact_email = contactResult[0].contact_email;
             ticketResult[0].contact_phone = contactResult[0].contact_phone;
             ticketResult[0].contact_position = contactResult[0].contact_position;
-            console.log('Güncellenmiş bilet:', JSON.stringify(ticketResult[0]));
-          } else {
-            console.log('Kişi bulunamadı, ID:', ticketResult[0].contact_id);
           }
         } catch (contactError) {
           console.error('Kişi sorgusu hatası:', contactError);
         }
-      } else {
-        console.log('Kişi bilgileri zaten mevcut veya contact_id yok:', 
-          'contact_id:', ticketResult[0].contact_id, 
-          'contact_name:', ticketResult[0].contact_name,
-          'contact_email:', ticketResult[0].contact_email,
-          'contact_phone:', ticketResult[0].contact_phone
-        );
       }
 
       // Bilet yorumlarını getir
@@ -192,16 +171,12 @@ export default async function handler(
         ORDER BY tc.created_at ASC
       `;
 
-      console.log('Yorum sorgusu çalıştırılıyor:', commentsQuery);
-
       try {
         const commentsResult = await db.executeQuery<Comment[]>({
           query: commentsQuery,
           params: [ticketId],
           req
         });
-
-        console.log('Yorum sorgu sonucu:', JSON.stringify(commentsResult));
 
         // Yorumlar için ekleri getir
         const commentsWithAttachments = await Promise.all(commentsResult.map(async (comment) => {
@@ -244,8 +219,6 @@ export default async function handler(
           ...ticketResult[0],
           comments: commentsWithAttachments || []
         };
-        
-        console.log('Bilet detayı döndürülüyor:', JSON.stringify(ticket));
         
         return res.status(200).json({
           success: true,

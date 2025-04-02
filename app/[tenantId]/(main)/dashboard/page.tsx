@@ -574,7 +574,7 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 overflow-y-auto flex-1
+                                    <div className="space-y-4 overflow-y-auto flex-1 cursor-pointer
                                         [&::-webkit-scrollbar]:w-2
                                         [&::-webkit-scrollbar-thumb]:bg-gray-300/50
                                         [&::-webkit-scrollbar-thumb]:rounded-full

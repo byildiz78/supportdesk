@@ -5,15 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { User, Edit, Check, X, MessageSquare, Calendar, Clock } from "lucide-react"
+import { User, Edit, Check, X, MessageSquare, Calendar, Clock, ChevronDown, ChevronUp } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { TicketService } from "../services/ticket-service"
 import { processHtmlContent, normalizeNewlines } from "@/utils/text-utils"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { tr } from "date-fns/locale"
 import axios from "@/lib/axios"
 import { getUserId } from "@/utils/user-utils"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface EditableTicketDetailsProps {
     ticket: {
@@ -47,6 +46,7 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
     const [title, setTitle] = useState(ticket.title)
     const [description, setDescription] = useState(ticket.description)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isDescriptionOpen, setIsDescriptionOpen] = useState(true)
     const { toast } = useToast()
 
     // Process the description when entering edit mode to ensure consistent display
@@ -197,14 +197,28 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-white dark:bg-gray-800/40 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700/30 mt-1">
-                                <div className="flex items-center gap-1.5 mb-2">
+                            <div className="bg-white dark:bg-gray-800/40 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700/30 mt-1">
+                                <div className="flex items-center gap-1.5 px-3 py-2">
                                     <MessageSquare className="h-3.5 w-3.5 text-blue-500" />
                                     <h3 className="font-semibold text-base text-gray-800 dark:text-gray-200">{title}</h3>
                                 </div>
-                                <div className="text-gray-700 dark:text-gray-300 ticket-description prose prose-xs max-w-none dark:prose-invert prose-headings:text-gray-800 dark:prose-headings:text-gray-200 prose-p:text-gray-600 dark:prose-p:text-gray-300 text-sm">
-                                    {processHtmlContent(ticket.description)}
-                                </div>
+                                
+                                <Collapsible 
+                                    open={isDescriptionOpen} 
+                                    onOpenChange={setIsDescriptionOpen}
+                                >
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="w-full flex justify-between text-xs text-muted-foreground border-t border-gray-100 dark:border-gray-700/30">
+                                            <span>Açıklama Detayları</span>
+                                            <span>{isDescriptionOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}</span>
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="px-3 pb-3">
+                                        <div className="text-gray-700 dark:text-gray-300 ticket-description prose prose-xs max-w-none dark:prose-invert prose-headings:text-gray-800 dark:prose-headings:text-gray-200 prose-p:text-gray-600 dark:prose-p:text-gray-300 text-sm">
+                                            {processHtmlContent(ticket.description)}
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
                             </div>
                         )}
                     </div>

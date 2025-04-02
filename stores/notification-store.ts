@@ -54,10 +54,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }
       
       const apiUrl = `/api/main/tickets/assigned-tickets?userId=${userId}&hours=${hours}`;
-      console.log('API isteği yapılıyor:', apiUrl);
       
       const response = await axios.get(apiUrl);
-      console.log('API yanıtı:', response.data);
       
       if (response.data) {
         // Mevcut bildirimleri al

@@ -149,7 +149,7 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
                             <div className="bg-amber-100 dark:bg-amber-900/30 p-0.5 rounded-full">
                                 <User className="h-3 w-3 text-amber-500 dark:text-amber-400" />
                             </div>
-                            <span>Atanmamış</span>
+                            <span>-</span>
                         </Badge>
                     </div>
                 )}

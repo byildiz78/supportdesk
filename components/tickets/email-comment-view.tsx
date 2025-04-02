@@ -24,9 +24,18 @@ function FilePreview({ file }: FilePreviewProps) {
     const isDoc = fileType.includes('word') || fileType.includes('doc')
     const isSpreadsheet = fileType.includes('excel') || fileType.includes('sheet')
 
+    // Determine the correct file URL
+    // If it's an external URL (not from our domains), use it directly
+    // If it's from our domains or no URL exists, use the API endpoint
+    const isOurDomain = file.url && (file.url.includes('localhost') || file.url.includes('support.robotpos.com'));
+    const isExternalUrl = file.url && !isOurDomain && (file.url.startsWith('http://') || file.url.startsWith('https://') || file.url.startsWith('www.'));
+    const fileUrl = isExternalUrl
+        ? file.url 
+        : `api/images/${file.name || file.originalFilename || 'Dosya'}`;
+
     return (
         <a 
-            href={`api/images/${file.name || file.originalFilename || (file.url && file.url.split('/').pop()) || 'Dosya'}`}
+            href={fileUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs bg-background/50 hover:bg-background/80 px-3 py-2 rounded-md transition-colors group"
@@ -164,7 +173,9 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                                             <div key={file.id || `file-${Math.random()}`} className="flex items-center gap-2 text-xs py-1">
                                                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                                                 <a 
-                                                    href={`api/images/${file.name || file.originalFilename || (file.url && file.url.split('/').pop()) || 'Dosya'}`} 
+                                                    href={file.url && !file.url.includes('localhost') && !file.url.includes('support.robotpos.com') && (file.url.startsWith('http://') || file.url.startsWith('https://') || file.url.startsWith('www.'))
+                                                        ? file.url 
+                                                        : `api/images/${file.name || file.originalFilename || 'Dosya'}`} 
                                                     target="_blank" 
                                                     rel="noopener noreferrer"
                                                     className="text-blue-600 dark:text-blue-400 hover:underline"
@@ -188,8 +199,8 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                         dangerouslySetInnerHTML={{ __html: typeof displayContent === 'string' ? displayContent : '' }}
                     />
                     
-                    {/* Attachments */}
-                    {comment.attachments && Array.isArray(comment.attachments) && comment.attachments.length > 0 && (
+                    {/* Attachments - only show when metadata is closed */}
+                    {!isMetadataOpen && comment.attachments && Array.isArray(comment.attachments) && comment.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-3">
                             {comment.attachments.map((file) => (
                                 <FilePreview key={file.id || `file-${Math.random()}`} file={file} />

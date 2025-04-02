@@ -188,11 +188,6 @@ export default function TicketHeatmapPage() {
                 dateFrom.setHours(0, 0, 0, 0);
             }
             
-            console.log("Tarih aralığı:", {
-                from: dateFrom.toISOString(),
-                to: dateTo.toISOString(),
-                filter: latestFilter?.date
-            });
             
             // API isteği - Backend'in beklediği parametreleri kullan (date1, date2)
             const response = await axios.post('/api/main/reports/heatmap', {
@@ -240,8 +235,6 @@ export default function TicketHeatmapPage() {
                 }
                 return false;
             });
-            
-            console.log(`${day}. gün, ${hour}. saat için ${filteredTickets.length} talep bulundu`);
             
             setSelectedTickets(filteredTickets);
             setShowTicketDetails(true);
@@ -322,9 +315,7 @@ export default function TicketHeatmapPage() {
     useEffect(() => {
         // Filtre değişikliği kontrolü
         if (activeTab === TAB_NAME) {
-            console.log("Filtre kontrolü:", selectedFilter.appliedAt, appliedAtRef.current);
             if (selectedFilter.appliedAt !== appliedAtRef.current) {
-                console.log("Filtre değişikliği algılandı:", selectedFilter);
                 appliedAtRef.current = selectedFilter.appliedAt;
                 // Filtre değiştiğinde dataLoadedRef'i sıfırla ve yeni veri yükle
                 dataLoadedRef.current = false;
