@@ -46,7 +46,7 @@
     "ag-grid-enterprise": "^32.3.3",
     "ag-grid-react": "^32.3.3",
     "apexcharts": "^4.3.0",
-    "axios": "^1.7.7",
+    "axios": "^1.8.4",
     "chartjs-plugin-datalabels": "^2.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
