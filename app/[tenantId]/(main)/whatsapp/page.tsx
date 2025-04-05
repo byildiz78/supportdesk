@@ -10,7 +10,7 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const getAccessToken = async () => {
       try {
-        const response = await axios.get('/supportdesk/api/whatsapp-token')
+        const response = await axios.get('/supportdesk-demo/api/whatsapp-token')
         setAccessToken(response.data.accessToken)
       } catch (error) {
         console.error('Error fetching access token:', error)
