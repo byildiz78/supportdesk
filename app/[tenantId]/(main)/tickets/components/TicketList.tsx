@@ -20,6 +20,7 @@ import { sortTickets } from "./ticket-list/ticket-sort-utils"
 import { usePathname } from "next/navigation"
 import { StatusHistoryService } from "@/app/[tenantId]/(main)/services/status-history-service"
 import { useTicketStore } from "@/stores/ticket-store"
+import { getUserId } from "@/utils/user-utils"
 
 interface TicketListProps {
     tickets: Ticket[]
@@ -107,10 +108,12 @@ export function TicketList({ tickets, isLoading, error, onTicketDeleted = () => 
     const handleDeleteConfirm = async () => {
         if (!ticketToDelete) return
 
+        const userId = getUserId();
         try {
             setIsDeleting(true)
             await axios.post('/api/main/tickets/deleteTicket', {
-                id: ticketToDelete.id
+                id: ticketToDelete.id,
+                updatedBy: userId
             })
 
             // Durum geçmişi tablosuna kaydet

@@ -8,17 +8,26 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FaWhatsapp } from "react-icons/fa";
+import { FaWhatsapp, FaChartBar, FaTicketAlt, FaThermometerHalf, FaBuilding, FaUser, FaChartLine, FaUserCheck, FaWrench, FaServer, FaToolbox } from "react-icons/fa";
+import { 
+  FaLaptop, FaTicketAlt as FaTicket, FaListAlt, FaUserCheck as FaUserCheckIcon, 
+  FaClock, FaCheckCircle, FaBuilding as FaBuildingIcon, FaHeadphones, 
+  FaFlask, FaLifeRing, FaTruck, FaCode, FaChartBar as FaChartBarIcon,
+  FaCog, FaBuilding as FaBuilding2, FaUser as FaUserIcon, FaUserCog, FaFolder 
+} from "react-icons/fa";
+import { IconType } from 'react-icons';
+import { TbTicketOff } from "react-icons/tb";
 
 interface NavItem {
     title: string;
-    icon?: LucideIcons.LucideIcon;
+    icon?: LucideIcons.LucideIcon | IconType;
     isActive?: boolean;
     expanded?: boolean;
     url?: string;
     component?: React.ComponentType<any>;
     items?: NavItem[];
     onClick?: () => void;
+    className?: string;
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -37,149 +46,175 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         const items = [
             {
                 title: "Dashboard",
-                icon: LucideIcons.LayoutDashboard,
+                icon: FaLaptop,
                 isActive: true,
                 url: "/dashboard"
             },
             {
+                title: "Whatsapp",
+                icon: FaWhatsapp,
+                isActive: true,
+                url: "/whatsapp",
+                className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
+            },
+            {
                 title: "Destek Talepleri",
-                icon: LucideIcons.TicketCheck,
+                icon: FaTicket,
                 isActive: true,
                 expanded: true,
                 items: [
                     {
                         title: "Tüm Talepler",
-                        icon: LucideIcons.ListChecks,
+                        icon: FaListAlt,
                         url: "/tickets"
                     },
                     {
+                        title: "Atanmamış Talepler",
+                        icon: TbTicketOff ,
+                        url: "/tickets/unassigned-ticket"
+                    },
+                    {
                         title: "Benim Taleplerim",
-                        icon: LucideIcons.UserCheck,
+                        icon: FaUserCheckIcon,
                         url: "/tickets/my-ticket"
                     },
                     {
                         title: "Bekleyen Talepler",
-                        icon: LucideIcons.Clock,
+                        icon: FaClock,
                         url: "/tickets/pending-ticket"
                     },
                     {
                         title: "Çözülen Talepler",
-                        icon: LucideIcons.CheckCircle,
+                        icon: FaCheckCircle,
                         url: "/tickets/resolved-ticket"
                     }
                 ]
             },
             {
                 title: "Departmanlar",
-                icon: LucideIcons.LayoutDashboard, // Genel departmanlar için uygun bir ikon
+                icon: FaBuildingIcon, // Genel departmanlar için uygun bir ikon
                 isActive: true,
                 expanded: false,
                 items: [
                     {
                         title: "Çağrı Merkezi",
-                        icon: LucideIcons.Headphones, // Çağrı merkezi için kulaklık ikonu mantıklı
+                        icon: FaHeadphones, // Çağrı merkezi için kulaklık ikonu mantıklı
                         url: "/call-center"
                     },
                     {
                         title: "Arge",
-                        icon: LucideIcons.FlaskConical, // AR-GE için laboratuvar şişesi ikonu uygun
+                        icon: FaFlask, // AR-GE için laboratuvar şişesi ikonu uygun
                         url: "/arge"
                     },
                     {
                         title: "ERP",
-                        icon: LucideIcons.Server, // ERP sistemleri genellikle sunucu tabanlıdır
+                        icon: FaServer, // ERP sistemleri genellikle sunucu tabanlıdır
                         url: "/erp"
                     },
                     {
                         title: "Operasyon Destek",
-                        icon: LucideIcons.LifeBuoy, // Destek hizmetleri için can simidi ikonu anlamlı
+                        icon: FaLifeRing, // Destek hizmetleri için can simidi ikonu anlamlı
                         url: "/operationdesk"
                     },
                     {
                         title: "Yerinde Servis",
-                        icon: LucideIcons.Truck, // Yerinde servis için araç (kamyon) ikonu kullanılabilir
+                        icon: FaTruck, // Yerinde servis için araç (kamyon) ikonu kullanılabilir
                         url: "/inhouse"
                     },
                     {
+                        title: "Teknik Servis",
+                        icon: FaWrench, // Teknik servis için araç (kamyon) ikonu kullanılabilir
+                        url: "/technical-service"
+                    },
+                    {
+                        title: "Donanım",
+                        icon: FaToolbox, // Donanım için uygun ikon
+                        url: "/hardware"
+                    },
+                    {
+                        title: "Kurulum",
+                        icon: FaServer, // Kurulum için sunucu ikonu daha uygun
+                        url: "/setup"
+                    },
+                    {
                         title: "Yazılım",
-                        icon: LucideIcons.Code, // Yazılım departmanı için kod ikonu en uygunu
+                        icon: FaCode, // Yazılım departmanı için kod ikonu en uygunu
                         url: "/software"
                     }
                 ]
             },
             {
-                title: "Whatsapp",
-                icon: FaWhatsapp,
-                isActive: true,
-                url: "/whatsapp"
-            },
-            {
                 title: "Raporlar",
-                icon: LucideIcons.ChartBarIncreasing,
+                icon: FaChartBarIcon,
                 isActive: true,
                 expanded: false,
                 items: [
                     {
                         title: "Tüm Ticketlar",
-                        icon: LucideIcons.ReceiptText,
+                        icon: FaTicketAlt,
                         url: "/reports/alltickets"
                     },
                     {
                         title: "Isı Haritası",
-                        icon: LucideIcons.ReceiptText,
+                        icon: FaThermometerHalf,
                         url: "/reports/heatmap"
                     },
                     {
                         title: "Isı Haritası-Departman",
-                        icon: LucideIcons.FolderKanban,
+                        icon: FaBuilding,
                         url: "/reports/heatmap-department"
                     },
                     {
                         title: "Isı Haritası-Müşteri",
-                        icon: LucideIcons.FolderKanban,
+                        icon: FaUser,
                         url: "/reports/heatmap-customer"
                     },
                     {
                         title: "Çözüm Analizi",
-                        icon: LucideIcons.Timer,
+                        icon: FaChartBar,
                         url: "/reports/resolution-analysis"
+                    },
+                    {
+                        title: "Online Kullanıcılar",
+                        icon: FaUserCheck,
+                        url: "/reports/online-users"
                     },
                 ]
             },
             {
                 title: "Ayarlar",
-                icon: LucideIcons.Settings,
+                icon: FaCog,
                 isActive: true,
                 expanded: false,
                 items: [
                     {
                         title: "Ana Firmalar",
-                        icon: LucideIcons.Building2,
+                        icon: FaBuilding2,
                         url: "/parent-companies"
                     },
                     {
                         title: "Firmalar",
-                        icon: LucideIcons.Building,
+                        icon: FaBuildingIcon,
                         url: "/companies"
                     },
                     {
                         title: "Kişiler",
-                        icon: LucideIcons.User,
+                        icon: FaUserIcon,
                         url: "/contacts"
                     },
                     {
                         title: "Kullanıcı Ayarları",
-                        icon: LucideIcons.UserCog,
+                        icon: FaUserCog,
                         url: "/users"
                     },
                     {
                         title: "Grup Kategori Yönetimi",
-                        icon: LucideIcons.FolderTree,
+                        icon: FaFolder,
                         url: "/categories"
                     },
                     {
                         title: "Flow Firmaları",
-                        icon: LucideIcons.Building,
+                        icon: FaBuildingIcon,
                         url: "/flow-companies"
                     }
                 ]

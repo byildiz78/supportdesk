@@ -288,6 +288,49 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
         }
     }
 
+    // Telefon numarasını formatlama ve +90 ön eki ekleme
+    const handlePhoneChange = (value: string) => {
+        // Telefon numarasından tüm boşlukları, tireleri ve parantezleri kaldır
+        let cleanedNumber = value.replace(/[\s\-()]/g, '');
+        
+        // Eğer numara +90 ile başlıyorsa, olduğu gibi bırak
+        if (cleanedNumber.startsWith('+90')) {
+            handleContactInfoChange('phone', cleanedNumber);
+            return;
+        }
+        
+        // Eğer numara 90 ile başlıyorsa ve 12 haneliyse (90XXXXXXXXXX), +90 ekle
+        if (cleanedNumber.startsWith('90') && cleanedNumber.length === 12) {
+            handleContactInfoChange('phone', '+' + cleanedNumber);
+            return;
+        }
+        
+        // Eğer numara 0 ile başlıyorsa, 0'ı kaldır ve +90 ekle
+        if (cleanedNumber.startsWith('0') && cleanedNumber.length > 1) {
+            cleanedNumber = cleanedNumber.substring(1);
+            handleContactInfoChange('phone', '+90' + cleanedNumber);
+            return;
+        }
+        
+        // Eğer numara 10 veya 11 haneliyse ve yukarıdaki koşullardan hiçbirine uymuyorsa
+        // (05XXXXXXXXX veya 5XXXXXXXXX gibi)
+        if (cleanedNumber.length >= 10) {
+            // Eğer 11 haneliyse ve 0 ile başlıyorsa (05XXXXXXXXX), 0'ı kaldır
+            if (cleanedNumber.length === 11 && cleanedNumber.startsWith('0')) {
+                cleanedNumber = cleanedNumber.substring(1);
+            }
+            
+            // Eğer 10 haneliyse (5XXXXXXXXX), +90 ekle
+            if (cleanedNumber.length === 10) {
+                handleContactInfoChange('phone', '+90' + cleanedNumber);
+                return;
+            }
+        }
+        
+        // Diğer durumlarda değeri olduğu gibi güncelle
+        handleContactInfoChange('phone', value);
+    }
+
     // Etiketleri getir
     const fetchTags = async (ticketId: string) => {
         setLoadingTags(true)
@@ -556,6 +599,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
             // Contact nesnesinde name özelliği olmayabilir, bu durumda firstName ve lastName kullan
             const firstName = selectedContact.firstName || selectedContact.first_name || '';
             const lastName = selectedContact.lastName || selectedContact.last_name || '';
+
             const contactName = selectedContact.name ||
                 `${firstName} ${lastName}`.trim() ||
                 "İsimsiz Kişi";
@@ -1168,7 +1212,7 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
                                                         <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
                                                         <Input
                                                             value={contactInfo.phone}
-                                                            onChange={(e) => handleContactInfoChange('phone', e.target.value)}
+                                                            onChange={(e) => handlePhoneChange(e.target.value)}
                                                             className="h-7 text-sm"
                                                             placeholder="Telefon"
                                                         />

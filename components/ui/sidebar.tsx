@@ -116,7 +116,7 @@ const SidebarProvider = React.forwardRef<
 
         {
 
-            defaultOpen,
+            defaultOpen = true,
 
             open: openProp,
 
@@ -146,7 +146,7 @@ const SidebarProvider = React.forwardRef<
 
         // We use openProp and setOpenProp for control from outside the component.
 
-        const [_open, _setOpen] = React.useState(!isMobile)
+        const [_open, _setOpen] = React.useState(defaultOpen)
 
         const open = openProp ?? _open
 

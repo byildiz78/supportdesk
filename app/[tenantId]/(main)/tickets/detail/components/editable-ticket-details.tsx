@@ -46,7 +46,7 @@ export function EditableTicketDetails({ ticket, onUpdate }: EditableTicketDetail
     const [title, setTitle] = useState(ticket.title)
     const [description, setDescription] = useState(ticket.description)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [isDescriptionOpen, setIsDescriptionOpen] = useState(true)
+    const [isDescriptionOpen, setIsDescriptionOpen] = useState(false)
     const { toast } = useToast()
 
     // Process the description when entering edit mode to ensure consistent display

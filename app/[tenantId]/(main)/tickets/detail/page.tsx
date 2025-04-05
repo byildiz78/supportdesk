@@ -163,59 +163,59 @@ export default function TicketDetailPage({ ticketId, forceRefresh = false }: Tic
                 <div className="flex gap-4 h-full">
                     {/* Left Content */}
                     <div className="flex-1 flex flex-col h-full">
-                        {/* Ticket Header */}
-                        <TicketHeader 
-                            id={tabTicket.id} 
-                            title={tabTicket.title} 
-                            createdBy={tabTicket.created_by}
-                            createdByName={tabTicket.created_by_name || "Bilinmiyor"}
-                            status={tabTicket.status}
-                            assignedTo={tabTicket.assigned_to_name || tabTicket.assigned_to}
-                            selectedCompany={selectedCompany}
-                            isLicenseExpired={isLicenseExpired}
-                            createdAt={tabTicket.created_at}
-                            resolved_by={(tabTicket.resolved_by_name || tabTicket.resolved_by || tabTicket.resolvedBy || tabTicket.resolvedByName)}
-                            resolution_notes={(tabTicket.resolution_notes || tabTicket.resolutionNotes)}
-                            description={tabTicket.description}
-                            customerName={tabTicket.customer_name}
-                            customerEmail={tabTicket.customer_email}
-                            customerPhone={tabTicket.customer_phone}
-                            companyName={tabTicket.company_name}
-                            companyId={tabTicket.company_id}
-                            contactPosition={tabTicket.contact_position}
-                            dueDate={tabTicket.due_date}
-                            parentCompanyId={tabTicket.parent_company_id}
-                            contactId={tabTicket.contact_id}
-                            slaBreached={tabTicket.sla_breach}
-                            priority={tabTicket.priority}
-                            source={tabTicket.source}
-                            categoryId={tabTicket.category_id}
-                            subcategoryId={tabTicket.subcategory_id}
-                            groupId={tabTicket.group_id}
-                            onUpdate={handleTicketUpdate}
-                            due_date={tabTicket.due_date}
-                            ticket_created_by_name={tabTicket.ticket_created_by_name}
-                            assigned_user_name={tabTicket.assigned_user_name}
-                        />
-                        
-                        {/* Stylish Divider */}
-                        <div className="my-2 relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
-                            </div>
-                            <div className="relative flex justify-center">
-                                <span className="bg-gray-50 dark:bg-gray-900 px-3 text-sm text-gray-500 dark:text-gray-400">
-                                    Bilet İçeriği
-                                </span>
-                            </div>
-                        </div>
-                        
-                        {/* Main Content Area */}
-                        <div className="flex-1 mt-2 overflow-hidden">
-                            {/* Content */}
+                        {/* Main Content Area with Scroll */}
+                        <div className="flex-1 overflow-hidden">
                             <div className="h-full flex flex-col overflow-hidden">
-                                <ScrollArea className="flex-1 h-[calc(100vh-250px)]">
+                                <ScrollArea className="flex-1 h-[calc(100vh-100px)]">
                                     <div className="space-y-6 pb-24 pr-4">
+                                        {/* Ticket Header (now inside scroll area) */}
+                                        <TicketHeader 
+                                            id={tabTicket.id} 
+                                            title={tabTicket.title} 
+                                            createdBy={tabTicket.created_by}
+                                            createdByName={tabTicket.created_by_name || "Bilinmiyor"}
+                                            status={tabTicket.status}
+                                            assignedTo={tabTicket.assigned_to_name || tabTicket.assigned_to}
+                                            selectedCompany={selectedCompany}
+                                            isLicenseExpired={isLicenseExpired}
+                                            createdAt={tabTicket.created_at}
+                                            resolved_by={(tabTicket.resolved_by_name || tabTicket.resolved_by || tabTicket.resolvedBy || tabTicket.resolvedByName)}
+                                            resolution_notes={(tabTicket.resolution_notes || tabTicket.resolutionNotes)}
+                                            description={tabTicket.description}
+                                            customerName={tabTicket.customer_name}
+                                            customerEmail={tabTicket.customer_email}
+                                            customerPhone={tabTicket.customer_phone}
+                                            companyName={tabTicket.company_name}
+                                            companyId={tabTicket.company_id}
+                                            contactPosition={tabTicket.contact_position}
+                                            dueDate={tabTicket.due_date}
+                                            parentCompanyId={tabTicket.parent_company_id}
+                                            contactId={tabTicket.contact_id}
+                                            slaBreached={tabTicket.sla_breach}
+                                            priority={tabTicket.priority}
+                                            source={tabTicket.source}
+                                            categoryId={tabTicket.category_id}
+                                            subcategoryId={tabTicket.subcategory_id}
+                                            groupId={tabTicket.group_id}
+                                            onUpdate={handleTicketUpdate}
+                                            due_date={tabTicket.due_date}
+                                            ticket_created_by_name={tabTicket.ticket_created_by_name}
+                                            assigned_user_name={tabTicket.assigned_user_name}
+                                        />
+                                        
+                                        {/* Stylish Divider */}
+                                        <div className="my-2 relative">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                                            </div>
+                                            <div className="relative flex justify-center">
+                                                <span className="bg-gray-50 dark:bg-gray-900 px-3 text-sm text-gray-500 dark:text-gray-400">
+                                                    Bilet İçeriği
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Ticket Content */}
                                         <TicketContent ticket={tabTicket} />
                                     </div>
                                 </ScrollArea>

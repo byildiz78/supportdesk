@@ -10,7 +10,7 @@ export default async function handler(
   }
 
   try {
-    const { id } = req.body;
+    const { id, updatedBy } = req.body;
 
     if (!id) {
       return res.status(400).json({ message: 'Ticket ID is required' });
@@ -21,14 +21,15 @@ export default async function handler(
       UPDATE tickets
       SET is_deleted = true,
       status = 'deleted',
-      updated_at = CURRENT_TIMESTAMP
+      updated_at = CURRENT_TIMESTAMP,
+      updated_by = $2
       WHERE id = $1
       RETURNING id;
     `;
     
     const result = await db.executeQuery<any[]>({
       query,
-      params: [id],
+      params: [id, updatedBy],
       req
     });
 

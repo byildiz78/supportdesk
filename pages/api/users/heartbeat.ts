@@ -1,9 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/database';
+import { UserStatus } from '@/stores/user-status-store';
 
 interface HeartbeatRequest {
     user_id: string;
-    status: string;
+    status: UserStatus;
 }
 
 export default async function handler(
@@ -11,11 +12,13 @@ export default async function handler(
     res: NextApiResponse
 ) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
+        return res.status(405).json({
+            success: false,
+            message: 'Method not allowed'
+        });
     }
 
     try {
-        // Veritabanı sorgusu - tenant ID'yi req.body içine ekliyoruz
         const tenantId = req.headers['x-tenant-id'] || req.query.tenantId || 'public';
         console.log('Heartbeat request:', { body: req.body, tenantId });
 
@@ -26,10 +29,12 @@ export default async function handler(
 
         const { user_id, status } = req.body as HeartbeatRequest;
 
+        console.log('Received heartbeat:', { user_id, status });
+
         if (!user_id) {
             return res.status(400).json({
                 success: false,
-                message: 'user_id gerekli'
+                message: 'User ID is required'
             });
         }
 
@@ -92,9 +97,10 @@ export default async function handler(
 
     } catch (error: any) {
         console.error('Heartbeat error:', error);
+
         return res.status(500).json({
             success: false,
-            message: 'Heartbeat güncellenirken bir hata oluştu',
+            message: error.message || 'Internal server error',
             details: error.message,
             query: error.query,
             params: error.params

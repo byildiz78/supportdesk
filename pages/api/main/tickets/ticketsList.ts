@@ -24,6 +24,7 @@ export default async function handler(
         t.priority,
         t.source,
         t.category_id as "categoryId",
+        c.name as "category_name",
         t.subcategory_id as "subcategoryId",
         t.group_id as "groupId",
         t.assigned_to as "assignedTo",
@@ -44,6 +45,7 @@ export default async function handler(
         t.callcount as "callcount"
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
+      LEFT JOIN categories c ON c.id = t.category_id
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)
       AND t.created_at BETWEEN $1 AND $2
       AND t.status not in ('resolved','closed')

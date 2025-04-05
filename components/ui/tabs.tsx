@@ -8,10 +8,8 @@ import {
   FileText, Code, Database, Bot, MessageSquare, 
   BarChart, PieChart, LineChart, Table, Folder,
   FileJson, FileSpreadsheet, Filter, List,
-  PenSquare, Upload,History,
-  XCircle, Rocket,
-  Paperclip,
-  Tag
+  PenSquare, Upload, History, Rocket,
+  Paperclip, Tag, Phone, MessageCircle, XCircle
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip"
 
@@ -124,6 +122,9 @@ export const getTabIcon = (label: string) => {
     history: <History className="w-4 h-4 mr-2" />,
     tags: <Tag className="w-4 h-4 mr-2" />,
     resolved: <Rocket className="w-4 h-4 mr-2" />,
+    whatsapp: <MessageCircle className="w-4 h-4 mr-2" />,
+    sms: <Phone className="w-4 h-4 mr-2" />,
+    message: <MessageSquare className="w-4 h-4 mr-2" />
   }
   return iconMap[label.toLowerCase()]
 }

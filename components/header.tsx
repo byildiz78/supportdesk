@@ -289,6 +289,9 @@ export default function Header() {
       setSelectedDateRange(currentFilter.selectedDateRange);
       setTempStartDate(currentFilter.date.from);
       setTempEndDate(currentFilter.date.to);
+      
+      // Tarih değişikliğini hemen uygula
+      handleDateRangeChange(currentFilter.selectedDateRange);
     }
   }, [tabStore.activeTab]);
 
@@ -424,13 +427,24 @@ export default function Header() {
     setFilter({
       ...selectedFilter,
       date: {
-        from: toZonedTime(tempStartDate || new Date(), 'Europe/Istanbul'),
-        to: toZonedTime(tempEndDate || new Date(), 'Europe/Istanbul')
+        from: tempStartDate ? toZonedTime(tempStartDate, 'Europe/Istanbul') : selectedFilter.date.from,
+        to: tempEndDate ? toZonedTime(tempEndDate, 'Europe/Istanbul') : selectedFilter.date.to
       },
       selectedBranches: pendingBranches,
     });
 
-  }, [tempStartDate, tempEndDate, tempStartTime, tempEndTime, pendingBranches, selectedFilter]);
+    // Tab store'a da filtre bilgisini kaydet
+    tabStore.setTabFilter(tabStore.activeTab, {
+      ...selectedFilter,
+      date: {
+        from: tempStartDate ? toZonedTime(tempStartDate, 'Europe/Istanbul') : selectedFilter.date.from,
+        to: tempEndDate ? toZonedTime(tempEndDate, 'Europe/Istanbul') : selectedFilter.date.to
+      },
+      selectedBranches: pendingBranches,
+      selectedDateRange: selectedDateRange
+    });
+
+  }, [tempStartDate, tempEndDate, tempStartTime, tempEndTime, pendingBranches, selectedFilter, selectedDateRange, tabStore]);
 
   const applyFilters = () => {
     handleApplyFilters();

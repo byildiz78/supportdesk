@@ -20,6 +20,9 @@ interface TicketStore {
     comments: Record<string, any[]>; // Bilet ID -> Yorumlar listesi
     attachments: Record<string, any[]>; // Bilet ID -> Ekler listesi
     
+    // Bildirimler için eklenen alanlar
+    notifications: any[];
+    
     // Getter fonksiyonu - aktif tab için ticketları döndürür
     getTickets: (tabName: string) => Ticket[];
     
@@ -54,6 +57,10 @@ interface TicketStore {
     deleteTicket: (ticketId: string) => void;
     // Yeni fonksiyon: Çözümlendi veya kapalı olan ticketları listeden kaldır
     removeResolvedClosedTickets: (tabName: string) => void;
+    
+    // Bildirimler için eklenen fonksiyonlar
+    fetchNotifications: () => Promise<void>;
+    markNotificationAsRead: (notificationId: string) => void;
 }
 
 export const useTicketStore = create<TicketStore>((set, get) => ({
@@ -68,6 +75,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
     // Yeni state'ler
     comments: {},
     attachments: {},
+    notifications: [],
     
     // Getter fonksiyonu - ticketlar için
     getTickets: (tabName: string) => {
@@ -683,5 +691,32 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
                 }
             };
         });
+    },
+    
+    // Bildirimler için eklenen fonksiyonlar
+    async fetchNotifications() {
+        try {
+            // Burada gerçek API çağrısı yapılabilir
+            // Şimdilik örnek bildirimler oluşturalım
+            const mockNotifications = [
+                { id: '1', title: 'Yeni destek talebi', message: 'Yeni bir destek talebi oluşturuldu', isRead: false, timestamp: new Date().toISOString() },
+                { id: '2', title: 'Talep güncellendi', message: 'Bir destek talebi güncellendi', isRead: true, timestamp: new Date(Date.now() - 3600000).toISOString() },
+                { id: '3', title: 'Talep çözüldü', message: 'Bir destek talebi çözüldü', isRead: false, timestamp: new Date(Date.now() - 7200000).toISOString() },
+            ];
+            
+            set({ notifications: mockNotifications });
+        } catch (error) {
+            console.error('Bildirimler alınırken hata oluştu:', error);
+        }
+    },
+    
+    markNotificationAsRead: (notificationId: string) => {
+        set(state => ({
+            notifications: state.notifications.map(notification => 
+                notification.id === notificationId 
+                    ? { ...notification, isRead: true } 
+                    : notification
+            )
+        }));
     }
 }))

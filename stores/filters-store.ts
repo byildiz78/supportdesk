@@ -52,14 +52,18 @@ export const useFilterStore = create<FilterStore>((set) => ({
       const currentFilter = JSON.parse(JSON.stringify(state.selectedFilter));
       const incomingFilter = JSON.parse(JSON.stringify(filter));
 
-      // Tarihleri kontrol edelim ve her koşulda mevcut tarihleri koruyalım
+      // Tarihleri kontrol edelim ve gelen tarihler varsa onları kullanalım
       const safeDate = {
-        from: currentFilter.date?.from
-          ? new Date(currentFilter.date.from)
-          : toZonedTime(new Date(new Date().setHours(0, 0, 0, 0)), 'Europe/Istanbul'),
-        to: currentFilter.date?.to
-          ? new Date(currentFilter.date.to)
-          : toZonedTime(new Date().setHours(23, 59, 59, 999), 'Europe/Istanbul')
+        from: incomingFilter.date?.from
+          ? new Date(incomingFilter.date.from)
+          : currentFilter.date?.from
+            ? new Date(currentFilter.date.from)
+            : toZonedTime(new Date(new Date().setHours(0, 0, 0, 0)), 'Europe/Istanbul'),
+        to: incomingFilter.date?.to
+          ? new Date(incomingFilter.date.to)
+          : currentFilter.date?.to
+            ? new Date(currentFilter.date.to)
+            : toZonedTime(new Date().setHours(23, 59, 59, 999), 'Europe/Istanbul')
       };
 
       // Tüm seçili tag'lerin branch'larını birleştir
@@ -212,60 +216,88 @@ export const useFilterStore = create<FilterStore>((set) => ({
         case 'today':
           newDateRange = {
             from: new Date(new Date(today).setHours(startHours, startMinutes, 0)),
-            to: new Date(new Date(today).setHours(startHours, startMinutes, 0))
+            to: daystart !== 0
+              ? new Date(addDays(new Date(today).setHours(endHours, endMinutes, 59), 1))
+              : new Date(new Date(today).setHours(endHours, endMinutes, 59))
           }
           break
         case 'yesterday':
-          const yesterday = subDays(today, -1)
+          const yesterday = subDays(today, 1)
           newDateRange = {
             from: new Date(new Date(yesterday).setHours(startHours, startMinutes, 0)),
-            to: new Date(today.setHours(endHours, endMinutes, 59))
+            to: daystart !== 0
+              ? new Date(addDays(new Date(yesterday).setHours(endHours, endMinutes, 59), 1))
+              : new Date(new Date(yesterday).setHours(endHours, endMinutes, 59))
           }
           break
         case 'thisWeek':
+          const weekStart = startOfWeek(new Date(new Date(today).setHours(startHours, startMinutes, 0)), { weekStartsOn: 1 });
+          const weekEnd = endOfWeek(new Date(new Date(today).setHours(endHours, endMinutes, 59)), { weekStartsOn: 1 });
           newDateRange = {
-            from: startOfWeek(new Date(new Date(today).setHours(startHours, startMinutes, 0)), { weekStartsOn: 1 }),
-            to: endOfWeek(new Date(new Date(today).setHours(startHours, startMinutes, 0)), { weekStartsOn: 1 })
+            from: weekStart,
+            to: daystart !== 0
+              ? addDays(weekEnd, 1)
+              : weekEnd
           }
           break
 
         case 'lastWeek':
-          const lastWeek = subWeeks(today, 1)
+          const lastWeekStart = startOfWeek(subWeeks(new Date(new Date(today).setHours(startHours, startMinutes, 0)), 1), { weekStartsOn: 1 });
+          const lastWeekEnd = endOfWeek(subWeeks(new Date(new Date(today).setHours(endHours, endMinutes, 59)), 1), { weekStartsOn: 1 });
           newDateRange = {
-            from: startOfWeek(lastWeek, { weekStartsOn: 1 }),
-            to: endOfWeek(lastWeek, { weekStartsOn: 1 })
+            from: lastWeekStart,
+            to: daystart !== 0
+              ? addDays(lastWeekEnd, 1)
+              : lastWeekEnd
           }
           break
         case 'thisMonth':
+          const monthStart = startOfMonth(new Date(new Date(today).setHours(startHours, startMinutes, 0)));
+          const monthEnd = endOfMonth(new Date(new Date(today).setHours(endHours, endMinutes, 59)));
           newDateRange = {
-            from: startOfMonth(today),
-            to: endOfMonth(today)
+            from: monthStart,
+            to: daystart !== 0
+              ? addDays(monthEnd, 1)
+              : monthEnd
           }
           break
         case 'lastMonth':
-          const lastMonth = subMonths(today, 1)
+          const lastMonthStart = startOfMonth(subMonths(new Date(new Date(today).setHours(startHours, startMinutes, 0)), 1));
+          const lastMonthEnd = endOfMonth(subMonths(new Date(new Date(today).setHours(endHours, endMinutes, 59)), 1));
           newDateRange = {
-            from: startOfMonth(lastMonth),
-            to: endOfMonth(lastMonth)
+            from: lastMonthStart,
+            to: daystart !== 0
+              ? addDays(lastMonthEnd, 1)
+              : lastMonthEnd
           }
           break
         case 'thisYear':
+          const yearStart = startOfYear(new Date(new Date(today).setHours(startHours, startMinutes, 0)));
+          const yearEnd = endOfYear(new Date(new Date(today).setHours(endHours, endMinutes, 59)));
           newDateRange = {
-            from: startOfYear(today),
-            to: endOfYear(today)
+            from: yearStart,
+            to: daystart !== 0
+              ? addDays(yearEnd, 1)
+              : yearEnd
           }
           break
         case 'lastYear':
-          const lastYear = subYears(today, 1)
+          const lastYearStart = startOfYear(subYears(new Date(new Date(today).setHours(startHours, startMinutes, 0)), 1));
+          const lastYearEnd = endOfYear(subYears(new Date(new Date(today).setHours(endHours, endMinutes, 59)), 1));
           newDateRange = {
-            from: startOfYear(lastYear),
-            to: endOfYear(lastYear)
+            from: lastYearStart,
+            to: daystart !== 0
+              ? addDays(lastYearEnd, 1)
+              : lastYearEnd
           }
           break
         case 'lastSevenDays':
+          const sevenDaysAgo = subDays(new Date(new Date(today).setHours(startHours, startMinutes, 0)), 7);
           newDateRange = {
-            from: subDays(today, 7),
-            to: today
+            from: sevenDaysAgo,
+            to: daystart !== 0
+              ? addDays(new Date(new Date(today).setHours(endHours, endMinutes, 59)), 1)
+              : new Date(new Date(today).setHours(endHours, endMinutes, 59))
           }
           break
         default:

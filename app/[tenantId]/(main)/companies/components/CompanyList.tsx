@@ -183,7 +183,7 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     <span className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
                                         <FileText className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                                     </span>
-                                    BA Notları
+                                    Destek Notları
                                 </div>
                             </TableHead>
                             <TableHead className="w-[10%]">
@@ -228,15 +228,15 @@ export function CompanyList({ companies, isLoading, error, onCompanyDeleted }: C
                                     <TableCell>{formatDate(company.flow_ba_starting_date) || "-"}</TableCell>
                                     <TableCell>{formatDate(company.flow_ba_end_date) || "-"}</TableCell>
                                     <TableCell>
-                                        {company.flow_ba_notes ? (
+                                        {company.flow_support_notes ? (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <span className="cursor-help underline decoration-dotted">
-                                                        {truncateText(company.flow_ba_notes, 20)}
+                                                        {truncateText(company.flow_support_notes, 20)}
                                                     </span>
                                                 </TooltipTrigger>
                                                 <TooltipContent className="max-w-sm bg-secondary text-secondary-foreground">
-                                                    <p className="text-sm">{company.flow_ba_notes}</p>
+                                                    <p className="text-sm">{company.flow_support_notes}</p>
                                                 </TooltipContent>
                                             </Tooltip>
                                         ) : (

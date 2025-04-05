@@ -8,6 +8,7 @@ export default function TenantLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+
 	return (
 		<SidebarProvider>
 			<CategoriesProvider>

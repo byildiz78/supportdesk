@@ -123,14 +123,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ${tenantFilter}
         `;
 
-        // Aktif Temsilciler
+        // Aktif Temsilciler ve Müsait Temsilciler
         const activeAgentsQuery = `
-            SELECT COUNT(DISTINCT o.user_id) as active_agents
-            FROM online_users o
-            WHERE o.last_heartbeat >= NOW() - INTERVAL '1 hour'
-            AND o.role = 'agent'
-            AND o.status = 'online'
-            AND o.is_deleted = false
+            SELECT COUNT(DISTINCT assigned_to) as active_agents
+            FROM tickets
+            WHERE (is_deleted = false OR is_deleted IS NULL)
+            AND assigned_to IS NOT NULL
+            ${tenantFilter}
         `;
 
         const availableAgentsQuery = `
@@ -138,7 +137,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             FROM users
             WHERE role = 'agent'
             AND status = 'active'
-            AND is_deleted = false
+            AND id NOT IN (
+                SELECT DISTINCT assigned_to
+                FROM tickets
+                WHERE (is_deleted = false OR is_deleted IS NULL)
+                AND status IN ('open', 'in_progress')
+                AND assigned_to IS NOT NULL
+                ${tenantFilter}
+            )
         `;
 
         // Son Talepler

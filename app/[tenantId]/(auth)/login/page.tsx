@@ -226,74 +226,77 @@ export default function LoginPage() {
             </Button>
 
             {/* Main content */}
-            <div className="min-h-screen w-full flex items-center justify-center p-6 z-10 relative">
-                <div className="w-full max-w-7xl flex flex-col lg:flex-row rounded-3xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-xl border border-white/10" style={{ maxHeight: "90vh" }}>
+            <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 z-10 relative">
+                <div className="w-full max-w-7xl flex flex-col lg:flex-row rounded-3xl overflow-hidden shadow-2xl bg-white/5 backdrop-blur-xl border border-white/10" style={{ maxHeight: "calc(100vh - 2rem)" }}>
                     {/* Left panel - Branding and visuals */}
-                    <div className="w-full lg:w-7/12 relative text-white p-6 lg:p-10 flex flex-col justify-between overflow-hidden">
+                    <div className="w-full lg:w-7/12 relative text-white p-5 sm:p-6 lg:p-10 flex flex-col justify-between overflow-hidden">
                         {/* Decorative elements */}
                         <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
                         <div className="absolute -top-32 -right-32 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
                         
-                        {/* Top section with company info */}
+                        {/* Top section with company info - Her zaman görünecek */}
                         <div className="relative mb-auto">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 shadow-lg">
-                                    <Building className="h-5 w-5 text-white" />
+                            <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                                <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 shadow-lg">
+                                    <Building className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold tracking-tight">{ process.env.NEXT_PUBLIC_APP_NAME || "Şirket Portalı"}</h1>
-                                    <p className="text-white/70 text-sm">Kurumsal Ticket Yönetim Sistemi</p>
+                                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{ process.env.NEXT_PUBLIC_APP_NAME || "Şirket Portalı"}</h1>
+                                    <p className="text-white/70 text-xs sm:text-sm">Kurumsal Ticket Yönetim Sistemi</p>
                                 </div>
                             </div>
 
-                            <div className="max-w-lg">
-                                <h2 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
-                                    İş süreçlerinizi yönetin, <span className="text-blue-400">verimliliği artırın</span>
-                                </h2>
-                                <p className="text-white/80 text-base mb-4">
-                                    Modern arayüz ve gelişmiş özelliklerle donatılmış kurumsal ticket yönetim sistemimiz ile işletmenizin tüm ihtiyaçlarını tek platformda karşılayın.
-                                </p>
+                            {/* Masaüstünde görünecek içerik */}
+                            <div className="hidden lg:block">
+                                <div className="max-w-lg">
+                                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-3 sm:mb-4">
+                                        İş süreçlerinizi yönetin, <span className="text-blue-400">verimliliği artırın</span>
+                                    </h2>
+                                    <p className="text-white/80 text-sm sm:text-base mb-4">
+                                        Modern arayüz ve gelişmiş özelliklerle donatılmış kurumsal ticket yönetim sistemimiz ile işletmenizin tüm ihtiyaçlarını tek platformda karşılayın.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         
-                        {/* Bottom section with time and features */}
-                        <div className="relative mt-auto pt-8 border-t border-white/10">
+                        {/* Bottom section with time and features - Sadece masaüstünde görünecek */}
+                        <div className="relative mt-auto pt-6 sm:pt-8 border-t border-white/10 hidden lg:block">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <Clock className="h-5 w-5 text-blue-400" />
-                                        <span className="text-2xl font-semibold">{formattedTime}</span>
+                                        <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+                                        <span className="text-xl sm:text-2xl font-semibold">{formattedTime}</span>
                                     </div>
-                                    <p className="text-white/60">{formattedDate}</p>
+                                    <p className="text-white/60 text-xs sm:text-sm">{formattedDate}</p>
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/5">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mb-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-3 border border-white/5">
+                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
                                             <path d="m9 12 2 2 4-4"></path>
                                         </svg>
                                     </div>
-                                    <h3 className="font-medium mb-1">Güvenli Erişim</h3>
-                                    <p className="text-white/60 text-sm">Çift faktörlü kimlik doğrulama ile güçlendirilmiş güvenlik</p>
+                                    <h3 className="font-medium text-sm sm:text-base mb-1">Güvenli Erişim</h3>
+                                    <p className="text-white/60 text-xs sm:text-sm">Çift faktörlü kimlik doğrulama ile güçlendirilmiş güvenlik</p>
                                 </div>
                                 
-                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/5">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center mb-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 border border-white/5">
+                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                                             <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"></path>
                                             <path d="M12 8v4l3 3"></path>
                                         </svg>
                                     </div>
-                                    <h3 className="font-medium mb-1">Gerçek Zamanlı</h3>
-                                    <p className="text-white/60 text-sm">Anlık bildirimler ve güncel veriye hızlı erişim</p>
+                                    <h3 className="font-medium text-sm sm:text-base mb-1">Gerçek Zamanlı</h3>
+                                    <p className="text-white/60 text-xs sm:text-sm">Anlık bildirimler ve güncel veriye hızlı erişim</p>
                                 </div>
                                 
-                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/5">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center mb-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                <div className="bg-white/10 backdrop-blur-md rounded-xl p-2 sm:p-4 border border-white/5">
+                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                                             <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
                                             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
                                             <line x1="6" x2="6" y1="1" y2="4"></line>
@@ -301,21 +304,21 @@ export default function LoginPage() {
                                             <line x1="14" x2="14" y1="1" y2="4"></line>
                                         </svg>
                                     </div>
-                                    <h3 className="font-medium mb-1">Akıllı Raporlama</h3>
-                                    <p className="text-white/60 text-sm">Veriye dayalı iş kararları için analitik araçlar</p>
+                                    <h3 className="font-medium text-sm sm:text-base mb-1">Akıllı Raporlama</h3>
+                                    <p className="text-white/60 text-xs sm:text-sm">Veriye dayalı iş kararları için analitik araçlar</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Right panel - Login form */}
-                    <div className="w-full lg:w-5/12 p-6 lg:p-8 bg-white dark:bg-gray-900 flex flex-col justify-center items-center">
+                    <div className="w-full lg:w-5/12 p-5 sm:p-6 lg:p-8 bg-white dark:bg-gray-900 flex flex-col justify-center items-center">
                         <div className="w-full max-w-md">
-                            <div className="text-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            <div className="text-center mb-5 sm:mb-6">
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
                                     Hesabınıza Giriş Yapın
                                 </h2>
-                                <p className="text-gray-600 dark:text-gray-400">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
                                     Güvenli yönetim portalına erişmek için giriş yapın
                                 </p>
                             </div>
@@ -327,19 +330,19 @@ export default function LoginPage() {
                                 transition={{ duration: 0.5 }}
                                 className="w-full"
                             >
-                                <form onSubmit={handleSubmit} className="space-y-6">
+                                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                                     {error && (
                                         <Alert variant="destructive" className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50">
-                                            <AlertDescription>{error}</AlertDescription>
+                                            <AlertDescription className="text-sm">{error}</AlertDescription>
                                         </Alert>
                                     )}
                                     
-                                    <div className="space-y-2">
-                                        <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 font-medium">
+                                    <div className="space-y-1 sm:space-y-2">
+                                        <Label htmlFor="username" className="text-gray-700 dark:text-gray-300 font-medium text-sm sm:text-base">
                                             Kullanıcı Adı
                                         </Label>
                                         <div className="relative">
-                                            <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                                             <Input
                                                 id="username"
                                                 type="text"
@@ -350,7 +353,7 @@ export default function LoginPage() {
                                                 value={formData.username}
                                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                                 className={cn(
-                                                    "pl-10 h-12 text-base",
+                                                    "pl-10 h-10 sm:h-12 text-sm sm:text-base",
                                                     "bg-gray-50 dark:bg-gray-800/50",
                                                     "border-gray-200 dark:border-gray-700",
                                                     "text-gray-900 dark:text-gray-100",
@@ -361,21 +364,21 @@ export default function LoginPage() {
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-2">
+                                    <div className="space-y-1 sm:space-y-2">
                                         <div className="flex justify-between items-center">
-                                            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium">
+                                            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300 font-medium text-sm sm:text-base">
                                                 Şifre
                                             </Label>
                                             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                                                 <DialogTrigger asChild>
                                                     <Button
                                                         variant="link"
-                                                        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-0 h-auto font-normal"
+                                                        className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-0 h-auto font-normal"
                                                     >
                                                         Şifremi unuttum
                                                     </Button>
                                                 </DialogTrigger>
-                                                <DialogContent className="sm:max-w-md">
+                                                <DialogContent className="sm:max-w-md max-w-[90vw] mx-auto">
                                                     <DialogHeader>
                                                         <DialogTitle>Şifre Sıfırlama</DialogTitle>
                                                         <DialogDescription>
@@ -386,7 +389,7 @@ export default function LoginPage() {
                                                         <div className="space-y-2">
                                                             <Label htmlFor="email">E-posta Adresi</Label>
                                                             <div className="relative">
-                                                                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                                                                 <Input
                                                                     id="email"
                                                                     type="email"
@@ -429,7 +432,7 @@ export default function LoginPage() {
                                             </Dialog>
                                         </div>
                                         <div className="relative">
-                                            <LockKeyhole className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                                            <LockKeyhole className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                                             <Input
                                                 id="password"
                                                 type={showPassword ? "text" : "password"}
@@ -440,7 +443,7 @@ export default function LoginPage() {
                                                 value={formData.password}
                                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                                 className={cn(
-                                                    "pl-10 pr-12 h-12 text-base",
+                                                    "pl-10 pr-12 h-10 sm:h-12 text-sm sm:text-base",
                                                     "bg-gray-50 dark:bg-gray-800/50",
                                                     "border-gray-200 dark:border-gray-700",
                                                     "text-gray-900 dark:text-gray-100",
@@ -452,13 +455,13 @@ export default function LoginPage() {
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
-                                                className="absolute right-2 top-2 hover:bg-transparent"
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
                                                 onClick={() => setShowPassword(!showPassword)}
                                             >
                                                 {showPassword ? (
-                                                    <EyeOff className="h-5 w-5 text-gray-400" />
+                                                    <EyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                                                 ) : (
-                                                    <Eye className="h-5 w-5 text-gray-400" />
+                                                    <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                                                 )}
                                             </Button>
                                         </div>
@@ -470,7 +473,7 @@ export default function LoginPage() {
                                             id="remember"
                                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-offset-gray-800"
                                         />
-                                        <label htmlFor="remember" className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <label htmlFor="remember" className="ml-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                             Beni hatırla (bu cihaz için)
                                         </label>
                                     </div>
@@ -478,7 +481,7 @@ export default function LoginPage() {
                                     <Button
                                         type="submit"
                                         className={cn(
-                                            "w-full h-12 text-base font-medium mt-2",
+                                            "w-full h-10 sm:h-12 text-sm sm:text-base font-medium mt-2",
                                             "bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700",
                                             "text-white",
                                             "transition-all duration-300",
@@ -492,25 +495,23 @@ export default function LoginPage() {
                                         <AnimatePresence mode="wait">
                                             {isLoading ? (
                                                 <motion.div
-                                                    key="loading"
                                                     initial={{ opacity: 0, y: 5 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, y: -5 }}
                                                     className="flex items-center"
                                                 >
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                     Giriş yapılıyor...
                                                 </motion.div>
                                             ) : (
                                                 <motion.div
-                                                    key="login"
                                                     initial={{ opacity: 0, y: 5 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, y: -5 }}
                                                     className="flex items-center"
                                                 >
                                                     Giriş Yap
-                                                    <ChevronRight className="ml-2 h-5 w-5" />
+                                                    <ChevronRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -519,23 +520,23 @@ export default function LoginPage() {
                             </motion.div>
                             
                             {/* Help & Support */}
-                            <div className="mt-10">
+                            <div className="mt-8 sm:mt-10">
                                 <div className="relative">
                                     <div className="absolute inset-0 flex items-center">
                                         <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
                                     </div>
-                                    <div className="relative flex justify-center text-sm">
+                                    <div className="relative flex justify-center text-xs sm:text-sm">
                                         <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">
                                             Yardıma mı ihtiyacınız var?
                                         </span>
                                     </div>
                                 </div>
                                 
-                                <div className="mt-6 flex justify-center gap-6">
-                                    <a href="#" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
+                                <div className="mt-4 sm:mt-6 flex justify-center gap-4 sm:gap-6">
+                                    <a href="#" className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                                         BT Desteği
                                     </a>
-                                    <a href="#" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
+                                    <a href="#" className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                                         Kullanım Kılavuzu
                                     </a>
                                 </div>

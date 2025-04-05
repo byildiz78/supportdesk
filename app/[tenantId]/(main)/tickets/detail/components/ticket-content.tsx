@@ -19,6 +19,7 @@ import { getTabIcon, Tabs, TabsContent, TabsList, TabsTrigger } from "@/componen
 import { useToast } from "@/hooks/use-toast"
 import TicketResolved from "./ticket-resolved"
 import TicketCompanyHistory from "./ticket-company-history"
+import TicketChatSend from "./ticket-chat-send"
 
 interface TicketContentProps {
     ticket: {
@@ -614,6 +615,15 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                     <span className="sm:hidden">Geçmiş</span>
                                 </TabsTrigger>
 
+                                {/* <TabsTrigger
+                                    value="message"
+                                    className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-green-600 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
+                                    icon={getTabIcon("message")}
+                                >
+                                    <span className="hidden sm:inline">Mesaj Gönder</span>
+                                    <span className="sm:hidden">Mesaj</span>
+                                </TabsTrigger> */}
+
                                 <TabsTrigger
                                     value="history"
                                     className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-600 data-[state=active]:text-cyan-700 dark:data-[state=active]:text-cyan-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
@@ -638,6 +648,8 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                 {ticket && (
                                     <CommentForm
                                         ticketId={ticket.id}
+                                        mobil={ticket.customer_phone || ''}
+                                        ticketNo={ticket.ticketno || undefined}
                                         onSubmit={handleSubmitComment}
                                     />
                                 )}
@@ -708,6 +720,25 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                 <TicketCompanyHistory ticketId={ticket.id} />
                             </div>
                         </TabsContent>
+
+                        {/* <TabsContent value="message" className="mt-2">
+                            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900/50 dark:to-green-900/30 p-5 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-full">
+                                        <MessageSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                        Mesaj Gönder
+                                    </h3>
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Mesaj göndermek için buraya tıklayınız</p>
+                                <TicketChatSend 
+                                    mobil={ticket.customer_phone || undefined} 
+                                    ticketNo={ticket.ticketno || undefined}
+                                    customerName={ticket.customer_name || undefined}
+                                />
+                            </div>
+                        </TabsContent> */}
 
                         <TabsContent value="history" className="mt-2">
                             <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-gray-900/50 dark:to-cyan-800/50 p-5 rounded-xl shadow-sm">

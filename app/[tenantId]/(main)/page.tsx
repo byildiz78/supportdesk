@@ -5,6 +5,7 @@ import { useTabStore } from "@/stores/tab-store";
 import dynamic from 'next/dynamic';
 import { memo } from 'react';
 import { Home as HomeIcon } from 'lucide-react';
+import MobilePage from "@/app/[tenantId]/(main)/mobile/page";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
     CustomTabs, 
@@ -37,6 +38,9 @@ export default function MainPage() {
         removeTab(tabId);
     };
 
+    if(isMobile){
+        return <MobilePage />;
+    }
     return (
         <div className="flex h-screen overflow-hidden w-full">
             <AppSidebar />

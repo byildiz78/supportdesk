@@ -33,10 +33,12 @@ const sendSmsNotification = async (phoneNumber: string | null, ticketNo: string,
     
     if (isNewTicket) {
       // Yeni ticket oluşturulduğunda
-      smsMessage = `Robotpos destek talebiniz #${ticketNo}# no ile olusturulmustur. Kisa sure icerisinde uzman bir arkadasimiz sizinle iletisime gececektir.`;
+      smsMessage = `Robotpos destek talebiniz #${ticketNo}# no ile olusturulmustur. Kisa sure icerisinde uzman bir arkadasimiz sizinle iletisime gececektir.Bu süre zarfında sorun veya talebiniz ile ilgili bilgi paylaşımını aşağıdaki linke tıklayarak WhatsApp üzerinden yapabilirsiniz:
+    https://wa.me/908508110456?text=%7B%7B${ticketNo}%7D%7D`;
     } else {
       // Var olan ticket'a yorum eklendiğinde
-      smsMessage = `Robotpos destek sistemi: #${ticketNo}# numarali destek talebiniz guncellenmistir. Kisa sure icerisinde uzman bir arkadasimiz sizinle iletisime gececektir.`;
+      smsMessage = `Robotpos destek sistemi: #${ticketNo}# numarali destek talebiniz guncellenmistir. Kisa sure icerisinde uzman bir arkadasimiz sizinle iletisime gececektir. Bu süre zarfında sorun veya talebiniz ile ilgili bilgi paylaşımını aşağıdaki linke tıklayarak WhatsApp üzerinden yapabilirsiniz:
+    https://wa.me/908508110456?text=%7B%7B${ticketNo}%7D%7D`;
     }
     
     const response = await axios({

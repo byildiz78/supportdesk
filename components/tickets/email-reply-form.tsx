@@ -36,8 +36,12 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
     // Initialize CC recipients based on replyAll flag
     const [ccRecipients, setCcRecipients] = useState<string[]>(() => {
         if (replyAll && originalComment.cc_recipients) {
-            // Filter out the current user's email if needed
-            return originalComment.cc_recipients;
+            // Destek e-posta adreslerini filtrele
+            return originalComment.cc_recipients.filter(email => {
+                const normalizedEmail = email.toLowerCase();
+                return !normalizedEmail.includes('destek@robotpos.com') && 
+                       !normalizedEmail.includes('robotpos destek ekibi');
+            });
         }
         return [];
     });
@@ -87,7 +91,13 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
     
     const handleCcRecipientsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const emails = e.target.value.split(',').map(email => email.trim()).filter(Boolean);
-        setCcRecipients(emails);
+        // Destek e-posta adreslerini filtrele
+        const filteredEmails = emails.filter(email => {
+            const normalizedEmail = email.toLowerCase();
+            return !normalizedEmail.includes('destek@robotpos.com') && 
+                   !normalizedEmail.includes('robotpos destek ekibi');
+        });
+        setCcRecipients(filteredEmails);
     };
     
     return (

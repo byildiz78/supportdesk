@@ -1,13 +1,14 @@
-import { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { LanguageProvider } from "@/providers/language-provider";
 import { UsersProvider } from "@/providers/users-provider";
 import { CompaniesProvider } from "@/providers/companies-provider";
 import { ContactsProvider } from "@/providers/contacts-provider";
 import { CategoriesProvider } from "@/providers/categories-provider";
-import { FlowFieldsProvider } from "@/providers/flow-field-provider";
 import { Toaster } from "@/components/ui/toast/toaster";
 import "./globals.css";
+import { Metadata, Viewport } from "next";
+import { FlowFieldsProvider } from "@/providers/flow-field-provider";
+
 
 export const viewport: Viewport = {
     width: 'device-width',

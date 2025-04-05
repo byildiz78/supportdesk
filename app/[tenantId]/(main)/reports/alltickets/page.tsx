@@ -219,7 +219,8 @@ export default function AllTicketsPage() {
                 'createdBy': 'Oluşturan',
                 'updatedAt': 'Son Güncelleme',
                 'updatedBy': 'Güncelleyen',
-                'callcount': 'Çağrı Sayısı'
+                'callcount': 'Çağrı Sayısı',
+                'isDeleted': 'Silindi'
             };
             
             // Özel hücre rendererlar için eşleştirme
@@ -235,6 +236,10 @@ export default function AllTicketsPage() {
             
             // Tarih alanları
             const dateFields = ['createdAt', 'updatedAt', 'dueDate', 'resolutionTime'];
+            
+            // Özel filtre değerleri
+            const statusValues = ['open', 'pending', 'waiting', 'in_progress', 'resolved', 'closed', 'deleted'];
+            const priorityValues = ['low', 'medium', 'high', 'critical', 'urgent'];
             
             // Öncelikli kolonlar - Her zaman en başta olacak kolonlar
             if ('ticketno' in firstRow) {
@@ -273,7 +278,44 @@ export default function AllTicketsPage() {
                             ? 'agSetColumnFilter'
                             : dateFields.includes(key)
                                 ? 'agDateColumnFilter'
-                                : 'agTextColumnFilter',
+                                : key === 'status' || key === 'priority'
+                                    ? 'agSetColumnFilter'
+                                    : 'agTextColumnFilter',
+                    filterParams: typeof firstRow[key] === 'string' 
+                        ? {
+                            filterOptions: ['contains', 'notContains', 'equals', 'notEqual', 'startsWith', 'endsWith'],
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressAndOrCondition: false,
+                            debounceMs: 200
+                        }
+                        : typeof firstRow[key] === 'boolean'
+                            ? {
+                                suppressSelectAll: false,
+                                suppressMiniFilter: false,
+                                values: [true, false]
+                            }
+                            : key === 'status'
+                                ? {
+                                    values: statusValues,
+                                    suppressMiniFilter: false,
+                                    buttons: ['reset', 'apply'],
+                                    closeOnApply: true,
+                                    debounceMs: 200
+                                }
+                                : key === 'priority'
+                                    ? {
+                                        values: priorityValues,
+                                        suppressMiniFilter: false,
+                                        buttons: ['reset', 'apply'],
+                                        closeOnApply: true,
+                                        debounceMs: 200
+                                    }
+                                    : {
+                                        buttons: ['reset', 'apply'],
+                                        debounceMs: 200,
+                                        newRowsAction: 'keep'
+                                    },
                     width: key === 'description' ? 300 : 150,
                 };
                 
@@ -300,6 +342,12 @@ export default function AllTicketsPage() {
         enableRowGroup: true,
         enablePivot: true,
         enableValue: true,
+        filterParams: {
+            suppressMiniFilter: false,
+            applyMiniFilterWhileTyping: true,
+            debounceMs: 200,
+            newRowsAction: 'keep'
+        }
     };
 
     // AG Grid auto group column definition
@@ -390,6 +438,11 @@ export default function AllTicketsPage() {
             return 'bg-primary/10 font-medium';
         }
         return '';
+    };
+
+    // AG Grid row id function
+    const getRowId = (params: any) => {
+        return params.data.id || params.data.ticketno || params.data._id || String(params.node.id);
     };
 
     // Talep detaylarını açma fonksiyonu
@@ -558,6 +611,7 @@ export default function AllTicketsPage() {
                                 rowSelection="multiple"
                                 enableCellTextSelection={true}
                                 getRowClass={getRowClass}
+                                getRowId={getRowId}
                                 suppressPaginationPanel={false}
                                 animateRows={true}
                                 onCellClicked={onCellClicked}

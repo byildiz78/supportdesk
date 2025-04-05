@@ -5,14 +5,14 @@ import { TableCell, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { 
-    Building, 
-    Clock, 
-    CalendarClock, 
+import {
+    Building,
+    Clock,
+    CalendarClock,
     User,
-    Eye, 
-    Edit, 
-    Trash, 
+    Eye,
+    Edit,
+    Trash,
     MoreHorizontal,
     Phone
 } from "lucide-react"
@@ -37,9 +37,9 @@ interface TicketRowProps {
 
 export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn = true, userRole }: TicketRowProps) {
     const isUnassigned = !ticket.assignedUserName;
- 
+
     return (
-        <TableRow 
+        <TableRow
             className={cn(
                 "group hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-all duration-200",
                 ticket.slaBreach && "bg-red-50/50 dark:bg-red-900/10",
@@ -47,22 +47,37 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
             )}
         >
             <TableCell className="font-medium">
-                <Button 
-                    variant="link" 
+                <Button
+                    variant="link"
                     className="p-0 h-auto text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
                     onClick={() => onView(ticket)}
                 >
                     #{ticket.ticketno}
                 </Button>
             </TableCell>
+
+            <TableCell>
+                <div className="flex items-center gap-1">
+                    {ticket.source && sourceConfig[ticket.source as keyof typeof sourceConfig] && (
+                        <div className="flex items-center gap-1">
+                            {React.createElement(sourceConfig[ticket.source as keyof typeof sourceConfig].icon, {
+                                className: "h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0"
+                            })}
+                            <span className="truncate">{sourceConfig[ticket.source as keyof typeof sourceConfig].label}</span>
+                        </div>
+                    )}
+                    {!ticket.source && <span className="text-gray-400">-</span>}
+                </div>
+            </TableCell>
+
             <TableCell>
                 <div className="flex flex-col">
                     <span>{ticket.title}</span>
                     {ticket.dueDate && (
                         <span className={cn(
                             "text-xs mt-1",
-                            ticket.slaBreach 
-                                ? "text-red-600 dark:text-red-400" 
+                            ticket.slaBreach
+                                ? "text-red-600 dark:text-red-400"
                                 : "text-muted-foreground"
                         )}>
                             <Clock className="inline-block h-3 w-3 mr-1" />
@@ -106,15 +121,9 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
             </TableCell>
             <TableCell>
                 <div className="flex items-center gap-1">
-                    {ticket.source && sourceConfig[ticket.source as keyof typeof sourceConfig] && (
-                        <div className="flex items-center gap-1">
-                            {React.createElement(sourceConfig[ticket.source as keyof typeof sourceConfig].icon, {
-                                className: "h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0"
-                            })}
-                            <span className="truncate">{sourceConfig[ticket.source as keyof typeof sourceConfig].label}</span>
-                        </div>
-                    )}
-                    {!ticket.source && <span className="text-gray-400">-</span>}
+                    <span className="truncate font-medium">
+                        {ticket.category_name || "--"}
+                    </span>
                 </div>
             </TableCell>
             <TableCell>
@@ -126,14 +135,14 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
                 </Badge>
             </TableCell>
             {showStatusColumn && (
-            <TableCell>
-                <Badge variant="outline" className={cn(
-                    "text-xs font-medium",
-                    statusConfig[ticket.status as TicketStatus]?.class || ""
-                )}>
-                    {statusConfig[ticket.status as TicketStatus]?.label || "Bilinmiyor"}
-                </Badge>
-            </TableCell>
+                <TableCell>
+                    <Badge variant="outline" className={cn(
+                        "text-xs font-medium",
+                        statusConfig[ticket.status as TicketStatus]?.class || ""
+                    )}>
+                        {statusConfig[ticket.status as TicketStatus]?.label || "Bilinmiyor"}
+                    </Badge>
+                </TableCell>
             )}
             <TableCell>
                 {ticket.assignedUserName ? (
@@ -149,7 +158,7 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
                             <div className="bg-amber-100 dark:bg-amber-900/30 p-0.5 rounded-full">
                                 <User className="h-3 w-3 text-amber-500 dark:text-amber-400" />
                             </div>
-                            <span>-</span>
+                            <span>--</span>
                         </Badge>
                     </div>
                 )}
@@ -165,14 +174,14 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
                     <div className="flex items-center gap-1">
                         <CalendarClock className={cn(
                             "h-4 w-4",
-                            ticket.slaBreach 
-                                ? "text-red-600 dark:text-red-400" 
+                            ticket.slaBreach
+                                ? "text-red-600 dark:text-red-400"
                                 : "text-green-600 dark:text-green-400"
                         )} />
                         <span className={cn(
                             "text-xs",
-                            ticket.slaBreach 
-                                ? "text-red-600 dark:text-red-400" 
+                            ticket.slaBreach
+                                ? "text-red-600 dark:text-red-400"
                                 : "text-green-600 dark:text-green-400"
                         )}>
                             {calculateSlaTime(ticket.dueDate, !!ticket.slaBreach)}
