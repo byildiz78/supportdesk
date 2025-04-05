@@ -1,8 +1,8 @@
 "use client"
 
+import axios from '@/lib/axios'
 import React, { useEffect, useState } from 'react'
 import { FaWhatsapp } from 'react-icons/fa'
-import axios from 'axios'
 
 export default function WhatsAppPage() {
   const [accessToken, setAccessToken] = useState<string>('')
@@ -10,7 +10,7 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const getAccessToken = async () => {
       try {
-        const response = await axios.get('/supportdesk-demo/api/whatsapp-token')
+        const response = await axios.get('/api/whatsapp-token')
         setAccessToken(response.data.accessToken)
       } catch (error) {
         console.error('Error fetching access token:', error)
