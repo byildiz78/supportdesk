@@ -21,7 +21,8 @@ interface CommentFormProps {
 
 const quickResponses = {
     missed_call: "Merhaba. Sizi aradık ancak ulasamadik. Sorununuz devam ediyorsa bu mesaj üzerinden yorum yapabilirsiniz.",
-    need_info: "Merhaba. Sorunuzu cozmenize yardımcı olmak adına daha fazla bilgiye ihtiyacimiz var. Lutfen asagida belirtilen bilgileri bu mesaj üzerinden iletiniz"
+    need_info: "Merhaba. Sorunuzu cozmenize yardımcı olmak adına daha fazla bilgiye ihtiyacimiz var. Lutfen asagida belirtilen bilgileri bu mesaj üzerinden iletiniz",
+    future_service: "Bundan sonra ki servis taleplerinizde, call center ı aradıktan sonra gelen linke tıklayarak yine whatsapp üzerinden bizimle iletişime geçebilirsiniz."
 } as const;
 
 export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className }: CommentFormProps) {
@@ -194,7 +195,7 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className }: 
     }
 
     const handleQuickResponse = (value: string) => {
-        const selectedResponse = value === 'missed_call' ? quickResponses.missed_call : quickResponses.need_info;
+        const selectedResponse = value === 'missed_call' ? quickResponses.missed_call : value === 'need_info' ? quickResponses.need_info : quickResponses.future_service;
         let newContent = '';
         
         // Eğer mevcut içerik varsa ve boş değilse, yeni satırdan sonra ekle
@@ -324,6 +325,9 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className }: 
                                 </SelectItem>
                                 <SelectItem value="need_info" className="text-xs whitespace-normal py-2">
                                     {quickResponses.need_info}
+                                </SelectItem>
+                                <SelectItem value="future_service" className="text-xs whitespace-normal py-2">
+                                    {quickResponses.future_service}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
