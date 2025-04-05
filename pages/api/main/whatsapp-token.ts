@@ -28,8 +28,8 @@ export default async function handler(
 
     // Token yoksa veya süresi geçmişse yeni token al
     const response = await axios.post('https://api.chatapp.online/v1/tokens', {
-      email: 'byildiz@robotpos.com',
-      password: 'Mantar1!',
+      email: process.env.CHATAPP_EMAIL,
+      password: process.env.CHATAPP_PASSWORD,
       appId: 'app_50598_1'
     }, {
       headers: {

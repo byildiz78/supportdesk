@@ -1,8 +1,8 @@
 "use client"
 
-import axios from '@/lib/axios'
 import React, { useEffect, useState } from 'react'
 import { FaWhatsapp } from 'react-icons/fa'
+import axios from 'axios'
 
 export default function WhatsAppPage() {
   const [accessToken, setAccessToken] = useState<string>('')
@@ -10,7 +10,7 @@ export default function WhatsAppPage() {
   useEffect(() => {
     const getAccessToken = async () => {
       try {
-        const response = await axios.get('/api/whatsapp-token')
+        const response = await axios.get('/supportdesk/api/whatsapp-token')
         setAccessToken(response.data.accessToken)
       } catch (error) {
         console.error('Error fetching access token:', error)
@@ -29,7 +29,7 @@ export default function WhatsAppPage() {
 
       <div className="flex-1 w-full">
         {accessToken && (
-         <iframe
+          <iframe
             id="webchat"
             src={`https://dialogs.pro/?apiaccess_token=${accessToken}&apilicense_id=52463`}
             sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation"
@@ -37,9 +37,9 @@ export default function WhatsAppPage() {
             width="100%"
             height="99%"
             className="border-0"
-         />
+          />
         )}
-     </div>
+      </div>
     </div>
   )
 }
