@@ -81,13 +81,13 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
         isActive: true,
         url: "/"
       },
-      // {
-      //   title: "Whatsapp",
-      //   icon: FaWhatsapp,
-      //   isActive: true,
-      //   url: "/whatsapp",
-      //   className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
-      // },
+      {
+        title: "Whatsapp",
+        icon: FaWhatsapp,
+        isActive: true,
+        url: "/mobile/whatsapp",
+        className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
+      },
       {
         title: "Destek Talepleri",
         icon: FaTicket,
