@@ -17,6 +17,7 @@ interface CommentFormProps {
     ticketNo?: string;
     onSubmit: (content: string, isInternal: boolean, attachments?: File[]) => void
     className?: string
+    comments?: any[]
 }
 
 const quickResponses = {
@@ -25,7 +26,7 @@ const quickResponses = {
     future_service: "Bundan sonra ki servis taleplerinizde, call center ı aradıktan sonra gelen linke tıklayarak yine whatsapp üzerinden bizimle iletişime geçebilirsiniz."
 } as const;
 
-export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className }: CommentFormProps) {
+export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, comments = [] }: CommentFormProps) {
     const [content, setContent] = useState("")
     const [isInternal, setIsInternal] = useState(false)
     const [files, setFiles] = useState<File[]>([])
@@ -217,6 +218,18 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className }: 
         }, 0);
     };
 
+    // WhatsApp mesajı içeren herhangi bir yorum var mı kontrol et
+    const hasWhatsAppMessage = () => {
+        // Mevcut içerikte WhatsApp mesajı var mı?
+        if (content.includes("WhatsApp üzerinden")) return true;
+        
+        // Yorumlarda WhatsApp mesajı var mı?
+        return comments.some(comment => 
+            comment.content && typeof comment.content === 'string' && 
+            comment.content.includes("WhatsApp üzerinden")
+        );
+    };
+
     return (
         <div className={cn("space-y-3", className)}>
             {/* Özel Bildirim Komponenti */}
@@ -338,7 +351,11 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className }: 
                             onClick={() => TicketChat(mobil)}
                             variant="outline"
                             size="sm"
-                            className="h-8 text-xs border-gray-200 dark:border-gray-700 rounded-md shadow-sm flex items-center gap-1.5"
+                            disabled={messageType !== "whatsapp" && !hasWhatsAppMessage()}
+                            className={cn(
+                                "h-8 text-xs border-gray-200 dark:border-gray-700 rounded-md shadow-sm flex items-center gap-1.5",
+                                messageType !== "whatsapp" && !hasWhatsAppMessage() && "opacity-50 cursor-not-allowed"
+                            )}
                         >
                             <FaWhatsapp className="text-green-500" />
                             Sohbet Penceresini Aç

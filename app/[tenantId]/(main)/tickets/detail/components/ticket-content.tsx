@@ -649,6 +649,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                         ticketId={ticket.id}
                                         mobil={ticket.customer_phone || ''}
                                         ticketNo={ticket.ticketno || undefined}
+                                        comments={comments}
                                         onSubmit={handleSubmitComment}
                                     />
                                 )}
