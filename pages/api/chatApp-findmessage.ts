@@ -43,7 +43,8 @@ export default async function handler(
             `https://api.chatapp.online/v1/licenses/52504/messengers/grWhatsApp/chats/${formattedPhone}@c.us/messages`,
             {
                 headers: {
-                    'Authorization': `Bearer ${accessToken}`,
+                    'Authorization': accessToken,
+                    'Lang': 'en',
                     'Content-Type': 'application/json'
                 }
             }
