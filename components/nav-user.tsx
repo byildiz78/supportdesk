@@ -4,6 +4,7 @@ import {
 
     ChevronsUpDown,
     LogOut,
+    Key,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,11 +22,13 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from "@/components/ui/sidebar";
-import axios, {isAxiosError} from "@/lib/axios";
+import axios, { isAxiosError } from "@/lib/axios";
 
 import { useRouter, usePathname } from "next/navigation";
 import { useFilterStore } from "@/stores/filters-store";
 import Image from "next/image";
+import { useState } from "react";
+import { ChangePasswordModal } from "@/components/change-password-modal";
 
 export function NavUser({
     user,
@@ -34,43 +37,45 @@ export function NavUser({
         name: string;
         email: string;
         avatar: string;
+        id: string;
     };
 }) {
     const { isMobile } = useSidebar();
     const router = useRouter()
     const pathname = usePathname();
     const { setToDefaultFilters } = useFilterStore();
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
     const Logout = () => {
         const tenantId = pathname?.split('/')[1] || '';
-        
+
         // Kullanıcı verilerini temizle
         localStorage.removeItem(`userData_${tenantId}`);
-        
+
         // Filtre ve şube seçimlerini sıfırla
         // Önce store'daki şube listesini temizleyelim ki, setToDefaultFilters çalıştığında
         // önceki kullanıcının şubeleri seçili kalmasın
         useFilterStore.getState().setBranchs([]);
         // Sonra filtreleri sıfırlayalım
         setToDefaultFilters();
-        
+
         // Ek olarak, diğer store'lardaki verileri de temizlemek için localStorage'dan ilgili verileri silebiliriz
         // Örneğin, filtre ve şube seçimleri ile ilgili localStorage verileri
         localStorage.removeItem(`filter_${tenantId}`);
         localStorage.removeItem(`selectedBranches_${tenantId}`);
         localStorage.removeItem(`branches_${tenantId}`);
-        
+
         // Tüm filtre ve ayarlarla ilgili localStorage verilerini temizlemek için
         Object.keys(localStorage).forEach(key => {
             if (key.includes(tenantId) && (key.includes('filter') || key.includes('branch') || key.includes('setting'))) {
                 localStorage.removeItem(key);
             }
         });
-        
-        axios.get('/api/auth/logout').then(()=>{
+
+        axios.get('/api/auth/logout').then(() => {
             router.push(`/${tenantId}/login`);
 
-        }).catch(() => {});
+        }).catch(() => { });
     };
     return (
         <SidebarMenu>
@@ -141,13 +146,33 @@ export function NavUser({
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={Logout}>
-                            <LogOut />
+                        <DropdownMenuItem
+                            onClick={() => setIsPasswordModalOpen(true)}
+                            className="cursor-pointer bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium transition-colors duration-200 shadow-sm rounded-md"
+                        >
+                            <Key className="mr-2 h-4 w-4 text-gray-600" />
+                            Şifre Değiştir
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                            onClick={Logout}
+                            className="cursor-pointer bg-gray-100 dark:bg-gray-800 hover:bg-red-100 dark:hover:bg-red-700 text-red-600 dark:text-red-200 font-medium transition-colors duration-200 shadow-sm rounded-md mt-1"
+                        >
+                            <LogOut className="mr-2 h-4 w-4 text-red-500" />
                             Çıkış
                         </DropdownMenuItem>
+
+
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>
+
+            {/* Şifre değiştirme modalı */}
+            <ChangePasswordModal
+                open={isPasswordModalOpen}
+                onOpenChange={setIsPasswordModalOpen}
+                userId={user.id}
+            />
         </SidebarMenu>
     );
 }
