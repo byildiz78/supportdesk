@@ -4,12 +4,13 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
-import { Paperclip, Send, X, Phone, CheckCircle2, XCircle, MessageSquare } from "lucide-react"
+import { Paperclip, Send, X, Phone, CheckCircle2, XCircle, MessageSquare, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTabStore } from "@/stores/tab-store"
 import { FaWhatsapp } from "react-icons/fa"
 import axios from "@/lib/axios"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface CommentFormProps {
     ticketId: string;
@@ -120,7 +121,7 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, co
     const handleSendMessage = async (type: "whatsapp" | "sms") => {
         // Telefon numarasını temizle ve kontrol et
         const cleanPhone = mobil?.replace(/\D/g, '');
-        
+
         if (!cleanPhone) {
             showCustomNotification(false, type, 'Telefon numarası bulunamadı');
             return;
@@ -198,7 +199,7 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, co
     const handleQuickResponse = (value: string) => {
         const selectedResponse = value === 'missed_call' ? quickResponses.missed_call : value === 'need_info' ? quickResponses.need_info : quickResponses.future_service;
         let newContent = '';
-        
+
         // Eğer mevcut içerik varsa ve boş değilse, yeni satırdan sonra ekle
         if (content.trim()) {
             newContent = `${content}\n\n${selectedResponse}`;
@@ -206,7 +207,7 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, co
             // İçerik boşsa, direkt olarak seçilen yanıtı ekle
             newContent = selectedResponse;
         }
-        
+
         setContent(newContent);
 
         // İmleci son karaktere konumlandır
@@ -221,11 +222,9 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, co
     // WhatsApp mesajı içeren herhangi bir yorum var mı kontrol et
     const hasWhatsAppMessage = () => {
         // Mevcut içerikte WhatsApp mesajı var mı?
-        if (content.includes("WhatsApp üzerinden")) return true;
-        
         // Yorumlarda WhatsApp mesajı var mı?
-        return comments.some(comment => 
-            comment.content && typeof comment.content === 'string' && 
+        return comments.some(comment =>
+            comment.content && typeof comment.content === 'string' &&
             comment.content.includes("WhatsApp üzerinden")
         );
     };
@@ -347,19 +346,40 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, co
 
                         <div className="border-l border-gray-200 dark:border-gray-700 h-6 mx-2"></div>
 
-                        <Button
-                            onClick={() => TicketChat(mobil)}
-                            variant="outline"
-                            size="sm"
-                            disabled={messageType !== "whatsapp" && !hasWhatsAppMessage()}
-                            className={cn(
-                                "h-8 text-xs border-gray-200 dark:border-gray-700 rounded-md shadow-sm flex items-center gap-1.5",
-                                messageType !== "whatsapp" && !hasWhatsAppMessage() && "opacity-50 cursor-not-allowed"
-                            )}
-                        >
-                            <FaWhatsapp className="text-green-500" />
-                            Sohbet Penceresini Aç
-                        </Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className={cn(
+                                        "relative",
+                                        !hasWhatsAppMessage() && "cursor-help"
+                                    )}>
+                                        {!hasWhatsAppMessage() && (
+                                            <div className="absolute -right-2 -top-2 z-10 bg-amber-100 dark:bg-amber-900 rounded-full p-0.5">
+                                                <Info className="h-3.5 w-3.5 text-amber-500" />
+                                            </div>
+                                        )}
+                                        <Button
+                                            onClick={() => TicketChat(mobil)}
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!hasWhatsAppMessage()}
+                                            className={cn(
+                                                "h-8 text-xs border-gray-200 dark:border-gray-700 rounded-md shadow-sm flex items-center gap-1.5",
+                                                !hasWhatsAppMessage() && "opacity-50 cursor-not-allowed"
+                                            )}
+                                        >
+                                            <FaWhatsapp className="text-green-500" />
+                                            Sohbet Penceresini Aç
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                {!hasWhatsAppMessage() && (
+                                    <TooltipContent className="max-w-xs">
+                                        <p>Sohbet geçmişi görüntülenemiyor çünkü bu kişiyle WhatsApp üzerinden daha önce bir mesajlaşma başlatılmamış. Lütfen önce 'Yorumlar' bölümünden WhatsApp seçeneğini işaretleyerek ilk mesajı gönderin. Mesaj gönderildikten sonra sohbet ekranı aktif hale gelecektir.</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
 
