@@ -31,7 +31,7 @@ export default function WhatsAppPage() {
         {accessToken && (
           <iframe
             id="webchat"
-            src={`https://new.dialogs.pro/?api[access_token]=${accessToken}&api[license_id]=52463`}
+            src={`https://new.dialogs.pro/?api[access_token]=${accessToken}&api[license_id]=52504`}
             sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation"
             allow="camera https://dialogs.pro/; microphone https://dialogs.pro/; clipboard-read https://dialogs.pro/; clipboard-write https://dialogs.pro/"
             width="100%"

@@ -29,12 +29,13 @@ interface TokenResponse {
   isFallback?: boolean
 }
 
-// Statik token önbelleği - Uygulama yeniden başlatılana kadar korunur
-let tokenCache: TokenData | null = null;
-
-// Rate limit yönetimi için değişkenler
-let lastErrorTime: number = 0;
-let consecutiveErrorCount: number = 0;
+// Global değişken olarak token önbelleğini tanımla
+// @ts-ignore
+global.whatsappTokenCache = global.whatsappTokenCache || {
+  tokenData: null as TokenData | null,
+  lastErrorTime: 0,
+  consecutiveErrorCount: 0
+};
 
 // Yapılandırma sabitleri
 const MAX_RETRY_ATTEMPTS = 3;
@@ -71,8 +72,10 @@ async function fetchNewToken(): Promise<TokenData> {
     }
 
     // Hata sayacını sıfırla
-    consecutiveErrorCount = 0;
-    lastErrorTime = 0;
+    // @ts-ignore
+    global.whatsappTokenCache.consecutiveErrorCount = 0;
+    // @ts-ignore
+    global.whatsappTokenCache.lastErrorTime = 0;
     
     const newToken: TokenData = response.data.data;
     console.log('Yeni token alındı, geçerlilik süresi:', new Date(newToken.accessTokenEndTime * 1000).toISOString());
@@ -80,8 +83,10 @@ async function fetchNewToken(): Promise<TokenData> {
     return newToken;
   } catch (error) {
     // Hata sayacını artır
-    consecutiveErrorCount++;
-    lastErrorTime = Date.now();
+    // @ts-ignore
+    global.whatsappTokenCache.consecutiveErrorCount++;
+    // @ts-ignore
+    global.whatsappTokenCache.lastErrorTime = Date.now();
     
     if (axios.isAxiosError(error)) {
       console.error('Token API hatası:', {
@@ -92,7 +97,8 @@ async function fetchNewToken(): Promise<TokenData> {
       
       // 429 hatası özel olarak işaretlenir
       if (error.response?.status === 429) {
-        console.log(`Rate limit aşıldı (${consecutiveErrorCount}. hata)`);
+        // @ts-ignore
+        console.log(`Rate limit aşıldı (${global.whatsappTokenCache.consecutiveErrorCount}. hata)`);
       }
     } else {
       console.error('Token alınırken beklenmeyen hata:', error);
@@ -136,9 +142,11 @@ function isTokenExpiringSoon(token: TokenData | null): boolean {
  * @returns {boolean} Rate limit bekleme modundaysa true, değilse false
  */
 function isInRateLimitCooldown(): boolean {
-  if (lastErrorTime === 0) return false;
+  // @ts-ignore
+  if (global.whatsappTokenCache.lastErrorTime === 0) return false;
   
-  const timeSinceLastError = Date.now() - lastErrorTime;
+  // @ts-ignore
+  const timeSinceLastError = Date.now() - global.whatsappTokenCache.lastErrorTime;
   return timeSinceLastError < RATE_LIMIT_COOLDOWN_MS;
 }
 
@@ -163,6 +171,8 @@ export default async function handler(
   try {
     // Token durumunu kontrol et
     const currentTime = Math.floor(Date.now() / 1000);
+    // @ts-ignore
+    const tokenCache = global.whatsappTokenCache.tokenData;
     console.log('Token önbellek durumu:', tokenCache ? 'mevcut' : 'boş');
     
     if (tokenCache) {
@@ -179,7 +189,8 @@ export default async function handler(
     
     // 2. Durum: Rate limit cooldown süresi içindeyse ve token varsa (süresi geçmiş olsa bile) kullan
     if (isInRateLimitCooldown() && tokenCache) {
-      console.log(`Rate limit cooldown aktif (${Math.round((RATE_LIMIT_COOLDOWN_MS - (Date.now() - lastErrorTime)) / 1000)} saniye kaldı), süresi geçmiş token kullanılıyor`);
+      // @ts-ignore
+      console.log(`Rate limit cooldown aktif (${Math.round((RATE_LIMIT_COOLDOWN_MS - (Date.now() - global.whatsappTokenCache.lastErrorTime)) / 1000)} saniye kaldı), süresi geçmiş token kullanılıyor`);
       return res.status(200).json({ 
         accessToken: tokenCache.accessToken,
         isExpired: true
@@ -190,7 +201,8 @@ export default async function handler(
     try {
       // Yeni token al
       const newToken = await fetchNewToken();
-      tokenCache = newToken;
+      // @ts-ignore
+      global.whatsappTokenCache.tokenData = newToken;
       return res.status(200).json({ accessToken: newToken.accessToken });
     } catch (error) {
       // 4. Durum: Yeni token alınamadı ama önbellekte eski token var

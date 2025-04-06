@@ -19,7 +19,6 @@ import { getTabIcon, Tabs, TabsContent, TabsList, TabsTrigger } from "@/componen
 import { useToast } from "@/hooks/use-toast"
 import TicketResolved from "./ticket-resolved"
 import TicketCompanyHistory from "./ticket-company-history"
-import TicketChatSend from "./ticket-chat-send"
 
 interface TicketContentProps {
     ticket: {

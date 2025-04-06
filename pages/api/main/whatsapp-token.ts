@@ -9,7 +9,13 @@ interface TokenData {
   refreshTokenEndTime: number
 }
 
-let tokenCache: TokenData | null = null
+// Global değişken olarak token önbelleğini tanımla
+// @ts-ignore
+global.whatsappTokenCache = global.whatsappTokenCache || {
+  tokenData: null as TokenData | null,
+  lastErrorTime: 0,
+  consecutiveErrorCount: 0
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -22,7 +28,11 @@ export default async function handler(
   try {
     // Token geçerli mi kontrol et
     const currentTime = Math.floor(Date.now() / 1000)
+    // @ts-ignore
+    const tokenCache = global.whatsappTokenCache.tokenData;
+    
     if (tokenCache && tokenCache.accessTokenEndTime > currentTime) {
+      console.log('Önbellekteki geçerli token kullanılıyor');
       return res.status(200).json({ accessToken: tokenCache.accessToken })
     }
 
@@ -43,7 +53,9 @@ export default async function handler(
     }
 
     const newToken: TokenData = response.data.data
-    tokenCache = newToken
+    // @ts-ignore
+    global.whatsappTokenCache.tokenData = newToken;
+    console.log('Yeni token alındı, geçerlilik süresi:', new Date(newToken.accessTokenEndTime * 1000).toISOString());
     return res.status(200).json({ accessToken: newToken.accessToken })
 
   } catch (error) {

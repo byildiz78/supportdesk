@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import axios from '@/lib/axios';
-import { db } from '@/lib/database';
+import axiosRaw from 'axios';
 
 // Mesaj gönderme API'si
 export default async function handler(
@@ -110,19 +110,31 @@ export default async function handler(
                     message
                 });
                 
-                // WhatsApp mesajı gönder
-                const response = await axios({
-                    method: 'post',
-                    url: 'https://support.robotpos.com/whatsapp/api/venom/sendmessage',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    data: {
-                        phoneNumber: whatsappPhone,
-                        message
-                    }
-                });
+                // Önce token al
+                const baseUrl = process.env.NODE_ENV === 'production' ? 'https://support.robotpos.com' : 'http://localhost:3000';
+                const basePath = process.env.NEXT_PUBLIC_BASEPATH || '/supportdesk';
+                const tokenResponse = await axiosRaw.get(`${baseUrl}${basePath}/api/whatsapp-token`);
+                const accessToken = tokenResponse.data.accessToken;
 
+                console.log('WhatsApp token:', accessToken);
+                
+                if (!accessToken) {
+                    throw new Error('WhatsApp token alınamadı')
+                }
+                // WhatsApp mesajı gönder
+                const response = await axios.post(
+                    `https://api.chatapp.online/v1/licenses/52504/messengers/grWhatsApp/chats/${whatsappPhone}@c.us/messages/text`,
+                    {
+                        text: message
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': accessToken,
+                            'Lang': 'en'
+                        }
+                    }
+                );
                 console.log('WhatsApp mesajı gönderildi:', response.data);
                 results.whatsapp = { success: true, data: response.data, error: null };
             } catch (error: any) {
