@@ -6,6 +6,8 @@ import { FaWhatsapp } from 'react-icons/fa'
 
 export default function TicketChat({mobil}: {mobil?:string}) {
   const [formattedPhone, setFormattedPhone] = useState('')
+  const [accessToken, setAccessToken] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Telefon numarası undefined ise işlem yapma
@@ -20,20 +22,30 @@ export default function TicketChat({mobil}: {mobil?:string}) {
     setFormattedPhone(phone)
   }, [mobil])
 
-  const [accessToken, setAccessToken] = useState<string>('')
-
   useEffect(() => {
     const getAccessToken = async () => {
       try {
+        setIsLoading(true)
         const response = await axios.get('/api/whatsapp-token')
         setAccessToken(response.data.accessToken)
       } catch (error) {
         console.error('Error fetching access token:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
     getAccessToken()
   }, [])
+
+  // WhatsApp iframe URL'sini oluştur
+  const getWhatsAppUrl = () => {
+    if (accessToken && formattedPhone) {
+      // Token ile birlikte doğrudan sohbet URL'si
+      return `https://new.dialogs.pro/dialogs/52504/grWhatsApp/${formattedPhone}@c.us?api[access_token]=${accessToken}`
+    }
+    return ''
+  }
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -43,10 +55,14 @@ export default function TicketChat({mobil}: {mobil?:string}) {
       </div>
 
       <div className="flex-1 w-full">
-        {formattedPhone ? (
-            <iframe
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        ) : formattedPhone && accessToken ? (
+          <iframe
             id="webchat"
-            src={`https://new.dialogs.pro/dialogs/52463/grWhatsApp/${formattedPhone}@c.us?api[access_token]=${accessToken}&api[license_id]=52504`}
+            src={getWhatsAppUrl()}
             sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation"
             allow="camera https://dialogs.pro/; microphone https://dialogs.pro/; clipboard-read https://dialogs.pro/; clipboard-write https://dialogs.pro/"
             width="100%"
