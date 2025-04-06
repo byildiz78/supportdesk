@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface CommentFormProps {
     ticketId: string;
     mobil: string;
+    email?: string;
     ticketNo?: string;
     onSubmit: (content: string, isInternal: boolean, attachments?: File[]) => void
     className?: string
@@ -27,7 +28,7 @@ const quickResponses = {
     future_service: "Bundan sonra ki servis taleplerinizde, call center ı aradıktan sonra gelen linke tıklayarak yine whatsapp üzerinden bizimle iletişime geçebilirsiniz."
 } as const;
 
-export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, comments = [] }: CommentFormProps) {
+export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, className, comments = [] }: CommentFormProps) {
     const [content, setContent] = useState("")
     const [isInternal, setIsInternal] = useState(false)
     const [files, setFiles] = useState<File[]>([])
@@ -120,25 +121,39 @@ export function CommentForm({ ticketId, mobil, ticketNo, onSubmit, className, co
 
     const handleSendMessage = async (type: "whatsapp" | "sms") => {
         // Telefon numarasını temizle ve kontrol et
-        const cleanPhone = mobil?.replace(/\D/g, '');
-
-        if (!cleanPhone) {
-            showCustomNotification(false, type, 'Telefon numarası bulunamadı');
-            return;
-        }
-
-        if (!content.trim()) {
-            showCustomNotification(false, type, 'Mesaj içeriği boş olamaz');
-            return;
-        }
-
-        setIsSendingMessage(true)
-
+        let cleanPhone = mobil?.replace(/\D/g, '');
+        
+        setIsSendingMessage(true);
+        
         try {
-            console.log('Mesaj gönderiliyor:', { phoneNumber: cleanPhone, message: content, type })
+            // Eğer telefon numarası yoksa ve email varsa, contact API'sinden telefon numarası almayı dene
+            if ((!cleanPhone || cleanPhone === '') && email) {
+                try {
+                    const contactResponse = await axios.get(`/api/main/contacts/getContactPhoneNumber?email=${email}`);
+                    if (contactResponse.data.success && contactResponse.data.data.phone) {
+                        cleanPhone = contactResponse.data.data.phone.replace(/\D/g, '');
+                    }
+                } catch (error) {
+                    console.log('Email ile contact API\'sinden telefon numarası alınamadı:', error);
+                }
+            }
+            
+            // Hala telefon numarası yoksa hata göster
+            if (!cleanPhone || cleanPhone === '') {
+                showCustomNotification(false, type, 'Telefon numarası bulunamadı. Lütfen kişi bilgilerini güncelleyin.');
+                setIsSendingMessage(false);
+                return;
+            }
+
+            if (!content.trim()) {
+                showCustomNotification(false, type, 'Mesaj içeriği boş olamaz');
+                setIsSendingMessage(false);
+                return;
+            }
 
             const response = await axios.post('/api/main/chat-send', {
                 phoneNumber: cleanPhone,
+                email,
                 message: content,
                 type
             });

@@ -648,6 +648,7 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                     <CommentForm
                                         ticketId={ticket.id}
                                         mobil={ticket.customer_phone || ''}
+                                        email={ticket.customer_email || ''}
                                         ticketNo={ticket.ticketno || undefined}
                                         comments={comments}
                                         onSubmit={handleSubmitComment}
