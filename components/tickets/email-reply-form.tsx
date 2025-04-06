@@ -123,7 +123,7 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                             id="cc-recipients"
                             value={ccRecipients.join(', ')}
                             onChange={handleCcRecipientsChange}
-                            placeholder="cc@example.com"
+                            placeholder="cc@example.com;cc2@example.com"
                             disabled={isSubmitting}
                         />
                     </div>

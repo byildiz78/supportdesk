@@ -16,12 +16,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log('sendEmailReply API çağrıldı', { 
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    body: req.body 
-  });
 
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -43,11 +37,6 @@ export default async function handler(
       attachments,
       commentId
     } = req.body;
-
-    console.log('Request parametreleri:', { 
-      ticketId, content, subject, to, cc, replyToEmailId, 
-      threadId, isInternal, userId, userName 
-    });
 
     // Gönderen robotpos ise işlemi engelle
     if (userName === 'robotpos' || userName === 'Robotpos' || 
@@ -156,7 +145,11 @@ export default async function handler(
       const mailOptions = {
         from: process.env.SUPPORT_MAIL || '',
         to: to.join(', '),
-        cc: cc && cc.length > 0 ? cc.join(', ') : undefined,
+        cc: cc && cc.length > 0 ? cc.filter((email: string) => {
+          const normalizedEmail = email.toLowerCase();
+          return !normalizedEmail.includes('destek@robotpos.com') && 
+                 !normalizedEmail.includes('robotpos destek ekibi');
+        }).join(', ') : undefined,
         subject: emailSubject,
         text: content,
         html: typeof htmlContent === 'string' ? htmlContent : `<p>${content}</p>`,
@@ -301,6 +294,13 @@ export default async function handler(
         ? userResult.rows[0] 
         : { name: 'Sistem', email: process.env.SUPPORT_MAIL };
 
+      // CC alıcılarını filtrele
+      const filteredCc = cc && cc.length > 0 ? cc.filter((email: string) => {
+        const normalizedEmail = email.toLowerCase();
+        return !normalizedEmail.includes('destek@robotpos.com') && 
+               !normalizedEmail.includes('robotpos destek ekibi');
+      }) : [];
+
       // Yorumu veritabanına ekle
       console.log('Yorum veritabanına ekleniyor...');
       const commentResult = await db.executeQueryResult<QueryResult>({
@@ -315,7 +315,7 @@ export default async function handler(
           userName || user.name,
           user.email,
           to,
-          cc,
+          filteredCc,
           htmlContent || `<p>${content}</p>`,
           req.body.attachments ? JSON.stringify(req.body.attachments) : null
         ],
@@ -429,7 +429,7 @@ export default async function handler(
           sender: userName || user.name,
           senderEmail: user.email || process.env.SUPPORT_MAIL || '',
           toRecipients: to || [],
-          ccRecipients: cc || null,
+          ccRecipients: filteredCc || null,
           htmlContent: htmlContent || `<p>${content}</p>`,
           attachments: req.body.attachments || null
         }
