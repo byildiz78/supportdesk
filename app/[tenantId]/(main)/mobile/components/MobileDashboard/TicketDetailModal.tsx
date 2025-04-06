@@ -10,7 +10,8 @@ import { calculateSlaTime } from "@/app/[tenantId]/(main)/tickets/components/con
 import { 
   Loader2, Phone, Mail, Building, User, Calendar, Clock, 
   Flag, Tag, MessageSquare, AlertCircle, FileText, Info, X, 
-  ArrowLeft, Paperclip, ExternalLink, AlertTriangle
+  ArrowLeft, Paperclip, ExternalLink, AlertTriangle, Download,
+  ChevronUp, ChevronDown
 } from "lucide-react";
 
 interface TicketDetailModalProps {
@@ -26,6 +27,7 @@ interface Attachment {
   name: string;
   filename: string;
   originalFilename: string;
+  contentType?: string; // İsteğe bağlı olarak dosya türü bilgisi
 }
 
 interface Comment {
@@ -228,6 +230,196 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     );
   };
 
+  // Dosya tipini kontrol eden yardımcı fonksiyon
+  const getFileType = (filename: string): string => {
+    const extension = filename.split('.').pop()?.toLowerCase() || '';
+    
+    // Resim dosyaları
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(extension)) {
+      return 'image';
+    }
+    
+    // PDF dosyaları
+    if (extension === 'pdf') {
+      return 'pdf';
+    }
+    
+    // Video dosyaları
+    if (['mp4', 'webm', 'ogg', 'mov'].includes(extension)) {
+      return 'video';
+    }
+    
+    // Ses dosyaları
+    if (['mp3', 'wav', 'ogg', 'aac'].includes(extension)) {
+      return 'audio';
+    }
+    
+    // Diğer dosya türleri
+    return 'other';
+  };
+
+  // URL'in Google Drive veya benzeri bir servis olup olmadığını kontrol et
+  const isExternalStorageUrl = (url: string): boolean => {
+    return url.includes('drive.google.com') || 
+           url.includes('docs.google.com') || 
+           url.includes('drivesdk') ||
+           url.includes('googleusercontent.com');
+  };
+
+  // Google Drive URL'lerini gömülebilir formata dönüştür
+  const getEmbedUrl = (url: string): string => {
+    // Google Drive dosya linki
+    if (url.includes('drive.google.com/file/d/')) {
+      // Drive linki: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+      const match = url.match(/\/d\/([^/]+)/);
+      if (match && match[1]) {
+        const fileId = match[1];
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+    }
+    
+    // Google Docs, Sheets veya Slides
+    if (url.includes('docs.google.com') && 
+        (url.includes('/document/') || url.includes('/spreadsheets/') || url.includes('/presentation/'))) {
+      // Format: https://docs.google.com/document/d/DOC_ID/edit?usp=sharing
+      const match = url.match(/\/d\/([^/]+)/);
+      if (match && match[1]) {
+        const docId = match[1];
+        if (url.includes('/document/')) {
+          return `https://docs.google.com/document/d/${docId}/preview`;
+        } else if (url.includes('/spreadsheets/')) {
+          return `https://docs.google.com/spreadsheets/d/${docId}/preview`;
+        } else if (url.includes('/presentation/')) {
+          return `https://docs.google.com/presentation/d/${docId}/embed`;
+        }
+      }
+    }
+    
+    // Google resim, video formatını da anlayıp destekleyelim
+    if (url.includes('googleusercontent.com')) {
+      return url; // Bu URL'ler genellikle direkt erişilebilir
+    }
+    
+    // Dönüştürülemeyen URL için orjinali döndür
+    return url;
+  };
+
+  // Ek bileşeni - dosya türüne göre uygun görüntüleyici gösterir
+  const AttachmentViewer = ({ attachment }: { attachment: Attachment }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const fileName = attachment.originalFilename || attachment.filename || attachment.name;
+    const fileType = getFileType(fileName);
+
+    const toggleExpand = () => {
+      setIsExpanded(!isExpanded);
+      if (!isExpanded && fileType === 'image') {
+        setIsLoading(true);
+      }
+    };
+
+    const handleImageLoad = () => {
+      setIsLoading(false);
+    };
+
+    const handleImageError = () => {
+      setIsLoading(false);
+      setImageError(true);
+    };
+
+    // URL güvenliği için - bazı attachment URL'leri doğrudan erişilebilir olmayabilir
+    const fileUrl = attachment.url || '';
+    const isExternalStorage = isExternalStorageUrl(fileUrl);
+    const embedUrl = isExternalStorage ? getEmbedUrl(fileUrl) : fileUrl;
+
+    return (
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-2">
+        <div 
+          className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 px-3 py-2 cursor-pointer"
+          onClick={toggleExpand}
+        >
+          <div className="flex items-center gap-2 text-sm truncate">
+            <Paperclip className="h-4 w-4 text-gray-500" />
+            <span className="truncate max-w-[200px]">{fileName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isExpanded ? 
+              <ChevronUp className="h-4 w-4 text-gray-500" /> : 
+              <ChevronDown className="h-4 w-4 text-gray-500" />
+            }
+          </div>
+        </div>
+        
+        {isExpanded && (
+          <div className="p-3 bg-white dark:bg-gray-900">
+            {fileType === 'image' && !imageError && !isExternalStorage ? (
+              <div className="flex justify-center relative min-h-[200px]">
+                {isLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                )}
+                <img 
+                  src={fileUrl} 
+                  alt={fileName} 
+                  className={`max-w-full max-h-[500px] object-contain rounded ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+              </div>
+            ) : isExternalStorage ? (
+              <div className="w-full">
+                <iframe
+                  src={embedUrl}
+                  className="w-full h-[500px] border-0 rounded"
+                  allowFullScreen
+                  title={fileName}
+                  onError={() => {
+                    setImageError(true);
+                  }}
+                ></iframe>
+              </div>
+            ) : fileType === 'image' && imageError ? (
+              <div className="flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                <div className="h-12 w-12 text-gray-400 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-500 mb-2">
+                  Görüntü yüklenemedi
+                </p>
+                <a 
+                  href={fileUrl} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Görüntüle
+                </a>
+              </div>
+            ) : fileType === 'pdf' || fileType === 'video' || fileType === 'audio' || fileType === 'other' ? (
+              <div className="text-center p-6">
+                <p className="text-sm text-gray-500 mb-3">Bu dosya ayrı bir pencerede görüntülenebilir</p>
+                <a 
+                  href={fileUrl} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Görüntüle
+                </a>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderComments = () => {
     if (!ticket?.comments || ticket.comments.length === 0) {
       return (
@@ -289,21 +481,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                     <Paperclip className="h-3 w-3" />
                     Ekler ({comment.attachments.length})
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {comment.attachments.map((attachment) => (
-                      <a
-                        key={attachment.id}
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs bg-gray-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-2 py-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <Paperclip className="h-3 w-3" />
-                        <span className="truncate max-w-[150px]">
-                          {attachment.originalFilename || attachment.filename || attachment.name}
-                        </span>
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </a>
+                      <AttachmentViewer key={attachment.id} attachment={attachment} />
                     ))}
                   </div>
                 </div>

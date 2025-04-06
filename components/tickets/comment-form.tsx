@@ -45,6 +45,48 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
         type: 'sms' | 'whatsapp' | 'both';
         message: string;
     } | null>(null)
+    const [hasWhatsAppHistory, setHasWhatsAppHistory] = useState<boolean>(false);
+
+    // WhatsApp mesaj geçmişini kontrol et
+    useEffect(() => {
+        const checkWhatsAppHistory = async () => {
+            // Telefon numarası varsa doğrudan kontrol et
+            if (mobil) {
+                try {
+                    const response = await axios.get<{ success: boolean; data: { hasChatHistory: boolean } }>(`/api/chatApp-findmessage?phoneNumber=${mobil}`);
+                    const data = await response.data;
+                    
+                    if (data.success && data.data) {
+                        setHasWhatsAppHistory(data.data.hasChatHistory);
+                    }
+                } catch (error) {
+                    console.error('WhatsApp geçmişi kontrol edilirken hata:', error);
+                }
+            } 
+            // Telefon numarası yoksa ama email varsa, önce telefon numarasını bul
+            else if (email) {
+                try {
+                    const contactResponse = await axios.get<{ success: boolean; data: { phone: string } }>(`/api/main/contacts/getContactPhoneNumber?email=${email}`);
+                    if (contactResponse.data.success && contactResponse.data.data.phone) {
+                        const cleanPhone = contactResponse.data.data.phone;
+                        if (cleanPhone && cleanPhone !== '') {
+                            // Telefon numarası bulundu, WhatsApp geçmişini kontrol et
+                            const response = await axios.get<{ success: boolean; data: { hasChatHistory: boolean } }>(`/api/chatApp-findmessage?phoneNumber=${cleanPhone}`);
+                            const data = await response.data;
+                            
+                            if (data.success && data.data) {
+                                setHasWhatsAppHistory(data.data.hasChatHistory);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Email ile telefon numarası veya WhatsApp geçmişi kontrol edilirken hata:', error);
+                }
+            }
+        };
+        
+        checkWhatsAppHistory();
+    }, [mobil, email]);
 
     // Mesaj tipi değiştiğinde ön eki ekle veya temizle ve dosya eklerini temizle
     useEffect(() => {
@@ -131,7 +173,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                 try {
                     const contactResponse = await axios.get(`/api/main/contacts/getContactPhoneNumber?email=${email}`);
                     if (contactResponse.data.success && contactResponse.data.data.phone) {
-                        cleanPhone = contactResponse.data.data.phone.replace(/\D/g, '');
+                        cleanPhone = contactResponse.data.data.phone;
                     }
                 } catch (error) {
                     console.log('Email ile contact API\'sinden telefon numarası alınamadı:', error);
@@ -187,24 +229,50 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
     }
 
     const TicketChat = (mobil: string) => {
-        if (!mobil) {
-            showCustomNotification(false, 'whatsapp', 'Telefon numarası bulunamadı');
+        // Telefon numarası kontrolü - boş, null veya undefined olabilir
+        if (!mobil || mobil.trim() === '') {
+            console.log('Telefon numarası bulunamadı', mobil);
+            
+            // Eğer email varsa, contact API'sinden telefon numarası almayı dene
+            if (email) {
+                axios.get(`/api/main/contacts/getContactPhoneNumber?email=${email}`)
+                    .then(contactResponse => {
+                        if (contactResponse.data.success && contactResponse.data.data.phone) {
+                            const cleanPhone = contactResponse.data.data.phone;
+                            if (cleanPhone && cleanPhone !== '') {
+                                // Telefon numarası bulundu, sohbet penceresini aç
+                                openChatWindow(cleanPhone);
+                                return;
+                            }
+                        }
+                        showCustomNotification(false, 'whatsapp', 'Telefon numarası bulunamadı. Lütfen kişi bilgilerini güncelleyin.');
+                    })
+                    .catch(error => {
+                        console.log('Email ile contact API\'sinden telefon numarası alınamadı:', error);
+                        showCustomNotification(false, 'whatsapp', 'Telefon numarası bulunamadı. Lütfen kişi bilgilerini güncelleyin.');
+                    });
+                return;
+            }
+            
+            showCustomNotification(false, 'whatsapp', 'Telefon numarası bulunamadı. Lütfen kişi bilgilerini güncelleyin.');
             return;
         }
 
-        // Telefon numarasını temizle ve formatla
-        const cleanPhone = mobil.replace(/\+/g, '');
+        openChatWindow(mobil);
+    }
 
-        const tabId = `whatsapp-chat-${cleanPhone}`;
+    // Sohbet penceresini açma fonksiyonu
+    const openChatWindow = (phoneNumber: string) => {
+        const tabId = `whatsapp-chat-${phoneNumber}`;
         // Sekme zaten açık mı kontrol et
         const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId)
 
         if (!isTabAlreadyOpen) {
             addTab({
                 id: tabId,
-                title: `Sohbet Pencersini Aç ${mobil}`,
+                title: `Sohbet Penceresini Aç ${phoneNumber}`,
                 lazyComponent: () => import('@/app/[tenantId]/(main)/tickets/detail/components/ticket-chat').then(module => ({
-                    default: (props: any) => <module.default mobil={mobil} {...props} />
+                    default: (props: any) => <module.default mobil={phoneNumber} {...props} />
                 }))
             })
         }
@@ -236,9 +304,10 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
 
     // WhatsApp mesajı içeren herhangi bir yorum var mı kontrol et
     const hasWhatsAppMessage = () => {
-        // Mevcut içerikte WhatsApp mesajı var mı?
-        // Yorumlarda WhatsApp mesajı var mı?
-        return comments.some(comment =>
+        // API'den gelen mesaj geçmişi kontrolü
+        return hasWhatsAppHistory || 
+        // Eski kontrol - yorum içeriğinde WhatsApp ifadesi var mı?
+        comments.some(comment =>
             comment.content && typeof comment.content === 'string' &&
             comment.content.includes("WhatsApp üzerinden")
         );
