@@ -116,7 +116,7 @@ export function EmailCommentView({ comment, onReply }: EmailCommentViewProps) {
                                 <span>{isMetadataOpen ? '▲' : '▼'}</span>
                             </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="space-y-2 pt-2 text-xs">
+                        <CollapsibleContent className="space-y-2 pt-2 text-xs max-w-[100vh] overflow-x-auto">
                             {comment.sender_email && (
                                 <div className="flex gap-2">
                                     <span className="font-medium min-w-[60px]">Gönderen:</span>

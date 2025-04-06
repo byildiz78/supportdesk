@@ -55,7 +55,7 @@ async function fetchNewToken(): Promise<TokenData> {
     const response = await axios.post<ApiResponse>('https://api.chatapp.online/v1/tokens', {
       email: process.env.CHATAPP_EMAIL,
       password: process.env.CHATAPP_PASSWORD,
-      appId: 'app_50598_1'
+      appId: process.env.CHATAPP_APPID
     }, {
       headers: {
         'Lang': 'en',
