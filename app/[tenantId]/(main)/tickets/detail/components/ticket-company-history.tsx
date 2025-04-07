@@ -2,45 +2,45 @@
 
 import React, { useEffect, useState } from 'react'
 import axios from '@/lib/axios'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
-import { 
-  Card, 
-  CardContent 
+import {
+  Card,
+  CardContent
 } from '@/components/ui/card'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { 
-  Loader2, 
-  Search, 
-  Calendar, 
-  Tag, 
-  MessageSquare, 
-  AlertTriangle, 
+import {
+  Loader2,
+  Search,
+  Calendar,
+  Tag,
+  MessageSquare,
+  AlertTriangle,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   Eye
 } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { useTicketStore } from '@/stores/ticket-store'
 import { getStatusChange, getPriorityChange } from '@/lib/utils'
 import { useTabStore } from '@/stores/tab-store'
+import { formatInTimeZone } from 'date-fns-tz/formatInTimeZone'
 
 // Define the ticket type based on the API response
 interface CompanyTicket {
@@ -137,7 +137,7 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
   useEffect(() => {
     const fetchCompanyTickets = async () => {
       if (!selectedTicket?.company_id) return
-      
+
       try {
         setLoading(true)
         const response = await axios.post('/api/main/tickets/ticketCompanyHistory', {
@@ -167,15 +167,15 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
     if (!showCurrentTicket && ticket.id === ticketId) {
       return false
     }
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       (ticket.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (String(ticket.ticketno || '')?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (ticket.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (ticket.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    
+
     const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
-    
+
     return matchesSearch && matchesStatus
   })
 
@@ -184,8 +184,8 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
     try {
       const dateA = new Date(a.createdAt).getTime()
       const dateB = new Date(b.createdAt).getTime()
-      
-      return sortDirection === 'desc' 
+
+      return sortDirection === 'desc'
         ? dateB - dateA // Newest first
         : dateA - dateB // Oldest first
     } catch (e) {
@@ -219,16 +219,6 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
 
   // Get unique statuses for filter
   const uniqueStatuses = Array.from(new Set(tickets.map(ticket => ticket.status)))
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-'
-    try {
-      return format(new Date(dateString), 'dd MMM yyyy HH:mm', { locale: tr })
-    } catch (e) {
-      return dateString
-    }
-  }
 
   // Check if a ticket is the current ticket
   const isCurrentTicket = (id: string) => id === ticketId
@@ -283,9 +273,9 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             className="h-10 w-10 bg-white dark:bg-gray-800"
             onClick={toggleSortDirection}
             title={sortDirection === 'desc' ? 'En yeni ilk (şu anki sıralama)' : 'En eski ilk (şu anki sıralama)'}
@@ -326,8 +316,8 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
             <MessageSquare className="h-12 w-12 text-gray-400 mb-2" />
             <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">Bilet bulunamadı</h3>
             <p className="text-gray-500 dark:text-gray-400 text-center mt-1">
-              {searchTerm || statusFilter !== 'all' 
-                ? 'Arama kriterlerinize uygun bilet bulunamadı. Filtreleri değiştirmeyi deneyin.' 
+              {searchTerm || statusFilter !== 'all'
+                ? 'Arama kriterlerinize uygun bilet bulunamadı. Filtreleri değiştirmeyi deneyin.'
                 : !showCurrentTicket && tickets.length === 1
                   ? 'Bu firma için başka bilet bulunmuyor. Mevcut bileti görmek için "Mevcut Bileti Göster" butonuna tıklayın.'
                   : 'Bu firma için henüz bilet oluşturulmamış.'}
@@ -359,20 +349,18 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                 {currentItems.map((ticket) => {
                   const isCurrent = isCurrentTicket(ticket.id);
                   return (
-                    <TableRow 
+                    <TableRow
                       key={ticket.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-800/70 ${
-                        isCurrent 
-                          ? 'bg-purple-100 dark:bg-purple-900/30 border-l-4 border-purple-500' 
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-800/70 ${isCurrent
+                          ? 'bg-purple-100 dark:bg-purple-900/30 border-l-4 border-purple-500'
                           : 'bg-white dark:bg-gray-900/30'
-                      }`}
-                    >
-                      <TableCell 
-                        className={`font-medium ${
-                          isCurrent 
-                            ? 'text-purple-700 dark:text-purple-300 flex items-center' 
-                            : 'text-purple-600 dark:text-purple-400 underline cursor-pointer hover:text-purple-800 dark:hover:text-purple-300'
                         }`}
+                    >
+                      <TableCell
+                        className={`font-medium ${isCurrent
+                            ? 'text-purple-700 dark:text-purple-300 flex items-center'
+                            : 'text-purple-600 dark:text-purple-400 underline cursor-pointer hover:text-purple-800 dark:hover:text-purple-300'
+                          }`}
                         onClick={isCurrent ? undefined : () => getDetails(ticket.id, String(ticket.ticketno))}
                       >
                         {isCurrent && (
@@ -404,7 +392,9 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                         </div>
                       </TableCell>
                       <TableCell>{ticket.assignedUserName || '-'}</TableCell>
-                      <TableCell>{formatDate(ticket.createdAt)}</TableCell>
+                      <TableCell>
+                        {formatInTimeZone(ticket.createdAt, 'Europe/Istanbul', 'dd MMM yyyy HH:mm', { locale: tr })}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -417,13 +407,13 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
         {!loading && !error && sortedTickets.length > 0 && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Toplam {sortedTickets.length} bilet 
+              Toplam {sortedTickets.length} bilet
               {sortedTickets.length !== tickets.length && ` (filtrelenmiş: toplam ${tickets.length})`}
               <span className="ml-2">
                 {sortDirection === 'desc' ? '(En yeni ilk)' : '(En eski ilk)'}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
@@ -434,11 +424,11 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              
+
               <span className="text-sm font-medium">
                 Sayfa {currentPage} / {totalPages || 1}
               </span>
-              
+
               <Button
                 variant="outline"
                 size="sm"
