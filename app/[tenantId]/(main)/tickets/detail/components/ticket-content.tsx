@@ -321,11 +321,19 @@ export function TicketContent({ ticket }: TicketContentProps) {
                 const sanitizedOriginalContent = DOMPurify.sanitize(safeOriginalContent);
 
                 // E-posta içeriğine orijinal içeriği ekleyelim
-                emailHtmlContent += `<br/><br/><hr/><div class="original-email">
+                emailHtmlContent += `<br/><br/><hr/><div class="original-email" style="margin-top: 20px; padding: 10px; border-left: 2px solid #ccc;">
                 <p><strong>From:</strong> ${replyingToEmail.sender || ''} &lt;${replyingToEmail.sender_email || ''}&gt;</p>
                 <p><strong>Date:</strong> ${new Date(replyingToEmail.created_at).toLocaleString()}</p>
+                ${replyingToEmail.to_recipients && replyingToEmail.to_recipients.length > 0 ? 
+                  `<p><strong>To:</strong> ${Array.isArray(replyingToEmail.to_recipients) ? 
+                    replyingToEmail.to_recipients.join(', ') : 
+                    replyingToEmail.to_recipients}</p>` : ''}
+                ${replyingToEmail.cc_recipients && replyingToEmail.cc_recipients.length > 0 ? 
+                  `<p><strong>Cc:</strong> ${Array.isArray(replyingToEmail.cc_recipients) ? 
+                    replyingToEmail.cc_recipients.join(', ') : 
+                    replyingToEmail.cc_recipients}</p>` : ''}
                 <p><strong>Subject:</strong> ${replyingToEmail.content || ''}</p>
-                <div class="original-content">${sanitizedOriginalContent}</div>
+                <div class="original-content" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">${sanitizedOriginalContent}</div>
                 </div>`;
             }
 
