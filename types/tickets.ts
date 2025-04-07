@@ -71,6 +71,7 @@ export interface Ticket {
     createdBy?: string | null;
     updatedAt?: string | null;
     updatedBy?: string | null;
+    isSeen?: boolean;
 }
 
 export interface ParentCompany {

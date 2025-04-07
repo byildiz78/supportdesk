@@ -160,15 +160,17 @@ export default async function handler(
         },
         // Eklentileri ekleyelim
         attachments: attachments && attachments.length > 0 ? attachments.map((attachment: any) => {
-          // Üretim ve geliştirme ortamı için farklı yolları dene
-          let filePath = `${process.cwd()}/uploads/supportdesk/${attachment.name}`;
+          // Çevre değişkeninden dosya yolunu al veya varsayılan olarak process.cwd() kullan
+          const uploadDir = process.env.FILE_UPLOAD_DIR || process.cwd();
+          let filePath = path.join(uploadDir, `/${attachment.name}`);
           
           // Eğer dosya mevcut projenin kök dizininde değilse, 
           // üretim ortamında olabilecek diğer yolları dene
           if (!fs.existsSync(filePath)) {
             // Üretim ortamı için alternatif yol (Vercel, Docker, vb.)
             const productionPath1 = `/var/www/new-supportdesk/uploads/supportdesk/${attachment.name}`;
-            const productionPath2 = path.join(process.cwd(), '..', 'uploads', 'supportdesk', attachment.name);
+            const productionPath2 = `/var/www/supportdesk/uploads/supportdesk/${attachment.name}`;
+            const productionPath3 = path.join(process.cwd(), '..', 'uploads', 'supportdesk', attachment.name);
             
             console.log(`İlk yol bulunamadı: ${filePath}, alternatif yollar deneniyor...`);
             
@@ -178,12 +180,16 @@ export default async function handler(
             } else if (fs.existsSync(productionPath2)) {
               filePath = productionPath2;
               console.log(`Dosya alternatif yolda bulundu: ${filePath}`);
+            } else if (fs.existsSync(productionPath3)) {
+              filePath = productionPath3;
+              console.log(`Dosya alternatif yolda bulundu: ${filePath}`);
             } else {
               console.error(`Dosya hiçbir yolda bulunamadı: ${attachment.name}`);
               console.log(`Denenen yollar:`, {
                 dev: filePath,
                 prod1: productionPath1,
-                prod2: productionPath2
+                prod2: productionPath2,
+                prod3: productionPath3
               });
             }
           }

@@ -17,7 +17,7 @@ export interface Notification {
   subcategory_name: string;
   assigned_user_name: string;
   assigned_user_surname: string;
-  isRead: boolean;
+  isseen: boolean;
 }
 
 interface NotificationState {
@@ -58,20 +58,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const response = await axios.get(apiUrl);
       
       if (response.data) {
-        // Mevcut bildirimleri al
-        const currentNotifications = get().notifications;
-        const currentIds = new Set(currentNotifications.map(n => n.id));
+        // API'den gelen bildirimleri işle
+        const newNotifications = response.data;
         
-        // Yeni bildirimleri işle
-        const newNotifications = response.data.map((notification: any) => ({
-          ...notification,
-          isRead: currentIds.has(notification.id) 
-            ? currentNotifications.find(n => n.id === notification.id)?.isRead 
-            : false
-        }));
-        
-        // Okunmamış bildirimleri say
-        const unreadCount = newNotifications.filter((n: Notification) => !n.isRead).length;
+        // Okunmamış bildirimleri say (isseen=false olanlar)
+        const unreadCount = newNotifications.filter((n: Notification) => n.isseen === false).length;
         
         set({ 
           notifications: newNotifications,
@@ -89,10 +80,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   markAsRead: (id: string) => {
     set(state => {
       const updatedNotifications = state.notifications.map(notification => 
-        notification.id === id ? { ...notification, isRead: true } : notification
+        notification.id === id ? { ...notification, isseen: true } : notification
       );
       
-      const unreadCount = updatedNotifications.filter(n => !n.isRead).length;
+      const unreadCount = updatedNotifications.filter(n => n.isseen === false).length;
       
       return { 
         notifications: updatedNotifications,
@@ -105,7 +96,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set(state => {
       const updatedNotifications = state.notifications.map(notification => ({
         ...notification,
-        isRead: true
+        isseen: true
       }));
       
       return { 

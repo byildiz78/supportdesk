@@ -13,7 +13,9 @@ import {
   ChevronDown,
   Info,
   Circle,
-  Users
+  Users,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Button } from './button';
 import {
@@ -23,7 +25,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from './dropdown-menu';
-import { useNotificationStore } from '@/stores/notification-store';
+import { useNotificationStore, Notification as NotificationItem } from '@/stores/notification-store';
 import { formatDistanceToNow } from 'date-fns';
 import { tr, enUS, ru } from 'date-fns/locale';
 import { useLanguage } from '@/providers/language-provider';
@@ -38,6 +40,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnlineUsersStore } from '@/stores/online-users-store';
+import { getUserId } from '@/utils/user-utils';
+import axios from '@/lib/axios';
 
 // Locale tipi tanımı
 type DateLocale = typeof tr | typeof enUS | typeof ru;
@@ -66,6 +70,7 @@ const NOTIFICATION_LABELS: Record<NotificationFilter, string> = {
 };
 
 export function NotificationBell() {
+  const notificationStore = useNotificationStore();
   const { 
     notifications, 
     unreadCount, 
@@ -73,7 +78,7 @@ export function NotificationBell() {
     markAsRead, 
     markAllAsRead,
     isLoading
-  } = useNotificationStore();
+  } = notificationStore;
   const { users: onlineUsers, fetchOnlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsersStore();
   const { language } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -102,7 +107,7 @@ export function NotificationBell() {
 
   const filteredNotifications = notifications.filter(notification => {
     if (activeFilter === NOTIFICATION_FILTERS.UNREAD) {
-      return !notification.isRead;
+      return notification.isseen === false;
     } else if (activeFilter === NOTIFICATION_FILTERS.HIGH_PRIORITY) {
       return notification.priority?.toLowerCase() === 'high' || 
              notification.priority?.toLowerCase() === 'yüksek';
@@ -115,39 +120,74 @@ export function NotificationBell() {
     setLastFetched(new Date());
   };
 
-  const handleNotificationClick = (notification) => {
-    // Bildirimi okundu olarak işaretle
-    markAsRead(notification.id);
-    
-    const tabId = `ticket-${notification.ticketno}`;
-    
-    // Önce bu ID'ye sahip bir tab var mı kontrol et
-    const tabs = useTabStore.getState().tabs;
-    const existingTab = tabs.find(tab => tab.id === tabId);
-    
-    // Her tıklamada önbelleği temizle, böylece her zaman API'den taze veri alınacak
-    clearTicketCache(tabId);
-    
-    if (existingTab) {
-      // Tab zaten açıksa, sadece o taba geçiş yap
-      setActiveTab(tabId);
-    } else {
-      // Tab yoksa yeni tab oluştur
-      addTab({
-        id: tabId,
-        title: `Talep #${notification.ticketno}`,
-        lazyComponent: () => import('@/app/[tenantId]/(main)/tickets/detail/page').then(module => ({
-          default: (props) => <module.default {...props} ticketId={notification.id} />
-        }))
+  // Tüm biletleri görüldü olarak işaretleyen fonksiyon
+  const markAllTicketsAsSeen = async () => {
+    try {
+      const userId = getUserId();
+      // Tüm okunmamış bildirimlerin bilet ID'lerini al
+      const unreadTicketIds = notifications
+        .filter(notification => notification.isseen === false)
+        .map(notification => notification.id);
+      
+      if (unreadTicketIds.length === 0) return;
+      
+      // API'ye istek at ve tüm biletleri görüldü olarak işaretle
+      const response = await axios.post('/api/main/tickets/is-seenTickets', {
+        id: unreadTicketIds,
+        userId: userId
       });
-      setActiveTab(tabId);
+      
+      // Tüm bildirimleri okundu olarak işaretle
+      markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all tickets as seen:', error);
     }
-    
-    // Dropdown'ı kapat
-    setIsOpen(false);
   };
 
-  const formatDate = (dateString) => {
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    try {
+      // Bildirimi okundu olarak işaretle
+      markAsRead(notification.id);
+      const userId = getUserId();
+      
+      // Bileti görüldü olarak işaretle
+      const response = await axios.post('/api/main/tickets/is-seenTickets', {
+        id: notification.id,
+        userId: userId
+      });
+      
+      const tabId = `ticket-${notification.ticketno}`;
+      
+      // Önce bu ID'ye sahip bir tab var mı kontrol et
+      const tabs = useTabStore.getState().tabs;
+      const existingTab = tabs.find(tab => tab.id === tabId);
+      
+      // Her tıklamada önbelleği temizle, böylece her zaman API'den taze veri alınacak
+      clearTicketCache(tabId);
+      
+      if (existingTab) {
+        // Tab zaten açıksa, sadece o taba geçiş yap
+        setActiveTab(tabId);
+      } else {
+        // Tab yoksa yeni tab oluştur
+        addTab({
+          id: tabId,
+          title: `Talep #${notification.ticketno}`,
+          lazyComponent: () => import('@/app/[tenantId]/(main)/tickets/detail/page').then(module => ({
+            default: (props) => <module.default {...props} ticketId={notification.id} />
+          }))
+        });
+        setActiveTab(tabId);
+      }
+      
+      // Dropdown'ı kapat
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error marking ticket as seen:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
       return formatDistanceToNow(date, { 
@@ -159,7 +199,7 @@ export function NotificationBell() {
     }
   };
 
-  const getPriorityDot = (priority) => {
+  const getPriorityDot = (priority: string | undefined) => {
     const lowerPriority = priority?.toLowerCase();
     
     if (lowerPriority === 'high' || lowerPriority === 'yüksek') {
@@ -171,7 +211,7 @@ export function NotificationBell() {
     }
   };
 
-  const getStatusBadgeStyles = (status) => {
+  const getStatusBadgeStyles = (status: string | undefined) => {
     switch(status) {
       case 'open':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
@@ -184,7 +224,7 @@ export function NotificationBell() {
     }
   };
 
-  const getPriorityBadgeStyles = (priority) => {
+  const getPriorityBadgeStyles = (priority: string | undefined) => {
     const lowerPriority = priority?.toLowerCase();
     
     if (lowerPriority === 'high' || lowerPriority === 'yüksek') {
@@ -283,7 +323,7 @@ export function NotificationBell() {
                     variant="ghost" 
                     size="sm" 
                     className="h-8 text-xs font-medium"
-                    onClick={() => markAllAsRead()}
+                    onClick={markAllTicketsAsSeen}
                     title="Tümünü Okundu İşaretle"
                   >
                     <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
@@ -417,7 +457,7 @@ export function NotificationBell() {
                       <DropdownMenuItem
                         key={notification.id}
                         className={`p-0 cursor-pointer block transition-colors duration-150 hover:bg-accent/30 ${
-                          !notification.isRead ? 'bg-primary/5 dark:bg-primary/10' : ''
+                          notification.isseen === false ? 'bg-primary/5 dark:bg-primary/10' : ''
                         }`}
                         onClick={() => handleNotificationClick(notification)}
                       >
@@ -427,9 +467,25 @@ export function NotificationBell() {
                             
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-start mb-1.5">
-                                <Badge className="font-semibold text-sm bg-primary/10 text-primary border-primary/20 px-2 py-0.5 rounded-md">
-                                  #{notification.ticketno}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="font-semibold text-sm bg-primary/10 text-primary border-primary/20 px-2 py-0.5 rounded-md">
+                                    #{notification.ticketno}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                                      notification.isseen 
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
+                                        : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800'
+                                    }`}
+                                  >
+                                    {notification.isseen 
+                                      ? <Eye className="h-3 w-3 mr-1" /> 
+                                      : <EyeOff className="h-3 w-3 mr-1" />
+                                    }
+                                    {notification.isseen ? 'Okundu' : 'Okunmadı'}
+                                  </Badge>
+                                </div>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   {formatDate(notification.created_at)}
