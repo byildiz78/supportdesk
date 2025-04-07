@@ -40,6 +40,8 @@ import { useTicketStore } from '@/stores/ticket-store'
 import { getStatusChange, getPriorityChange } from '@/lib/utils'
 import { useTabStore } from '@/stores/tab-store'
 import { format } from "date-fns";
+import { tr } from 'date-fns/locale'
+
 
 // Define the ticket type based on the API response
 interface CompanyTicket {
@@ -357,14 +359,14 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                     <TableRow
                       key={ticket.id}
                       className={`hover:bg-gray-50 dark:hover:bg-gray-800/70 ${isCurrent
-                          ? 'bg-purple-100 dark:bg-purple-900/30 border-l-4 border-purple-500'
-                          : 'bg-white dark:bg-gray-900/30'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 border-l-4 border-purple-500'
+                        : 'bg-white dark:bg-gray-900/30'
                         }`}
                     >
                       <TableCell
                         className={`font-medium ${isCurrent
-                            ? 'text-purple-700 dark:text-purple-300 flex items-center'
-                            : 'text-purple-600 dark:text-purple-400 underline cursor-pointer hover:text-purple-800 dark:hover:text-purple-300'
+                          ? 'text-purple-700 dark:text-purple-300 flex items-center'
+                          : 'text-purple-600 dark:text-purple-400 underline cursor-pointer hover:text-purple-800 dark:hover:text-purple-300'
                           }`}
                         onClick={isCurrent ? undefined : () => getDetails(ticket.id, String(ticket.ticketno))}
                       >
@@ -398,7 +400,7 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                       </TableCell>
                       <TableCell>{ticket.assignedUserName || '-'}</TableCell>
                       <TableCell>
-                        {format(addTurkeyTimeOffset(ticket.createdAt), "dd.MM.yyyy HH:mm")}
+                        {format(new Date(ticket.createdAt), 'd MMMM yyyy HH:mm', { locale: tr })}
                       </TableCell>
                     </TableRow>
                   );
