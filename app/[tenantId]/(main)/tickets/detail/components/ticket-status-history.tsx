@@ -225,7 +225,7 @@ export function TicketStatusHistory({ ticketId }: TicketStatusHistoryProps) {
                         </span>
                       </Badge>
                       <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                        {format(new Date(item.changed_at_local || item.changed_at), 'd MMMM yyyy HH:mm', { locale: tr })}
+                        {format(new Date(item.changed_at || item.changed_at_local), 'd MMMM yyyy HH:mm', { locale: tr })}
                       </span>
                     </div>
                     
