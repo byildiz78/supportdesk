@@ -36,11 +36,10 @@ import {
   ChevronRight,
   Eye
 } from 'lucide-react'
-import { tr } from 'date-fns/locale'
 import { useTicketStore } from '@/stores/ticket-store'
 import { getStatusChange, getPriorityChange } from '@/lib/utils'
 import { useTabStore } from '@/stores/tab-store'
-import { formatInTimeZone } from 'date-fns-tz/formatInTimeZone'
+import { format } from "date-fns"
 
 // Define the ticket type based on the API response
 interface CompanyTicket {
@@ -393,7 +392,7 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                       </TableCell>
                       <TableCell>{ticket.assignedUserName || '-'}</TableCell>
                       <TableCell>
-                        {formatInTimeZone(ticket.createdAt, 'Europe/Istanbul', 'dd MMM yyyy HH:mm', { locale: tr })}
+                        {format(new Date(ticket.createdAt), "dd.MM.yyyy HH:mm")}
                       </TableCell>
                     </TableRow>
                   );
