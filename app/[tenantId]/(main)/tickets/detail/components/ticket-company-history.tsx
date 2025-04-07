@@ -40,6 +40,7 @@ import { useTicketStore } from '@/stores/ticket-store'
 import { getStatusChange, getPriorityChange } from '@/lib/utils'
 import { useTabStore } from '@/stores/tab-store'
 import { format } from "date-fns"
+import { tr } from 'date-fns/locale'
 
 // Define the ticket type based on the API response
 interface CompanyTicket {
@@ -392,7 +393,7 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                       </TableCell>
                       <TableCell>{ticket.assignedUserName || '-'}</TableCell>
                       <TableCell>
-                        {format(new Date(ticket.createdAt), "dd.MM.yyyy HH:mm")}
+                        {format(new Date(ticket.createdAt), 'd MMMM yyyy HH:mm', { locale: tr })}
                       </TableCell>
                     </TableRow>
                   );
