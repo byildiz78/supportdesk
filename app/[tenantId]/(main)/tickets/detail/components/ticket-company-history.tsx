@@ -39,8 +39,7 @@ import {
 import { useTicketStore } from '@/stores/ticket-store'
 import { getStatusChange, getPriorityChange } from '@/lib/utils'
 import { useTabStore } from '@/stores/tab-store'
-import { format } from "date-fns"
-import { tr } from 'date-fns/locale'
+import { format } from "date-fns";
 
 // Define the ticket type based on the API response
 interface CompanyTicket {
@@ -118,6 +117,12 @@ const getPriorityColor = (priority: string | undefined): string => {
     default:
       return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
   }
+};
+
+// Türkiye saati için UTC zamanına 3 saat ekleyen yardımcı fonksiyon
+const addTurkeyTimeOffset = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Date(date.getTime() + 3 * 60 * 60 * 1000);
 };
 
 const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
@@ -393,7 +398,7 @@ const TicketCompanyHistory = ({ ticketId }: { ticketId: string }) => {
                       </TableCell>
                       <TableCell>{ticket.assignedUserName || '-'}</TableCell>
                       <TableCell>
-                        {format(new Date(ticket.createdAt), 'd MMMM yyyy HH:mm', { locale: tr })}
+                        {format(addTurkeyTimeOffset(ticket.createdAt), "dd.MM.yyyy HH:mm")}
                       </TableCell>
                     </TableRow>
                   );
