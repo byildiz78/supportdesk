@@ -15,11 +15,25 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useCompanies } from "@/providers/companies-provider"
 import { useTabStore } from "@/stores/tab-store"
+import { useCategories } from "@/providers/categories-provider"
+import { Category, Subcategory, Group } from "@/types/categories"
 
 // Ticket tiplerini dönüştüren yardımcı fonksiyon
-const convertToStoreTicket = (ticket: Ticket): StoreTicket => {
+const convertToStoreTicket = (
+    ticket: Ticket, 
+    categories: Category[], 
+    subcategories: Record<string, Subcategory[]>, 
+    groups: Record<string, Group[]>
+): StoreTicket => {
     // Önce store'daki mevcut bileti alalım (eğer varsa)
     const currentStoreTicket = useTicketStore.getState().selectedTicket;
+    
+    // Kategori, alt kategori ve grup adlarını bul
+    const category = categories.find(cat => cat.id === ticket.category_id);
+    const subcategoryList = ticket.category_id ? subcategories[ticket.category_id] || [] : [];
+    const subcategory = subcategoryList.find(sub => sub.id === ticket.subcategory_id);
+    const groupList = ticket.subcategory_id ? groups[ticket.subcategory_id] || [] : [];
+    const group = groupList.find(g => g.id === ticket.group_id);
     
     return {
         ...ticket,
@@ -28,9 +42,9 @@ const convertToStoreTicket = (ticket: Ticket): StoreTicket => {
         ticketno: (currentStoreTicket && currentStoreTicket.id === ticket.id) 
             ? currentStoreTicket.ticketno 
             : (ticket as any).ticketno || 0,
-        category_name: ticket.category_id || null,
-        subcategory_name: ticket.subcategory_id || null,
-        group_name: ticket.group_id || null,
+        category_name: category?.name || null,
+        subcategory_name: subcategory?.name || null,
+        group_name: group?.name || null,
         contact_name: ticket.customer_name || null,
         contact_first_name: null,
         contact_last_name: null,
@@ -67,6 +81,7 @@ export default function TicketDetailPage({ ticketId, forceRefresh = false }: Tic
     const { toast } = useToast()
     const { companies } = useCompanies()
     const { activeTab } = useTabStore()
+    const { categories, subcategories, groups } = useCategories();
     
     // Tab için özel ticket state'i
     const [tabTicket, setTabTicket] = useState<Ticket | null>(null)
@@ -107,7 +122,7 @@ export default function TicketDetailPage({ ticketId, forceRefresh = false }: Tic
                 setTabTicket(response);
                 
                 // Global state'i de güncelle
-                setSelectedTicket(convertToStoreTicket(response));
+                setSelectedTicket(convertToStoreTicket(response, categories, subcategories, groups));
             } catch (error: any) {
                 console.error('Bilet detayı alınırken hata oluştu:', error)
                 setError(error.message || 'Bilet bilgileri alınamadı')
@@ -119,7 +134,7 @@ export default function TicketDetailPage({ ticketId, forceRefresh = false }: Tic
         if (ticketId) {
             fetchTicketDetails()
         }
-    }, [ticketId, setSelectedTicket, forceRefresh])
+    }, [ticketId, setSelectedTicket, forceRefresh, categories, subcategories, groups])
 
     // Bilet güncelleme işleyicisi
     const handleTicketUpdate = (updatedTicket: Ticket) => {
@@ -130,7 +145,7 @@ export default function TicketDetailPage({ ticketId, forceRefresh = false }: Tic
         setTabTicket(updatedTicket);
         
         // Global state'i de güncelle
-        setSelectedTicket(convertToStoreTicket(updatedTicket));
+        setSelectedTicket(convertToStoreTicket(updatedTicket, categories, subcategories, groups));
     }
 
     // Yükleme ve hata durumlarını göster

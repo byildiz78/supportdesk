@@ -23,7 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         t.created_at,
         t.customer_name,
         t.company_name,
-        u.name as assigned_user_name
+        u.name as assigned_user_name,
+        t.is_seen as isSeen
       FROM tickets t
       LEFT JOIN users u ON t.assigned_to = u.id
       WHERE t.assigned_to = $1

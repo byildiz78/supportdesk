@@ -49,7 +49,6 @@ export default async function handler(
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)
       AND t.created_at BETWEEN $1 AND $2
       AND t.status not in ('resolved','closed')
-      AND t.category_id IS NULL
       AND t.assigned_to IS NULL
     `;
 

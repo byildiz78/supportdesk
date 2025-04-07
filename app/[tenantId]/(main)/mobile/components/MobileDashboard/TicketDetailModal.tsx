@@ -231,7 +231,20 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
   };
 
   // Dosya tipini kontrol eden yardımcı fonksiyon
-  const getFileType = (filename: string): string => {
+  const getFileType = (filename: string, contentType?: string): string => {
+    // Eğer contentType varsa, buna göre dosya tipini belirle
+    if (contentType) {
+      if (contentType.startsWith('image/')) return 'image';
+      if (contentType.startsWith('video/')) return 'video';
+      if (contentType.startsWith('audio/')) return 'audio';
+      if (contentType === 'application/pdf') return 'pdf';
+    }
+    
+    // URL'den dosya tipini tahmin et
+    if (filename.includes('.wav') || filename.includes('.mp3') || filename.includes('vapi.ai') && filename.includes('stereo.wav')) {
+      return 'audio';
+    }
+    
     const extension = filename.split('.').pop()?.toLowerCase() || '';
     
     // Resim dosyaları
@@ -310,7 +323,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     const [imageError, setImageError] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const fileName = attachment.originalFilename || attachment.filename || attachment.name;
-    const fileType = getFileType(fileName);
+    const fileType = getFileType(fileName, attachment.contentType);
 
     const toggleExpand = () => {
       setIsExpanded(!isExpanded);
@@ -368,6 +381,25 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   onError={handleImageError}
                 />
               </div>
+            ) : fileType === 'audio' ? (
+              <div className="w-full flex flex-col items-center">
+                <audio 
+                  controls 
+                  className="w-full max-w-md my-2"
+                  controlsList="nodownload"
+                >
+                  <source src={fileUrl} type={attachment.contentType || "audio/wav"} />
+                  Tarayıcınız ses oynatmayı desteklemiyor.
+                </audio>
+                <a 
+                  href={fileUrl} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Yeni sekmede aç
+                </a>
+              </div>
             ) : isExternalStorage ? (
               <div className="w-full">
                 <iframe
@@ -400,7 +432,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                   Görüntüle
                 </a>
               </div>
-            ) : fileType === 'pdf' || fileType === 'video' || fileType === 'audio' || fileType === 'other' ? (
+            ) : fileType === 'pdf' || fileType === 'video' || fileType === 'other' ? (
               <div className="text-center p-6">
                 <p className="text-sm text-gray-500 mb-3">Bu dosya ayrı bir pencerede görüntülenebilir</p>
                 <a 
@@ -417,6 +449,35 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           </div>
         )}
       </div>
+    );
+  };
+
+  // Yorumları HTML içeriğinden ses dosyalarını çıkarıp oynatılabilir hale getiren fonksiyon
+  const renderCommentContent = (content: string) => {
+    // Eğer içerik HTML değilse doğrudan göster
+    if (!content.includes('<') || !content.includes('>')) {
+      return <p className="whitespace-pre-wrap text-sm">{content}</p>;
+    }
+    
+    // Ses dosyası linklerini audio elementine dönüştür
+    const processedContent = content.replace(
+      /<a href=['"](https:\/\/storage\.vapi\.ai\/[^'"]+\.wav)['"][^>]*>([^<]+)<\/a>/g,
+      (match, url, text) => {
+        return `<div class="my-3">
+          <p class="text-xs font-medium mb-1 text-gray-500">${text}</p>
+          <audio controls class="w-full max-w-md" controlsList="nodownload">
+            <source src="${url}" type="audio/wav">
+            Tarayıcınız ses oynatmayı desteklemiyor.
+          </audio>
+        </div>`;
+      }
+    );
+    
+    return (
+      <div 
+        className="prose prose-sm max-w-none dark:prose-invert text-sm"
+        dangerouslySetInnerHTML={{ __html: processedContent }}
+      />
     );
   };
 
@@ -461,15 +522,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               
               <div className="mt-2 overflow-x-auto max-w-full">
                 {comment.htmlContent ? (
-                  <div 
-                    className="prose prose-sm max-w-none dark:prose-invert text-sm"
-                    dangerouslySetInnerHTML={{ __html: comment.htmlContent }}
-                  />
+                  renderCommentContent(comment.htmlContent)
                 ) : comment.content && comment.content.includes('<') && comment.content.includes('>') ? (
-                  <div 
-                    className="prose prose-sm max-w-none dark:prose-invert text-sm"
-                    dangerouslySetInnerHTML={{ __html: comment.content }}
-                  />
+                  renderCommentContent(comment.content)
                 ) : (
                   <p className="whitespace-pre-wrap text-sm">{comment.content}</p>
                 )}
