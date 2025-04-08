@@ -4,58 +4,6 @@ import { extractTenantFromBody } from '@/lib/utils';
 import { sendEventToClients } from '../../events';
 import axios from '@/lib/axios';
 
-// SMS göndermeyi kontrol eden değişken
-const sendSmsEnabled = false; // SMS göndermeyi devre dışı bırak
-const sendWhatsAppEnabled = true; // WhatsApp göndermeyi devre dışı bırak
-
-
-// WhatsApp şablonu gönderme fonksiyonu
-const sendWhatsAppNotification = async (phoneNumber: string | null, ticketNo: string): Promise<void> => {
-  if (!phoneNumber) {
-    console.log('WhatsApp mesajı gönderilemedi: Telefon numarası bulunamadı');
-    return;
-  }
-  
-  // Telefon numarasını formatlama (başındaki +90 varsa kaldır)
-  let formattedPhone = phoneNumber.replace(/^\+90/, '');
-  // Boşlukları ve tire işaretlerini kaldır
-  formattedPhone = formattedPhone.replace(/[\s-]/g, '');
-  
-  // Eğer numara 10 haneli değilse ve 0 ile başlıyorsa, baştaki 0'ı kaldır
-  if (formattedPhone.startsWith('0') && formattedPhone.length === 11) {
-    formattedPhone = formattedPhone.substring(1);
-  }
-  
-  // Numara 10 haneli değilse, hata logla ve devam et
-  if (formattedPhone.length !== 10) {
-    console.log(`WhatsApp mesajı gönderilemedi: Geçersiz telefon numarası formatı: ${phoneNumber}, formatlanmış: ${formattedPhone}`);
-    return;
-  }
-  
-  try {
-    // WhatsApp API'sine istek gönder
-    const response = await axios({
-      method: 'post',
-      url: `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/90${formattedPhone}/messages/template`,
-      headers: {
-        'Authorization': '525600fa6ff79f65bcf891e7062b4d94c3d4fe3828e0215a7c515e4898c50454',
-        'Content-Type': 'application/json',
-        'Lang': 'en'
-      },
-      data: {
-        template: {
-          id: "631165503077886",
-          params: [ticketNo]
-        }
-      }
-    });
-    
-    console.log('WhatsApp mesajı gönderildi:', response.data);
-  } catch (error) {
-    console.error('WhatsApp mesajı gönderme hatası:', error);
-  }
-};
-
 // SMS gönderme fonksiyonu
 const sendSmsNotification = async (phoneNumber: string | null, ticketNo: string, isNewTicket: boolean = true): Promise<void> => {
   if (!phoneNumber) {
@@ -320,11 +268,7 @@ export default async function handler(
           if (phoneNumber) {
             try {
               const ticketNo = existingTicket.rows[0].ticketno || existingTicketId.substring(0, 8);
-              if (sendSmsEnabled) {
-                await sendSmsNotification(phoneNumber, ticketNo, false);
-              } else if (sendWhatsAppEnabled) {
-                await sendWhatsAppNotification(phoneNumber, ticketNo);
-              }
+              await sendSmsNotification(phoneNumber, ticketNo, false);
             } catch (smsError) {
               console.error('SMS gönderme hatası:', smsError);
               // SMS hatası işlemi engellemeyecek
@@ -518,10 +462,11 @@ export default async function handler(
           
           // Yeni ticket oluşturulduğunda SMS gönder
           if (safeTicketData.customer_phone) {
-            if (sendSmsEnabled) {
+            try {
               await sendSmsNotification(safeTicketData.customer_phone, ticketNo, true);
-            } else if (sendWhatsAppEnabled) {
-              await sendWhatsAppNotification(safeTicketData.customer_phone, ticketNo);
+            } catch (smsError) {
+              console.error('SMS gönderme hatası:', smsError);
+              // SMS hatası ticket oluşturmayı engellemeyecek
             }
           }
           

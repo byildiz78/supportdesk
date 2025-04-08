@@ -1,10 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/database';
 import nodemailer from 'nodemailer';
-import { extractTenantFromBody } from '@/lib/utils';
 import { sendEventToClients } from '@/pages/api/events';
 import path from 'path';
-import { saveFile } from '@/lib/saveFile';
 import fs from 'fs';
 
 interface QueryResult {
@@ -51,54 +49,44 @@ export default async function handler(
 
     // E-posta gönderme işlemi için gerekli bilgileri kontrol et
     if (!ticketId || !content || !to || !to.length) {
-      console.log('Eksik parametreler:', { ticketId, content, to });
       return res.status(400).json({
         success: false,
         message: 'Eksik parametreler: ticketId, content ve to gereklidir',
       });
     }
 
-    // Çevre değişkenlerini kontrol et
-    console.log('Çevre değişkenleri:', { 
-      SUPPORT_MAIL: process.env.SUPPORT_MAIL,
-      GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD ? '***' : undefined
-    });
-
-    if (!process.env.SUPPORT_MAIL || !process.env.GMAIL_APP_PASSWORD) {
-      console.error('E-posta ayarları eksik:', { 
-        SUPPORT_MAIL: !!process.env.SUPPORT_MAIL,
-        GMAIL_APP_PASSWORD: !!process.env.GMAIL_APP_PASSWORD
-      });
-      return res.status(500).json({
+    if(!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASSWORD){
+      return res.status(400).json({
         success: false,
-        message: 'E-posta ayarları eksik, lütfen SUPPORT_MAIL ve GMAIL_APP_PASSWORD değişkenlerini kontrol edin',
+        message: 'E-posta ayarları eksik'
       });
     }
 
     // Nodemailer transporter oluştur
     try {
       const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false, // Use STARTTLS
+        host: process.env.MAIL_HOST || 'smtp.mailgun.org',
+        port: parseInt(process.env.MAIL_PORT || '587'),
+        secure: process.env.MAIL_SECURE === 'true' || false, // TLS için false
         auth: {
-          user: process.env.SUPPORT_MAIL,
-          pass: process.env.GMAIL_APP_PASSWORD,
+          user: process.env.MAIL_USER || 'crm@destek.robotpos.com',
+          pass: process.env.MAIL_PASSWORD,
         },
-        debug: true, // Hata ayıklama modunu etkinleştir
-        logger: true, // Günlük kaydını etkinleştir
-        connectionTimeout: 60000, // 60 saniye bağlantı zaman aşımı
-        greetingTimeout: 30000, // 30 saniye karşılama zaman aşımı
-        socketTimeout: 60000 // 60 saniye soket zaman aşımı
+        from: {
+          name: process.env.MAIL_FROM_NAME || 'Robotpos Destek Ekibi',
+          address: process.env.MAIL_FROM_ADDRESS || 'destek@robotpos.com'
+        },
+        debug: true,
+        logger: true,
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000
       });
-      console.log('Nodemailer transporter oluşturuldu');
 
       // Transporter'ın bağlantısını test et
       try {
         const verifyResult = await transporter.verify();
-        console.log('SMTP sunucusuna bağlantı başarılı:', verifyResult);
       } catch (verifyError) {
-        console.error('SMTP bağlantı hatası:', verifyError);
         return res.status(500).json({
           success: false,
           message: 'E-posta sunucusuna bağlantı kurulamadı: ' + (verifyError as Error).message,
@@ -107,11 +95,6 @@ export default async function handler(
 
       // Ticket numarasını kontrol et ve ekle
       let emailSubject = subject || 'Re: Destek Talebiniz Hakkında';
-      
-      // Client tarafından gelen subject'i kullan
-      // Eğer subject belirtilmişse, doğrudan onu kullan
-      // Bu subject zaten client tarafında yorum içeriğinden oluşturulmuş olacak
-      console.log('Client tarafından gelen subject:', emailSubject);
       
       // Ticket numarasını almak için sorgu
       const ticketQuery = `
@@ -133,7 +116,6 @@ export default async function handler(
           // Ticket numarası varsa ve subject içinde yoksa ekle
           if (ticketNo && !emailSubject.includes(`#${ticketNo}#`)) {
             emailSubject = `${emailSubject} #${ticketNo}#`;
-            console.log('Ticket numarası eklendi, yeni subject:', emailSubject);
           }
         }
       } catch (error) {
@@ -143,7 +125,10 @@ export default async function handler(
 
       // E-posta gönderim ayarları
       const mailOptions = {
-        from: process.env.SUPPORT_MAIL || '',
+        from: {
+          name: process.env.MAIL_FROM_NAME || 'Robotpos Destek Ekibi',
+          address: process.env.MAIL_FROM_ADDRESS || 'destek@robotpos.com'
+        },
         to: to.join(', '),
         cc: cc && cc.length > 0 ? cc.filter((email: string) => {
           const normalizedEmail = email.toLowerCase();
@@ -154,7 +139,6 @@ export default async function handler(
         text: content,
         html: typeof htmlContent === 'string' ? htmlContent : `<p>${content}</p>`,
         headers: {
-          // Nodemailer headers formatına uygun şekilde düzenleme
           'In-Reply-To': replyToEmailId ? replyToEmailId : undefined,
           'References': threadId || undefined,
         },
@@ -223,38 +207,18 @@ export default async function handler(
               });
           });
           
-          const info = await sendMailPromise;
-          console.log('E-posta başarıyla gönderildi:', info);
-          
-          // E-posta ID'sini kaydet
-          if (info && info.messageId) {
-            console.log('E-posta ID:', info.messageId);
-          }
         } catch (error) {
           console.error('E-posta gönderme hatası:', error);
-          
-          // Hata detaylarını günlüğe kaydet
-          if (error instanceof Error) {
-            console.error('Hata mesajı:', error.message);
-            console.error('Hata stack:', error.stack);
-          }
-          
-          // E-posta gönderilemese bile yorumu kaydetmeye devam et, ancak kullanıcıya bildir
           return res.status(500).json({
             success: false,
             message: 'E-posta gönderme hatası: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'),
           });
         }
-      } else {
-        console.log('Dahili yorum, e-posta gönderilmiyor');
       }
     } catch (emailError) {
       console.error('E-posta gönderme hatası:', emailError);
       // E-posta gönderme hatası olsa bile devam et, yorumu kaydet
     }
-
-    console.log('Veritabanı işlemleri başlatılıyor...');
-
     // Yanıtı veritabanına kaydet
     // ID değerini doğrudan döndürmek için RETURNING * kullanılıyor
     const insertCommentQuery = `
@@ -283,7 +247,6 @@ export default async function handler(
     `;
 
     // Kullanıcı bilgilerini al
-    console.log('Kullanıcı bilgileri alınıyor...');
     const userQuery = `
       SELECT name, email FROM users WHERE id = $1
     `;
@@ -298,7 +261,7 @@ export default async function handler(
       // Kullanıcı bulunamadıysa varsayılan değerleri kullan
       const user = (userResult.rows && userResult.rows.length > 0) 
         ? userResult.rows[0] 
-        : { name: 'Sistem', email: process.env.SUPPORT_MAIL };
+        : { name: 'Sistem', email: process.env.MAIL_FROM_ADDRESS };
 
       // CC alıcılarını filtrele
       const filteredCc = cc && cc.length > 0 ? cc.filter((email: string) => {
@@ -433,7 +396,7 @@ export default async function handler(
           createdBy: userId,
           createdByName: userName || user.name,
           sender: userName || user.name,
-          senderEmail: user.email || process.env.SUPPORT_MAIL || '',
+          senderEmail: user.email || process.env.MAIL_FROM_ADDRESS || '',
           toRecipients: to || [],
           ccRecipients: filteredCc || null,
           htmlContent: htmlContent || `<p>${content}</p>`,

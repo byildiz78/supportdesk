@@ -30,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       WHERE t.assigned_to = $1
         AND t.created_at > NOW() - INTERVAL '${hours} hours'
         AND (t.is_deleted = false OR t.is_deleted IS NULL)
+        AND t.status not in ('resolved','closed')
       ORDER BY t.created_at DESC
     `;
 

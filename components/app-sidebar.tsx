@@ -8,7 +8,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { FaWhatsapp, FaChartBar, FaTicketAlt, FaThermometerHalf, FaBuilding, FaUser, FaChartLine, FaUserCheck, FaWrench, FaServer, FaToolbox } from "react-icons/fa";
+import { FaWhatsapp, FaChartBar, FaTicketAlt, FaThermometerHalf, FaBuilding, FaUser, FaChartLine, FaUserCheck, FaWrench, FaServer, FaToolbox, FaSearch, FaRobot } from "react-icons/fa";
 import { 
   FaLaptop, FaTicketAlt as FaTicket, FaListAlt, FaUserCheck as FaUserCheckIcon, 
   FaClock, FaCheckCircle, FaBuilding as FaBuildingIcon, FaHeadphones, 
@@ -51,10 +51,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 url: "/dashboard"
             },
             {
+                title: "Ticket Ara",
+                icon: FaSearch,
+                isActive: true,
+                url: "/search",
+                className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
+            },
+            {
                 title: "Whatsapp",
                 icon: FaWhatsapp,
                 isActive: true,
                 url: "/whatsapp",
+                className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
+            },
+            {
+                title: "Yapay Zeka",
+                icon: FaRobot,
+                isActive: true,
+                url: "/ai-analyser",
                 className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
             },
             {
@@ -222,7 +236,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ];
 
         return items.filter(item => {
-            if (item.title === "Ayarlar") {
+            if (item.title === "Ayarlar" || item.title === "Yapay Zeka") {
                 return userData.userrole && (userData.userrole == "admin" || userData.userrole == "manager");
             }
             return true;

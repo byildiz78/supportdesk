@@ -14,7 +14,7 @@ import {
   FaWrench
 } from "react-icons/fa";
 import { TbTicketOff } from "react-icons/tb";
-import { ChevronDown, ChevronRight, X, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronRight, X, ArrowLeft, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +22,7 @@ import { IconType } from "react-icons";
 import { NotificationBell } from "../../components/MobileDashboard/components/NotificationBell";
 import { useTicketStore } from "@/stores/ticket-store";
 import { useNotificationStore } from "@/stores/notification-store";
+import { useTheme } from "@/providers/theme-provider";
 
 interface NavItem {
   title: string;
@@ -52,6 +53,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const { unreadCount } = useNotificationStore();
   const { fetchNotifications } = useTicketStore();
+  const { theme, setTheme } = useTheme();
 
   React.useEffect(() => {
     const storedUserData = localStorage.getItem(`userData_${tenantId}`);
@@ -390,23 +392,33 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 alt="Logo"
                 className="h-8 w-8"
               />
-              <span className="font-semibold">{isNotificationsOpen ? "Bildirimler" : "robotPOS Support"}</span>
+              <span className="font-semibold">{isNotificationsOpen ? "Bildirimler" : "Support"}</span>
             </div>
             <div className="flex items-center gap-2">
               {!isNotificationsOpen && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleNotifications}
-                  className="relative"
-                >
-                  <FaBell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 min-w-4 flex items-center justify-center px-1">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Button>
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="relative"
+                  >
+                    {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleNotifications}
+                    className="relative"
+                  >
+                    <FaBell className="h-5 w-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </>
               )}
               {isNotificationsOpen && (
                 <Button

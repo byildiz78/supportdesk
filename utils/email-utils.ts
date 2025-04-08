@@ -9,7 +9,7 @@ import { decodeHtml, normalizeNewlines } from './text-utils';
  */
 const simpleDecodeHtml = (html: string): string => {
   if (!html) return '';
-  
+
   // Basit HTML entity dönüşümü
   return html
     .replace(/&amp;/g, '&')
@@ -30,7 +30,7 @@ const simpleDecodeHtml = (html: string): string => {
  */
 const simpleNormalizeNewlines = (content: string): string => {
   if (!content) return '';
-  
+
   // Satır sonlarını normalize et
   let normalized = content.replace(/\\r\\n/g, '\n');
   normalized = normalized.replace(/\r\n/g, '\n');
@@ -39,7 +39,7 @@ const simpleNormalizeNewlines = (content: string): string => {
   normalized = normalized.replace(/\r/g, '');
   normalized = normalized.replace(/\\r/g, '');
   normalized = normalized.replace(/\\n/g, '<br>');
-  
+
   return normalized;
 };
 
@@ -50,19 +50,19 @@ const simpleNormalizeNewlines = (content: string): string => {
  */
 const simpleProcessHtmlContentOriginal = (content: string): string => {
   if (!content) return '';
-  
+
   try {
     // HTML entity'leri decode et
     const decodedContent = simpleDecodeHtml(content);
-    
+
     // Satır sonlarını normalize et
     const normalizedContent = simpleNormalizeNewlines(decodedContent);
-    
+
     // Basit XSS koruması - script taglerini kaldır
     const sanitizedContent = normalizedContent
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/javascript:/gi, 'removed:');
-    
+
     return sanitizedContent;
   } catch (error) {
     console.error('HTML içerik işleme hatası:', error);
@@ -78,17 +78,17 @@ const simpleProcessHtmlContentOriginal = (content: string): string => {
  */
 const simpleProcessHtmlContent = (htmlContent: string): string => {
   if (!htmlContent) return '';
-  
+
   try {
     // HTML entities decode
     let processed = decodeHtml(htmlContent);
-    
+
     // Normalize newlines
     processed = normalizeNewlines(processed);
-    
+
     // Basit XSS koruması
     processed = processed.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    
+
     return processed;
   } catch (error) {
     console.error('Error processing HTML content for email:', error);
@@ -104,19 +104,19 @@ const simpleProcessHtmlContent = (htmlContent: string): string => {
  * @returns HTML content for the notification email
  */
 export const generateTicketCreationNotification = (
-  ticketNo: string, 
-  customerName: string, 
+  ticketNo: string,
+  customerName: string,
   originalEmailContent?: string
 ): string => {
   // Müşteri adını güvenli bir şekilde ekle
   const safeName = customerName || 'Müşterimiz';
-  
+
   // Orijinal e-posta içeriği varsa, basit bir şekilde işle
   let originalContentSection = '';
   if (originalEmailContent) {
     // Basit bir şekilde işle, çok fazla manipülasyon yapmadan
     const safeOriginalContent = simpleProcessHtmlContent(originalEmailContent);
-    
+
     originalContentSection = `
     <tr><td height="40"></td></tr>
     <tr>
@@ -132,7 +132,7 @@ export const generateTicketCreationNotification = (
     </tr>
     <tr><td height="20"></td></tr>`;
   }
-  
+
   // Profesyonel ve tüm e-posta istemcileriyle uyumlu bir HTML şablonu
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -296,14 +296,15 @@ export const sendTicketNotificationEmail = async (
     htmlContentLength: htmlContent?.length || 0
   });
 
-  if (!process.env.SUPPORT_MAIL || !process.env.GMAIL_APP_PASSWORD) {
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASSWORD || !process.env.MAIL_HOST) {
     console.error('Email settings missing:', {
-      SUPPORT_MAIL: !!process.env.SUPPORT_MAIL,
-      GMAIL_APP_PASSWORD: !!process.env.GMAIL_APP_PASSWORD
+      MAIL_USER: !!process.env.MAIL_USER,
+      MAIL_PASSWORD: !!process.env.MAIL_PASSWORD,
+      MAIL_HOST: !!process.env.MAIL_HOST
     });
     return {
       success: false,
-      message: 'Email settings missing, please check SUPPORT_MAIL and GMAIL_APP_PASSWORD variables'
+      message: 'Email settings missing, please check MAIL_USER, MAIL_PASSWORD, and MAIL_HOST variables'
     };
   }
 
@@ -311,18 +312,22 @@ export const sendTicketNotificationEmail = async (
     console.log('Creating nodemailer transporter...');
     // Create nodemailer transporter
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // Use STARTTLS
+      host: process.env.MAIL_HOST || 'smtp.mailgun.org',
+      port: parseInt(process.env.MAIL_PORT || '587'),
+      secure: process.env.MAIL_SECURE === 'true' || false, // TLS için false
       auth: {
-        user: process.env.SUPPORT_MAIL,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: process.env.MAIL_USER || 'crm@destek.robotpos.com',
+        pass: process.env.MAIL_PASSWORD,
       },
-      connectionTimeout: 60000, // 60 seconds connection timeout
-      greetingTimeout: 30000, // 30 seconds greeting timeout
-      socketTimeout: 60000, // 60 seconds socket timeout
-      debug: true, // Enable debugging mode
-      logger: true // Enable logger
+      from: {
+        name: process.env.MAIL_FROM_NAME || 'Robotpos Destek Ekibi',
+        address: process.env.MAIL_FROM_ADDRESS || 'destek@robotpos.com'
+      },
+      debug: true,
+      logger: true,
+      connectionTimeout: 60000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000
     });
 
     // Verify connection
@@ -339,36 +344,30 @@ export const sendTicketNotificationEmail = async (
     }
 
     // Process HTML content to handle any encoding issues
-    console.log('Processing HTML content...');
     const processedHtmlContent = simpleProcessHtmlContent(htmlContent);
-    console.log('HTML content processed, length:', typeof processedHtmlContent === 'string' ? processedHtmlContent.length : 'not a string');
 
-    // Email sending options
-    console.log('Preparing mail options...');
     const mailOptions: MailOptions = {
-      from: process.env.SUPPORT_MAIL,
+      from: {
+        name: process.env.MAIL_FROM_NAME || 'Robotpos Destek Ekibi',
+        address: process.env.MAIL_FROM_ADDRESS || 'destek@robotpos.com'
+      },
       to: to.join(', '),
-      cc: cc && cc.length > 0 ? cc.join(', ') : undefined,
+      cc: cc && cc.length > 0 ? cc.filter((email: string) => {
+        const normalizedEmail = email.toLowerCase();
+        return !normalizedEmail.includes('destek@robotpos.com') && 
+               !normalizedEmail.includes('robotpos destek ekibi');
+      }).join(', ') : undefined,
       subject: subject,
       html: processedHtmlContent, // String olarak işlenmiş içerik
     };
-    console.log('Mail options prepared:', {
-      from: mailOptions.from,
-      to: mailOptions.to,
-      cc: mailOptions.cc,
-      subject: mailOptions.subject,
-      htmlLength: typeof mailOptions.html === 'string' ? mailOptions.html.length : 'not a string'
-    });
-
-    // Send email with timeout handling
-    console.log('Sending email with timeout handling...');
+    
     const sendMailPromise = new Promise<any>((resolve, reject) => {
       // 30 seconds timeout
       const timeout = setTimeout(() => {
         console.error('Email sending timed out after 30 seconds');
         reject(new Error('Email sending operation timed out (30 seconds)'));
       }, 30000);
-      
+
       transporter.sendMail(mailOptions)
         .then(info => {
           clearTimeout(timeout);
@@ -381,16 +380,8 @@ export const sendTicketNotificationEmail = async (
           reject(err);
         });
     });
-    
-    console.log('Awaiting email sending result...');
     const info = await sendMailPromise;
-    console.log('Ticket notification email sent successfully:', {
-      messageId: info.messageId,
-      response: info.response,
-      accepted: info.accepted,
-      rejected: info.rejected
-    });
-    
+
     return {
       success: true,
       message: 'Email sent successfully',

@@ -34,7 +34,7 @@ import {
   FaSyncAlt,
   FaHourglassHalf
 } from "react-icons/fa";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { calculateSlaTime, sourceConfig } from "@/app/[tenantId]/(main)/tickets/components/config/ticket-config";
@@ -168,7 +168,7 @@ export function MobileTicketList({
     setSelectedTicketId(ticketId);
     setSelectedTicketNo(parseInt(ticketNo));
     setIsModalOpen(true);
-};
+  };
 
   // Tarih formatını düzenle
   const formatDate = (dateString: string | null | undefined) => {
@@ -305,7 +305,7 @@ export function MobileTicketList({
                   </div>
                 </div>
                 <Skeleton className="h-6 w-full mb-4" />
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-2 gap-y-2 gap-x-2 text-xs">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
@@ -449,26 +449,31 @@ export function MobileTicketList({
                               <span className="truncate font-medium text-blue-600 dark:text-blue-400">{assignedToName}</span>
                             </div>
                             {/* Kaynak Bilgisi */}
-                            <div className="flex items-center col-span-2 mt-1">
+                            <div className="flex items-center">
                               {ticket.source && sourceConfig[ticket.source as keyof typeof sourceConfig] ? (
-                                <div className="flex items-center">
+                                <>
                                   {React.createElement(sourceConfig[ticket.source as keyof typeof sourceConfig].icon, {
                                     className: "h-3 w-3 flex-shrink-0 text-gray-400 dark:text-gray-500 mr-1.5"
                                   })}
                                   <span className="text-gray-600 dark:text-gray-400">
                                     Kaynak: {sourceConfig[ticket.source as keyof typeof sourceConfig].label}
                                   </span>
-                                </div>
+                                </>
                               ) : (
-                                <div className="flex items-center">
+                                <>
                                   <FaInbox className="h-3 w-3 flex-shrink-0 text-gray-400 dark:text-gray-500 mr-1.5" />
                                   <span className="text-gray-600 dark:text-gray-400">Kaynak: -</span>
-                                </div>
+                                </>
                               )}
+                            </div>
+                            {/* Tarih Bilgisi */}
+                            <div className="flex items-center">
+                              <FaCalendarAlt className="h-3 w-3 flex-shrink-0 text-purple-500 mr-1.5" />
+                              <span className="truncate font-medium text-purple-600 dark:text-purple-400">{createdAt ? format(new Date(createdAt), "dd.MM.yyyy HH:mm", { locale: tr }) : "-"}</span>
                             </div>
                             {/* SLA Bilgisi */}
                             {(ticket.due_date || ticket.dueDate) && (
-                              <div className="flex items-center col-span-2 mt-1">
+                              <div className="flex items-center col-span-2">
                                 <FaHourglassHalf className="h-3 w-3 flex-shrink-0 mr-1.5 text-amber-500" />
                                 <span className="text-xs text-amber-600 dark:text-amber-400">
                                   SLA: {calculateSlaTime(ticket.due_date || ticket.dueDate || "", !!ticket.sla_breach || !!ticket.slaBreach)}

@@ -7,6 +7,8 @@ import axios from '@/lib/axios'
 export interface User {
     id: string
     name: string
+    email?: string
+    department?: string
     // Diğer kullanıcı alanları burada tanımlanabilir
 }
 

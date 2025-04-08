@@ -12,7 +12,7 @@ export default async function handler(
     }
 
     try {
-        const { phoneNumber, message, type = 'both' } = req.body;
+        const { phoneNumber, message, type = 'both', ticketNo } = req.body;
 
         console.log('API isteği alındı:', req.body);
 
@@ -34,7 +34,7 @@ export default async function handler(
             try {
                 // Telefon numarasını formatlama (SMS için)
                 let formattedPhone = phoneNumber;
-                
+
                 // +90 ile başlıyorsa kaldır
                 formattedPhone = phoneNumber.replace(/^\+90/, '');
                 // 90 ile başlıyorsa kaldır
@@ -53,7 +53,7 @@ export default async function handler(
                         formattedPhone,
                         message
                     });
-                    
+
                     const response = await axios({
                         method: 'post',
                         url: 'https://api.netgsm.com.tr/sms/rest/v2/send',
@@ -92,51 +92,82 @@ export default async function handler(
                 // WhatsApp için telefon numarası formatını düzenle
                 // WhatsApp API'si 90XXXXXXXXXX formatını bekliyor
                 let whatsappPhone = phoneNumber;
-                
+
                 // +90 ile başlıyorsa + işaretini kaldır
                 whatsappPhone = whatsappPhone.replace(/^\+/, '');
-                
+
                 // 90 ile başlamıyorsa ekle
                 if (!whatsappPhone.startsWith('90')) {
                     whatsappPhone = '90' + whatsappPhone;
                 }
-                
+
                 // Boşluk, tire gibi karakterleri kaldır
                 whatsappPhone = whatsappPhone.replace(/[\s-]/g, '');
-                
+
                 console.log('WhatsApp mesajı gönderiliyor:', {
                     originalPhone: phoneNumber,
                     formattedPhone: whatsappPhone,
                     message
                 });
-                
-                // Önce token al
-                const baseUrl = process.env.NODE_ENV === 'production' ? 'https://support.robotpos.com' : 'http://localhost:3000';
-                const basePath = process.env.NEXT_PUBLIC_BASEPATH || '/supportdesk';
-                const tokenResponse = await axiosRaw.get(`${baseUrl}${basePath}/api/whatsapp-token`);
-                const accessToken = tokenResponse.data.accessToken;
 
-                console.log('WhatsApp token:', accessToken);
-                
-                if (!accessToken) {
-                    throw new Error('WhatsApp token alınamadı')
-                }
-                // WhatsApp mesajı gönder
-                const response = await axios.post(
-                    `https://api.chatapp.online/v1/licenses/52504/messengers/grWhatsApp/chats/${whatsappPhone}@c.us/messages/text`,
-                    {
-                        text: message
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': accessToken,
-                            'Lang': 'en'
+                // WhatsApp token'ı
+                const accessToken = '525600fa6ff79f65bcf891e7062b4d94c3d4fe3828e0215a7c515e4898c50454';
+
+                try {
+
+                    const templateResponse = await axios.post(
+                        `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/${whatsappPhone}/messages/template`,
+                        {
+                            template: {
+                                id: "1412382113458646",
+                                params: [ticketNo || "0000"] // Destek numarası (ticketNo) parametresi
+                            }
+                        },
+                        {
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': accessToken,
+                                'Lang': 'en'
+                            }
                         }
+                    );
+
+                    // Şablon başarılı olduysa, bekle ve sonra asıl mesajı gönder
+                    if (templateResponse.status === 200) {
+                        
+                        // Her ihtimale karşı 10 saniye bekle
+                        await new Promise(resolve => setTimeout(resolve, 10000));
+
+                        const whatsappPrefix = `WhatsApp üzerinden #${ticketNo} destek talebiniz hk. bilgilendirme: `;
+
+                        // Mesaj içinde prefix varsa kaldır
+                        let cleanedMessage = message;
+                        if (message.startsWith(whatsappPrefix)) {
+                            cleanedMessage = message.substring(whatsappPrefix.length);
+                        }
+
+                        const textResponse = await axios.post(
+                            `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/${whatsappPhone}/messages/text`,
+                            {
+                                text: cleanedMessage
+                            },
+                            {
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': accessToken,
+                                    'Lang': 'en'
+                                }
+                            }
+                        );
+
+                        results.whatsapp = { success: true, data: textResponse.data, error: null };
+                    } else {
+                        throw new Error(`WhatsApp şablon mesajı gönderilemedi: ${templateResponse.status}`);
                     }
-                );
-                console.log('WhatsApp mesajı gönderildi:', response.data);
-                results.whatsapp = { success: true, data: response.data, error: null };
+                } catch (error: any) {
+                    console.error('WhatsApp gönderme hatası:', error);
+                    results.whatsapp = { success: false, data: null, error: error.message || 'WhatsApp mesajı gönderilirken bir hata oluştu' };
+                }
             } catch (error: any) {
                 console.error('WhatsApp gönderme hatası:', error);
                 results.whatsapp = { success: false, data: null, error: error.message || 'WhatsApp mesajı gönderilirken bir hata oluştu' };
@@ -144,15 +175,15 @@ export default async function handler(
         }
 
         // Sonuçları değerlendir
-        const allSuccess = (type === 'both' && results.sms.success && results.whatsapp.success) || 
-                          (type === 'sms' && results.sms.success) || 
-                          (type === 'whatsapp' && results.whatsapp.success);
-        
+        const allSuccess = (type === 'both' && results.sms.success && results.whatsapp.success) ||
+            (type === 'sms' && results.sms.success) ||
+            (type === 'whatsapp' && results.whatsapp.success);
+
         if (allSuccess) {
             return res.status(200).json({
                 success: true,
-                message: type === 'both' 
-                    ? 'SMS ve WhatsApp mesajları başarıyla gönderildi' 
+                message: type === 'both'
+                    ? 'SMS ve WhatsApp mesajları başarıyla gönderildi'
                     : `${type === 'whatsapp' ? 'WhatsApp' : 'SMS'} mesajı başarıyla gönderildi`,
                 data: results
             });
@@ -169,7 +200,7 @@ export default async function handler(
             } else {
                 errorMessage = `${type === 'whatsapp' ? 'WhatsApp' : 'SMS'} mesajı gönderilemedi`;
             }
-            
+
             return res.status(207).json({
                 success: false,
                 message: errorMessage,

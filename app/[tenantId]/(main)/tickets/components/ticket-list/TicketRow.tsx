@@ -14,13 +14,16 @@ import {
     Edit,
     Trash,
     MoreHorizontal,
-    Phone
+    Phone,
+    AlertTriangle
 } from "lucide-react"
 import { Ticket } from "@/types/tickets"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { statusConfig, priorityConfig, sourceConfig, calculateElapsedTime, calculateSlaTime } from "../config/ticket-config"
 import { getUserRole } from "@/utils/user-utils"
+import { useUsers } from "@/providers/users-provider"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Define types for status and priority
 type TicketStatus = keyof typeof statusConfig
@@ -37,6 +40,34 @@ interface TicketRowProps {
 
 export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn = true, userRole }: TicketRowProps) {
     const isUnassigned = !ticket.assignedUserName;
+    const { users } = useUsers();
+    
+    // Atanan kullanıcının departman bilgisini bul
+    const assignedUser = React.useMemo(() => {
+        // assigned_to veya assignedTo alanlarını kullan
+        const userId = ticket.assigned_to || ticket.assignedTo;
+        if (!userId) return null;
+        return users.find(user => user.id === userId);
+    }, [users, ticket.assigned_to, ticket.assignedTo]);
+
+    // Kategori ve departman uyumsuzluğunu kontrol eden fonksiyon
+    const checkCategoryDepartmentMismatch = () => {
+        if (!ticket.assignedUserName || !assignedUser || !assignedUser.department || !ticket.category_name) {
+            return false;
+        }
+
+        // Kategori adından önek kısmını (örn. "04-") temizle
+        const cleanCategoryName = ticket.category_name.replace(/^\d+-\s*/, '');
+        
+        // Departman adını temizle (boşlukları kaldır ve küçük harfe çevir)
+        const cleanDepartment = assignedUser.department.trim().toLowerCase();
+        const cleanCategory = cleanCategoryName.trim().toLowerCase();
+        
+        // Departman ve kategori adlarını karşılaştır
+        return cleanDepartment !== cleanCategory;
+    };
+
+    const hasCategoryDepartmentMismatch = checkCategoryDepartmentMismatch();
 
     return (
         <TableRow
@@ -146,11 +177,53 @@ export function TicketRow({ ticket, onView, onEdit, onDelete, showStatusColumn =
             )}
             <TableCell>
                 {ticket.assignedUserName ? (
-                    <div className="flex items-center gap-1.5">
-                        <div className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-full">
-                            <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <div className="flex items-center gap-1.5 max-w-[150px]">
+                        <div className={cn(
+                            "p-1 rounded-full flex-shrink-0",
+                            hasCategoryDepartmentMismatch 
+                                ? "bg-orange-100 dark:bg-orange-900/30" 
+                                : "bg-blue-100 dark:bg-blue-900/30"
+                        )}>
+                            {hasCategoryDepartmentMismatch ? (
+                                <AlertTriangle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                            ) : (
+                                <User className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                            )}
                         </div>
-                        <span className="truncate font-medium text-gray-700 dark:text-gray-300">{ticket.assignedUserName}</span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="flex flex-col overflow-hidden cursor-pointer">
+                                        <span className="truncate font-medium text-gray-700 dark:text-gray-300 w-full">
+                                            {ticket.assignedUserName}
+                                        </span>
+                                        {hasCategoryDepartmentMismatch && (
+                                            <span className="text-xs text-orange-600 dark:text-orange-400 truncate w-full">
+                                                Departman uyumsuzluğu
+                                            </span>
+                                        )}
+                                        {assignedUser?.department && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate w-full">
+                                                {assignedUser.department}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs">
+                                    <div className="space-y-1">
+                                        <p className="font-medium">{ticket.assignedUserName}</p>
+                                        {assignedUser?.department && (
+                                            <p className="text-sm text-white dark:text-black">Departman: {assignedUser.department}</p>
+                                        )}
+                                        {hasCategoryDepartmentMismatch && (
+                                            <p className="text-sm text-orange-600 font-medium">
+                                                Uyarı: Departman ve kategori uyuşmuyor
+                                            </p>
+                                        )}
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 ) : (
                     <div className="flex items-center">
