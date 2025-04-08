@@ -197,7 +197,8 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                 phoneNumber: cleanPhone,
                 email,
                 message: content,
-                type
+                type,
+                ticketNo: ticketNo || null,
             });
 
             if (response.data.success) {

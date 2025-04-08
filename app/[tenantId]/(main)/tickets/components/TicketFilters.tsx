@@ -34,6 +34,7 @@ export function TicketFilters({
 }: TicketFiltersProps) {
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const { users, isLoading: isLoadingUsers } = useUsers()
+    const [userSearchTerm, setUserSearchTerm] = useState("")
     
     // Count active filters
     const getActiveFilterCount = () => {
@@ -146,15 +147,29 @@ export function TicketFilters({
                                                             <SelectValue placeholder="Tüm kullanıcılar" />
                                                         </SelectTrigger>
                                                         <SelectContent>
+                                                            <div className="px-2 py-2">
+                                                                <input
+                                                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    placeholder="Kullanıcı ara..."
+                                                                    value={userSearchTerm}
+                                                                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    onKeyDown={(e) => e.stopPropagation()}
+                                                                />
+                                                            </div>
                                                             <SelectItem value="">Tüm kullanıcılar</SelectItem>
                                                             {isLoadingUsers ? (
                                                                 <SelectItem value="" disabled>Yükleniyor...</SelectItem>
                                                             ) : (
-                                                                users.map((user) => (
-                                                                    <SelectItem key={user.id} value={user.id}>
-                                                                        {user.name}
-                                                                    </SelectItem>
-                                                                ))
+                                                                users
+                                                                    .filter(user => 
+                                                                        user.name.toLowerCase().includes(userSearchTerm.toLowerCase())
+                                                                    )
+                                                                    .map((user) => (
+                                                                        <SelectItem key={user.id} value={user.id}>
+                                                                            {user.name}
+                                                                        </SelectItem>
+                                                                    ))
                                                             )}
                                                         </SelectContent>
                                                     </Select>

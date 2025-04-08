@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useFilterStore } from "@/stores/filters-store";
 import { useSettingsStore } from "@/stores/settings-store";
-import { 
-    ArrowUpRight, 
-    ChevronRight, 
-    MessageSquare, 
-    Clock, 
-    CheckCircle2, 
-    AlertCircle, 
-    Users, 
-    UserCheck, 
+import {
+    ArrowUpRight,
+    ChevronRight,
+    MessageSquare,
+    Clock,
+    CheckCircle2,
+    AlertCircle,
+    Users,
+    UserCheck,
     ClipboardList,
     Timer,
     Menu
@@ -104,7 +104,7 @@ export default function MobileDashboard() {
     const [selectedTicketNo, setSelectedTicketNo] = useState<number | null>(null);
 
     const fetchData = useCallback(async () => {
- 
+
         if (loading) return;
 
         try {
@@ -119,7 +119,7 @@ export default function MobileDashboard() {
                 trendsChart: true,
                 recentTickets: true,
             });
-            
+
             const response = await axios.post<DashboardData>(
                 "/api/main/dashboard/getDashboardData", // Düzeltilmiş API endpoint yolu
                 {
@@ -211,7 +211,7 @@ export default function MobileDashboard() {
 
     useEffect(() => {
         setIsDashboardTab(true);
-        
+
         // Component unmount olduğunda
         return () => {
             setIsDashboardTab(false);
@@ -266,18 +266,18 @@ export default function MobileDashboard() {
 
     return (
         <div className="flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 z-10 bg-white">
+            <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 z-10 bg-white dark:bg-gray-950 dark:border-gray-800">
                 <div className="flex items-center gap-2">
-                    <img 
-                        src={`${process.env.NEXT_PUBLIC_BASEPATH || ''}/images/Audit.png`} 
-                        alt="Logo" 
-                        className="h-8 w-8" 
+                    <img
+                        src={`${process.env.NEXT_PUBLIC_BASEPATH || ''}/images/Audit.png`}
+                        alt="Logo"
+                        className="h-8 w-8"
                     />
-                    <span className="font-semibold">robotPOS Support</span>
+                    <span className="font-semibold dark:text-gray-200">Support</span>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
+                <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setIsMenuOpen(true)}
                     className="rounded-full"
                 >
@@ -590,12 +590,11 @@ export default function MobileDashboard() {
                                                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             {ticket.Subject}
                                                         </span>
-                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                                            ticket.Status === 'Açık' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                            ticket.Status === 'Beklemede' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                                                            ticket.Status === 'Çözüldü' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                            'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                                                        }`}>
+                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${ticket.Status === 'Açık' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                ticket.Status === 'Beklemede' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                                                    ticket.Status === 'Çözüldü' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                                        'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                            }`}>
                                                             {ticket.Status}
                                                         </span>
                                                     </div>
@@ -604,11 +603,10 @@ export default function MobileDashboard() {
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                                        ticket.Priority === 'Yüksek' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                        ticket.Priority === 'Orta' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                    }`}>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${ticket.Priority === 'Yüksek' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                            ticket.Priority === 'Orta' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                        }`}>
                                                         {ticket.Priority}
                                                     </span>
                                                     <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -622,9 +620,9 @@ export default function MobileDashboard() {
                     </div>
                 </div>
             </div>
-            
+
             {/* Ticket Detail Modal */}
-            <TicketDetailModal 
+            <TicketDetailModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 ticketId={selectedTicketId}

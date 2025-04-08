@@ -12,8 +12,6 @@ import { TicketFilters } from "../components/TicketFilters"
 import { TicketList } from "../components/TicketList"
 import { TicketPagination } from "../components/TicketPagination"
 import { Ticket } from "@/types/tickets"
-import { useEventSource } from "@/hooks/useEventSource"
-import { toast } from "@/components/ui/toast/use-toast"
 
 // Window nesnesine refreshTicketList fonksiyonunu eklemek için TypeScript tanımlaması
 declare global {
@@ -50,65 +48,9 @@ export default function MyTicketsPage() {
     const hasInitializedRef = useRef(false)
     const appliedAtRef = useRef(selectedFilter.appliedAt)
     
-    // SSE bağlantısı
-    const { isConnected, addEventListener, removeEventListener } = useEventSource()
-    
     // Veri
     const tickets = getTickets(TAB_NAME)
     const filters = getFilters(TAB_NAME)
-    
-    // SSE olaylarını dinle
-    useEffect(() => {
-        if (!isConnected) {
-            return;
-        }
-
-        const handleTicketUpdate = (data: any) => {
-            if (!data || !data.ticket) {
-                console.error('Geçersiz ticket verisi:', data);
-                return;
-            }
-
-            if (data.action === 'create') {
-                toast({
-                    title: "Yeni Talep",
-                    description: `Yeni talep oluşturuldu: #${data.ticket.ticketno || data.ticket.id}`,
-                    variant: "default",
-                    className: "bg-green-100 border-green-500 text-green-800",
-                });
-
-                addTicket(data.ticket, TAB_NAME);
-            } else if (data.action === 'update') {
-                // Eğer callcount güncellemesi ise özel bir mesaj göster
-                if (data.updateType === 'callcount') {
-                    toast({
-                        title: "Aranma Sayısı Güncellendi",
-                        description: `Talep #${data.ticket.ticketno}: Aranma sayısı ${data.ticket.callcount} olarak güncellendi`,
-                        variant: "default",
-                        className: "bg-blue-100 border-blue-500 text-blue-800",
-                    });
-                } else {
-                    toast({
-                        title: "Talep Güncellendi",
-                        description: `Talep güncellendi: #${data.ticket.ticketno || data.ticket.id}`,
-                        variant: "default",
-                        className: "bg-blue-100 border-blue-500 text-blue-800",
-                    });
-                }
-
-                // Her durumda ticket'ı güncelle
-                updateTicket(data.ticket);
-            }
-        };
-
-        // Event listener'ı ekle
-        addEventListener('ticket-update', handleTicketUpdate);
-
-        // Cleanup
-        return () => {
-            removeEventListener('ticket-update', handleTicketUpdate);
-        };
-    }, [isConnected, addEventListener, removeEventListener, addTicket, updateTicket, TAB_NAME]);
     
     // Component ilk mount olduğunda çalışır
     useEffect(() => {
