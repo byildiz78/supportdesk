@@ -64,13 +64,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 url: "/whatsapp",
                 className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
             },
-            {
-                title: "Yapay Zeka",
-                icon: FaRobot,
-                isActive: true,
-                url: "/ai-analyser",
-                className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
-            },
+            // {
+            //     title: "Yapay Zeka",
+            //     icon: FaRobot,
+            //     isActive: true,
+            //     url: "/ai-analyser",
+            //     className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
+            // },
             {
                 title: "Destek Talepleri",
                 icon: FaTicket,

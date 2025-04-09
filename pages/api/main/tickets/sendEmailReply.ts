@@ -4,6 +4,7 @@ import nodemailer from 'nodemailer';
 import { sendEventToClients } from '@/pages/api/events';
 import path from 'path';
 import fs from 'fs';
+import { createHtmlContent } from '@/utils/email-utils';
 
 interface QueryResult {
   rows: any[];
@@ -136,8 +137,8 @@ export default async function handler(
                  !normalizedEmail.includes('robotpos destek ekibi');
         }).join(', ') : undefined,
         subject: emailSubject,
-        text: content,
-        html: typeof htmlContent === 'string' ? htmlContent : `<p>${content}</p>`,
+        text: content, // Burada düz metin içeriği
+        html: createHtmlContent(content), // HTML içeriğini oluşturan fonksiyon
         headers: {
           'In-Reply-To': replyToEmailId ? replyToEmailId : undefined,
           'References': threadId || undefined,
