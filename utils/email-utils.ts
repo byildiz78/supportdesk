@@ -401,3 +401,87 @@ export const sendTicketNotificationEmail = async (
     };
   }
 };
+
+
+// HTML içeriğini oluşturan fonksiyon
+export function createHtmlContent(content: string): string {
+  // SQL sorgularını bulup <pre> etiketleri içine almak için
+  // Önce satır aralarına göre parçalayalım
+  const lines = content.split('\n');
+  let htmlParts = [];
+  let currentParagraph = '';
+  let inSqlBlock = false;
+  let sqlBlock = '';
+
+  for (const line of lines) {
+    // SQL komutunu tespit et (update ile başlıyorsa)
+    if (line.trim().startsWith('update ')) {
+      // Eğer daha önce normal metin varsa, paragraf olarak ekle
+      if (currentParagraph && !inSqlBlock) {
+        htmlParts.push(`<p>${currentParagraph}</p>`);
+        currentParagraph = '';
+      }
+      
+      inSqlBlock = true;
+      sqlBlock += line + '\n';
+    } 
+    // SQL bloğu dışındayız
+    else if (!line.trim().startsWith('update ') && line.trim() !== '') {
+      // Eğer SQL bloğunu bitirmişsek
+      if (inSqlBlock) {
+        htmlParts.push(`<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace;">${sqlBlock}</pre>`);
+        sqlBlock = '';
+        inSqlBlock = false;
+      }
+      
+      // Normal metne devam
+      if (currentParagraph) {
+        currentParagraph += ' ' + line;
+      } else {
+        currentParagraph = line;
+      }
+    }
+    // Boş satır - paragraf sonlandır
+    else if (line.trim() === '') {
+      if (inSqlBlock) {
+        // SQL bloğu içindeyse boş satırı koru
+        sqlBlock += '\n';
+      } else if (currentParagraph) {
+        // Normal paragrafı sonlandır
+        htmlParts.push(`<p>${currentParagraph}</p>`);
+        currentParagraph = '';
+      }
+    }
+  }
+  
+  // Son blokları da ekle
+  if (inSqlBlock && sqlBlock) {
+    htmlParts.push(`<pre style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace;">${sqlBlock}</pre>`);
+  } else if (currentParagraph) {
+    htmlParts.push(`<p>${currentParagraph}</p>`);
+  }
+  
+  // Tam HTML dökümanı oluştur
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; }
+    pre { 
+      background-color: #f5f5f5; 
+      padding: 10px; 
+      border-radius: 5px; 
+      white-space: pre-wrap; 
+      font-family: Consolas, monospace; 
+      margin: 15px 0;
+      border: 1px solid #ddd;
+    }
+    p { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  ${htmlParts.join('\n')}
+</body>
+</html>`;
+}
