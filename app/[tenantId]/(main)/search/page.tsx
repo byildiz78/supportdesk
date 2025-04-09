@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,8 +32,13 @@ interface Ticket {
   subcategory_name: string | null;
 }
 
-const TicketSearch = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+interface SearchPageProps {
+  searchTerm?: string;
+  key?: string | number;
+}
+
+const TicketSearch = ({ searchTerm: initialSearchTerm, key }: SearchPageProps) => {
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm || '');
   const [isLoading, setIsLoading] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -41,6 +46,22 @@ const TicketSearch = () => {
   const params = useParams<{ tenantId: string }>();
   const tenantId = params?.tenantId || '';
   const { addTab, setActiveTab } = useTabStore()
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const termFromUrl = searchParams.get('term');
+    
+    if (termFromUrl) {
+      setSearchTerm(termFromUrl);
+      performSearch(termFromUrl);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialSearchTerm) {
+      performSearch(initialSearchTerm);
+    }
+  }, [initialSearchTerm, key]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -50,10 +71,8 @@ const TicketSearch = () => {
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!searchTerm.trim()) {
+  const performSearch = async (term: string) => {
+    if (!term.trim()) {
       toast({
         title: "Arama terimi gerekli",
         description: "Lütfen bir arama terimi girin",
@@ -64,9 +83,10 @@ const TicketSearch = () => {
 
     setIsLoading(true);
     setHasSearched(true);
+    setTickets([]);
 
     try {
-      const response = await axios.get(`/api/main/search?searchTerm=${encodeURIComponent(searchTerm)}`);
+      const response = await axios.get(`/api/main/search?searchTerm=${encodeURIComponent(term)}`);
       const data = response.data;
 
       if (data.success) {
@@ -97,6 +117,11 @@ const TicketSearch = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    performSearch(searchTerm);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -162,32 +187,31 @@ const TicketSearch = () => {
     }
   };
 
-   const handleRowClick = (ticket: Ticket) => {
-          const tabId = `ticket-${ticket.id}`
+  const handleRowClick = (ticket: Ticket) => {
+    const tabId = `ticket-${ticket.id}`
   
-          // Önce bu ID'ye sahip bir tab var mı kontrol et
-          const tabs = useTabStore.getState().tabs
-          const existingTab = tabs.find(tab => tab.id === tabId)
+    // Önce bu ID'ye sahip bir tab var mı kontrol et
+    const tabs = useTabStore.getState().tabs
+    const existingTab = tabs.find(tab => tab.id === tabId)
   
-          // Her tıklamada önbelleği temizle, böylece her zaman API'den taze veri alınacak
-          clearTicketCache(tabId)
+    // Her tıklamada önbelleği temizle, böylece her zaman API'den taze veri alınacak
+    clearTicketCache(tabId)
   
-          if (existingTab) {
-              // Tab zaten açıksa, sadece o taba geçiş yap
-              setActiveTab(tabId)
-          } else {
-              // Tab yoksa yeni tab oluştur
-              addTab({
-                  id: tabId,
-                  title: `Talep #${ticket.ticketno}`,
-                  lazyComponent: () => import('../tickets/detail/page').then(module => ({
-                      default: (props: any) => <module.default {...props} ticketId={ticket.id} />
-                  }))
-              })
-              setActiveTab(tabId)
-          }
-      }
-
+    if (existingTab) {
+      // Tab zaten açıksa, sadece o taba geçiş yap
+      setActiveTab(tabId)
+    } else {
+      // Tab yoksa yeni tab oluştur
+      addTab({
+        id: tabId,
+        title: `Talep #${ticket.ticketno}`,
+        lazyComponent: () => import('../tickets/detail/page').then(module => ({
+          default: (props: any) => <module.default {...props} ticketId={ticket.id} />
+        }))
+      })
+      setActiveTab(tabId)
+    }
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-2 pt-2 flex flex-col">
