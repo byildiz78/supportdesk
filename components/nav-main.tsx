@@ -11,6 +11,10 @@ import { useFilterStore } from "@/stores/filters-store"
 import { toZonedTime } from "date-fns-tz"
 import { useSettingsStore } from "@/stores/settings-store"
 import { addDays } from "date-fns"
+import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/use-toast";
+import axios from "@/lib/axios";
+import { FaSearch } from "react-icons/fa";
 
 interface NavItem {
     title: string;
@@ -23,6 +27,7 @@ interface NavItem {
     component?: React.ComponentType<any>;
     items?: NavItem[];
     onClick?: () => void;
+    components?: any;
 }
 
 const ReportItemWithTooltip = ({ title, icon: Icon }: { title: string; icon: LucideIcon }) => (
@@ -61,13 +66,112 @@ const RecursiveMenuItem = ({
     const tenantId = params?.tenantId;
     const hasSubItems = item.items && item.items.length > 0;
     const isInitiallyOpen = typeof item.expanded !== 'undefined' ? item.expanded : item.isActive;
+    
+    // Özel "Ticket Ara" nav item'ı için render mantığı
+    if (item.title === "Ticket Ara" && item.components) {
+        const { Input, Button } = item.components;
+        const [searchTerm, setSearchTerm] = useState("");
+        const [isSearching, setIsSearching] = useState(false);
+        const router = useRouter();
+        
+        const handleSearch = async (e: React.FormEvent) => {
+            e.preventDefault();
+            
+            if (!searchTerm.trim()) {
+                toast({
+                    title: "Arama terimi gerekli",
+                    description: "Lütfen bir arama terimi girin",
+                    variant: "destructive"
+                });
+                return;
+            }
+
+            setIsSearching(true);
+
+            try {
+                const response = await axios.get(`/api/main/search?searchTerm=${encodeURIComponent(searchTerm)}`);
+                const data = response.data;
+
+                if (data.success) {
+                    if (data.data.length > 0) {
+                        // Tab açma mantığı
+                        const tabId = "Ticket Ara";
+                        const { tabs, addTab, setActiveTab, removeTab } = useTabStore.getState();
+                        const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId);
+                        
+                        // Eğer tab zaten açıksa, önce kaldırıp sonra yeniden ekleyelim
+                        if (isTabAlreadyOpen) {
+                            removeTab(tabId);
+                        }
+                        
+                        // Yeni tab ekleyelim
+                        addTab({
+                            id: tabId,
+                            title: "Ticket Ara",
+                            lazyComponent: () => import('@/app/[tenantId]/(main)/search/page').then(module => ({
+                                default: (props: any) => <module.default {...props} searchTerm={searchTerm} key={Date.now()} />
+                            }))
+                        });
+                        
+                        setActiveTab(tabId);
+                    } else {
+                        toast({
+                            title: "Sonuç bulunamadı",
+                            description: "Aramanızla eşleşen bilet bulunamadı",
+                            variant: "default"
+                        });
+                    }
+                } else {
+                    toast({
+                        title: "Arama hatası",
+                        description: data.message || "Biletler aranırken bir hata oluştu",
+                        variant: "destructive"
+                    });
+                }
+            } catch (error) {
+                console.error("Arama hatası:", error);
+                toast({
+                    title: "Arama hatası",
+                    description: "Biletler aranırken bir hata oluştu",
+                    variant: "destructive"
+                });
+            } finally {
+                setIsSearching(false);
+            }
+        };
+        
+        return (
+            <div className="w-full px-2 mb-2">
+                <form onSubmit={handleSearch} className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <div className="relative w-full">
+                            {item.icon && <item.icon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />}
+                            <Input
+                                placeholder="Bilet ara..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="h-8 text-sm pl-8"
+                            />
+                        </div>
+                        <Button type="submit" size="sm" className="h-8 px-2" disabled={isSearching}>
+                            {isSearching ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                                <FaSearch className="h-3 w-3" />
+                            )}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        );
+    }
 
     if (!hasSubItems) {
         return (
             <div className="w-full">
                 <div
                     onClick={() => handleTabChange(item.title, item.title, item.url ? `/${tenantId}/${item.url}` : undefined, item.component)}
-                    className="w-full"
+                    className={`w-full ${item.className || ''}`}
                 >
                     <SidebarMenuButton className="w-full group hover:bg-accent hover:text-accent-foreground">
                         <div className="flex items-center gap-2 w-full">
@@ -216,7 +320,7 @@ export const NavMain = ({ items }: { items: NavItem[] }) => {
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu className="w-full">
                 {filteredItems.map((item) => (
-                    <div key={item.title} className="w-full">
+                    <div key={item.title} className={`w-full ${item.className || ''}`}>
                         <RecursiveMenuItem
                             item={item}
                             handleTabChange={handleTabChange}

@@ -9,18 +9,23 @@ import { NavUser } from "@/components/nav-user";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { FaWhatsapp, FaChartBar, FaTicketAlt, FaThermometerHalf, FaBuilding, FaUser, FaChartLine, FaUserCheck, FaWrench, FaServer, FaToolbox, FaSearch, FaRobot } from "react-icons/fa";
-import { 
-  FaLaptop, FaTicketAlt as FaTicket, FaListAlt, FaUserCheck as FaUserCheckIcon, 
-  FaClock, FaCheckCircle, FaBuilding as FaBuildingIcon, FaHeadphones, 
-  FaFlask, FaLifeRing, FaTruck, FaCode, FaChartBar as FaChartBarIcon,
-  FaCog, FaBuilding as FaBuilding2, FaUser as FaUserIcon, FaUserCog, FaFolder 
+import {
+    FaLaptop, FaTicketAlt as FaTicket, FaListAlt, FaUserCheck as FaUserCheckIcon,
+    FaClock, FaCheckCircle, FaBuilding as FaBuildingIcon, FaHeadphones,
+    FaFlask, FaLifeRing, FaTruck, FaCode, FaChartBar as FaChartBarIcon,
+    FaCog, FaBuilding as FaBuilding2, FaUser as FaUserIcon, FaUserCog, FaFolder
 } from "react-icons/fa";
 import { IconType } from 'react-icons';
 import { TbTicketOff } from "react-icons/tb";
+import { useTabStore } from "@/stores/tab-store";
+import { toast } from "@/hooks/use-toast";
+import axios from "@/lib/axios";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 
 interface NavItem {
     title: string;
-    icon?: LucideIcons.LucideIcon | IconType;
+    icon?: any;
     isActive?: boolean;
     expanded?: boolean;
     url?: string;
@@ -28,12 +33,74 @@ interface NavItem {
     items?: NavItem[];
     onClick?: () => void;
     className?: string;
+    components?: any; // Özel bileşenler için
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
     const tenantId = pathname?.split("/")[1] || "";
     const [userData, setUserData] = useState({ name: "", email: "", usercategory: "", userrole: "" });
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
+    const { addTab, setActiveTab, tabs } = useTabStore();
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!searchTerm.trim()) {
+            toast({
+                title: "Arama terimi gerekli",
+                description: "Lütfen bir arama terimi girin",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsSearching(true);
+
+        try {
+            const response = await axios.get(`/api/main/search?searchTerm=${encodeURIComponent(searchTerm)}`);
+            const data = response.data;
+
+            if (data.success) {
+                if (data.data.length > 0) {
+                    const tabId = "Ticket Ara"
+                    const isTabAlreadyOpen = tabs.some(tab => tab.id === tabId)
+                    if (!isTabAlreadyOpen) {
+                        addTab({
+                            id: tabId,
+                            title: "Ticket Ara",
+                            lazyComponent: () => import('@/app/[tenantId]/(main)/search/page').then(module => ({
+                                default: (props: any) => <module.default {...props} />
+                            }))
+                        })
+                    }
+                    setActiveTab(tabId)
+                } else {
+                    toast({
+                        title: "Sonuç bulunamadı",
+                        description: "Aramanızla eşleşen bilet bulunamadı",
+                        variant: "default"
+                    });
+                }
+            } else {
+                toast({
+                    title: "Arama hatası",
+                    description: data.message || "Biletler aranırken bir hata oluştu",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            console.error("Arama hatası:", error);
+            toast({
+                title: "Arama hatası",
+                description: "Biletler aranırken bir hata oluştu",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSearching(false);
+        }
+    };
 
     React.useEffect(() => {
         const storedUserData = localStorage.getItem(`userData_${tenantId}`);
@@ -45,24 +112,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const navItems = useMemo(() => {
         const items = [
             {
+                title: "Ticket Ara",
+                icon: FaSearch,
+                isActive: true,
+                url: "/search",
+                components: {
+                    Input: Input,
+                    Button: Button
+                }
+            },
+            {
                 title: "Dashboard",
                 icon: FaLaptop,
                 isActive: true,
                 url: "/dashboard"
             },
             {
-                title: "Ticket Ara",
-                icon: FaSearch,
-                isActive: true,
-                url: "/search",
-                className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
-            },
-            {
                 title: "Whatsapp",
                 icon: FaWhatsapp,
                 isActive: true,
                 url: "/whatsapp",
-                className: "mt-2 mb-2 py-3 bg-green-100 hover:bg-green-200 rounded-md text-green-800 font-medium transition-colors"
+                className: "text-green-800"
             },
             // {
             //     title: "Yapay Zeka",
@@ -84,7 +154,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     },
                     {
                         title: "Atanmamış Talepler",
-                        icon: TbTicketOff ,
+                        icon: TbTicketOff,
                         url: "/tickets/unassigned-ticket"
                     },
                     {
