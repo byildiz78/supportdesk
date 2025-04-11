@@ -4,7 +4,7 @@ import nodemailer from 'nodemailer';
 import { sendEventToClients } from '@/pages/api/events';
 import path from 'path';
 import fs from 'fs';
-import { createEmailWithHistory, createHtmlContent } from '@/utils/email-utils';
+import { createHtmlContent } from '@/utils/email-utils';
 
 interface QueryResult {
   rows: any[];
@@ -28,8 +28,6 @@ export default async function handler(
       subject,
       to,
       cc,
-      replyToEmailId,
-      threadId,
       isInternal,
       userId,
       userName,
@@ -95,7 +93,7 @@ export default async function handler(
       }
 
       // Ticket numarasını kontrol et ve ekle
-      let emailSubject = subject || 'Re: Destek Talebiniz Hakkında';
+      let emailSubject = subject || 'Destek Talebiniz Hakkında';
       
       // Ticket numarasını almak için sorgu
       const ticketQuery = `
@@ -138,11 +136,7 @@ export default async function handler(
         }).join(', ') : undefined,
         subject: emailSubject,
         text: content, // Burada düz metin içeriği
-        html: createHtmlContent(htmlContent || content),
-        headers: {
-          'In-Reply-To': replyToEmailId ? replyToEmailId : undefined,
-          'References': threadId || undefined,
-        },
+        html: createHtmlContent(content), // HTML içeriğini oluşturan fonksiyon
         // Eklentileri ekleyelim
         attachments: attachments && attachments.length > 0 ? attachments.map((attachment: any) => {
           // Çevre değişkeninden dosya yolunu al veya varsayılan olarak process.cwd() kullan
@@ -208,213 +202,105 @@ export default async function handler(
               });
           });
           
-        } catch (error) {
-          console.error('E-posta gönderme hatası:', error);
+          const info = await sendMailPromise;
+          console.log('E-posta başarıyla gönderildi:', info);
+        } catch (emailError) {
+          console.error('E-posta gönderme hatası:', emailError);
           return res.status(500).json({
             success: false,
-            message: 'E-posta gönderme hatası: ' + (error instanceof Error ? error.message : 'Bilinmeyen hata'),
+            message: 'E-posta gönderilirken hata oluştu: ' + (emailError as Error).message,
           });
         }
       }
-    } catch (emailError) {
-      console.error('E-posta gönderme hatası:', emailError);
-      // E-posta gönderme hatası olsa bile devam et, yorumu kaydet
-    }
-    // Yanıtı veritabanına kaydet
-    // ID değerini doğrudan döndürmek için RETURNING * kullanılıyor
-    const insertCommentQuery = `
-      INSERT INTO ticket_comments (
-        ticket_id,
-        content,
-        is_internal,
-        created_at,
-        created_by,
-        updated_at,
-        is_deleted,
-        email_id,
-        thread_id,
-        sender,
-        sender_email,
-        to_recipients,
-        cc_recipients,
-        html_content,
-        attachments
-      )
-      VALUES (
-        $1, $2, $3, CURRENT_TIMESTAMP, $4, CURRENT_TIMESTAMP, false,
-        $5, $6, $7, $8, $9, $10, $11, $12
-      )
-      RETURNING id, created_at as "createdAt";
-    `;
 
-    // Kullanıcı bilgilerini al
-    const userQuery = `
-      SELECT name, email FROM users WHERE id = $1
-    `;
-    try {
-      const userResult = await db.executeQueryResult<QueryResult>({
-        query: userQuery,
-        params: [userId],
-        req
-      });
-      console.log('Kullanıcı bilgileri alındı:', userResult.rows && userResult.rows.length > 0 ? userResult.rows[0] : 'Kullanıcı bulunamadı');
-      
-      // Kullanıcı bulunamadıysa varsayılan değerleri kullan
-      const user = (userResult.rows && userResult.rows.length > 0) 
-        ? userResult.rows[0] 
-        : { name: 'Sistem', email: process.env.MAIL_FROM_ADDRESS };
+      // Yeni bir yorum oluştur
+      const commentQuery = `
+        INSERT INTO ticket_comments (
+          ticket_id, content, is_internal, created_by, 
+          email_id, thread_id, sender, sender_email, to_recipients, cc_recipients, html_content
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING id, created_at
+      `;
 
-      // CC alıcılarını filtrele
-      const filteredCc = cc && cc.length > 0 ? cc.filter((email: string) => {
-        const normalizedEmail = email.toLowerCase();
-        return !normalizedEmail.includes('destek@robotpos.com') && 
-               !normalizedEmail.includes('robotpos destek ekibi');
-      }) : [];
+      // Yeni bir e-posta ID'si ve thread ID'si oluştur
+      const emailId = `email_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const threadId = `thread_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-      // Yorumu veritabanına ekle
-      console.log('Yorum veritabanına ekleniyor...');
+      const commentParams = [
+        ticketId,
+        subject,
+        isInternal,
+        userId,
+        emailId, // Yeni bir e-posta ID'si
+        threadId, // Yeni bir thread ID'si
+        userName,
+        process.env.MAIL_FROM_ADDRESS || 'destek@robotpos.com',
+        to,
+        cc,
+        htmlContent || createHtmlContent(content)
+      ];
+
       const commentResult = await db.executeQueryResult<QueryResult>({
-        query: insertCommentQuery,
-        params: [
-          ticketId,
-          subject || 'E-posta Yanıtı',
-          isInternal || false,
-          userId,
-          isInternal ? null : (replyToEmailId || `reply-${Date.now()}@supportdesk.com`),
-          threadId,
-          userName || user.name,
-          user.email,
-          to,
-          filteredCc,
-          htmlContent || `<p>${content}</p>`,
-          req.body.attachments ? JSON.stringify(req.body.attachments) : null
-        ],
+        query: commentQuery,
+        params: commentParams,
         req
-      });
-      
-      console.log('SQL sorgusu sonucu:', {
-        rowCount: commentResult.rowCount,
-        rows: commentResult.rows
-      });
-      
-      // Yorumun başarıyla eklendiğinden emin olalım
-      if ((!commentResult.rows || commentResult.rows.length === 0) && commentResult.rowCount === 0) {
-        throw new Error('Yorum veritabanına eklenemedi');
-      }
-      
-      // Eklenen yorumun ID'si ve oluşturulma tarihi
-      const commentId = commentResult.rows[0].id;
-      const commentCreatedAt = commentResult.rows[0].createdAt;
-      
-      // Ticket'ın updated_at alanını güncelle
-      console.log('Ticket güncelleniyor...');
+      }) as QueryResult;
+
+      const newCommentId = commentResult.rows[0].id;
+      const createdAt = commentResult.rows[0].created_at;
+
+      // Ticket'ın son güncelleme zamanını güncelle
+      const updateTicketQuery = `
+        UPDATE tickets 
+        SET updated_at = NOW() 
+        WHERE id = $1
+      `;
+
       await db.executeQuery({
-        query: 'UPDATE tickets SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+        query: updateTicketQuery,
         params: [ticketId],
         req
       });
-      console.log('Ticket güncellendi');
 
-      // SSE kullanarak yeni yorum bildirimini gönder
-      try {
-        console.log('SSE bildirimi gönderiliyor...');
-        sendEventToClients('ticket-comment', {
-          action: 'create',
-          ticketId,
-          commentId: commentId || 'unknown',
-        });
-        console.log('SSE bildirimi gönderildi');
-      } catch (sseError) {
-        console.error('SSE yorum ekleme olayı gönderme hatası:', sseError);
-      }
+      // Yeni yorumu ve ekleri döndür
+      const commentResponse = {
+        id: newCommentId,
+        ticketId: ticketId,
+        content: subject,
+        isInternal: isInternal,
+        createdAt: createdAt,
+        createdBy: userId,
+        createdByName: userName,
+        emailId: emailId,
+        threadId: threadId,
+        sender: userName || 'destek@robotpos.com',
+        toRecipients: to,
+        ccRecipients: cc,
+        htmlContent: htmlContent || createHtmlContent(content),
+        attachments: attachments
+      };
 
-      // Yorum detaylarını almak için sorgu
-      const getCommentQuery = `
-        SELECT 
-          id, 
-          ticket_id as "ticketId", 
-          content, 
-          is_internal as "isInternal", 
-          created_at as "createdAt", 
-          created_by as "createdBy", 
-          updated_at as "updatedAt",
-          is_deleted as "isDeleted",
-          email_id as "emailId",
-          thread_id as "threadId",
-          sender, 
-          sender_email as "senderEmail", 
-          to_recipients as "toRecipients", 
-          cc_recipients as "ccRecipients", 
-          html_content as "htmlContent", 
-          attachments
-        FROM ticket_comments 
-        WHERE id = $1
-      `;
-      
-      // Eklenen yorumun detaylarını al
-      const commentDetailResult = await db.executeQueryResult<QueryResult>({
-        query: getCommentQuery,
-        params: [commentId],
-        req
-      });
-      
-      const commentDetail = commentDetailResult.rows && commentDetailResult.rows.length > 0 
-        ? commentDetailResult.rows[0] 
-        : null;
-
-      // Yanıt olarak eklenen yorumun tam bilgilerini döndür
       return res.status(200).json({
         success: true,
-        message: isInternal ? 'Dahili yorum eklendi' : 'E-posta yanıtı gönderildi',
-        comment: commentDetail ? {
-          id: commentDetail.id,
-          ticketId: commentDetail.ticketId,
-          content: commentDetail.content,
-          isInternal: commentDetail.isInternal,
-          createdAt: commentDetail.createdAt,
-          createdBy: commentDetail.createdBy,
-          createdByName: userName || user.name,
-          updatedAt: commentDetail.updatedAt,
-          isDeleted: commentDetail.isDeleted,
-          emailId: commentDetail.emailId,
-          threadId: commentDetail.threadId,
-          sender: commentDetail.sender,
-          senderEmail: commentDetail.senderEmail,
-          toRecipients: commentDetail.toRecipients,
-          ccRecipients: commentDetail.ccRecipients,
-          htmlContent: commentDetail.htmlContent,
-          attachments: commentDetail.attachments ? 
-            (typeof commentDetail.attachments === 'string' ? 
-              JSON.parse(commentDetail.attachments) : 
-              commentDetail.attachments) : 
-            null
-        } : {
-          id: commentId,
-          ticketId,
-          content: subject || 'E-posta Yanıtı',
-          isInternal: isInternal || false,
-          createdAt: commentCreatedAt,
-          createdBy: userId,
-          createdByName: userName || user.name,
-          sender: userName || user.name,
-          senderEmail: user.email || process.env.MAIL_FROM_ADDRESS || '',
-          toRecipients: to || [],
-          ccRecipients: filteredCc || null,
-          htmlContent: htmlContent || `<p>${content}</p>`,
-          attachments: req.body.attachments || null
-        }
+        message: 'E-posta başarıyla gönderildi ve yorum eklendi',
+        comment: commentResponse,
+        attachments: attachments
       });
-    } catch (dbError) {
-      console.error('Veritabanı işlemi hatası:', dbError);
-      throw dbError;
+
+    } catch (transporterError) {
+      console.error('Transporter oluşturma hatası:', transporterError);
+      return res.status(500).json({
+        success: false,
+        message: 'E-posta sunucusu yapılandırılırken hata oluştu: ' + (transporterError as Error).message,
+      });
     }
+
   } catch (error) {
-    console.error('E-posta yanıtı gönderme hatası:', error);
+    console.error('API hatası:', error);
     return res.status(500).json({
       success: false,
-      message: 'E-posta yanıtı gönderilirken bir hata oluştu',
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      message: 'İşlem sırasında bir hata oluştu: ' + (error as Error).message,
     });
   }
 }

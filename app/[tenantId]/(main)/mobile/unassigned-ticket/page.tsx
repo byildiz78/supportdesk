@@ -96,7 +96,7 @@ export default function MobileTicketsPage() {
       
       // İstek parametrelerini oluştur
       const requestParams = {
-        date1: fromDateStr,
+        date1: "2025-03-01 00:00",
         date2: toDateStr,
         ...latestFilter
       };

@@ -42,7 +42,7 @@ export default function TicketChat({mobil}: {mobil?:string}) {
   const getWhatsAppUrl = () => {
     if (accessToken && formattedPhone) {
       // Token ile birlikte doğrudan sohbet URL'si
-      return `https://new.dialogs.pro/dialogs/52504/grWhatsApp/${formattedPhone}@c.us?api[access_token]=${accessToken}`
+      return `https://new.dialogs.pro/dialogs/52504/caWhatsApp/${formattedPhone}@c.us?api[access_token]=${accessToken}`
     }
     return ''
   }

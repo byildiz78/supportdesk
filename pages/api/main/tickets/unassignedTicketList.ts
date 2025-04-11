@@ -50,6 +50,7 @@ export default async function handler(
       AND t.created_at BETWEEN $1 AND $2
       AND t.status not in ('resolved','closed')
       AND t.assigned_to IS NULL
+      AND t.category_id IS NULL
     `;
 
         const params = [date1, date2];

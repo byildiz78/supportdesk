@@ -9,7 +9,7 @@ import { MobileMenu } from '../components/MobileNavigation/MobileMenu'
 
 export default function WhatsAppPage() {
     const [accessToken, setAccessToken] = useState<string>('')
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
         const getAccessToken = async () => {
@@ -26,14 +26,14 @@ export default function WhatsAppPage() {
 
     return (
         <div className="h-full w-full flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 z-10 bg-white">
+            <div className="flex items-center justify-between px-4 py-3 border-b sticky top-0 z-10 bg-white dark:bg-gray-950 dark:border-gray-800">
                 <div className="flex items-center gap-2">
                     <img
                         src={`${process.env.NEXT_PUBLIC_BASEPATH || ''}/images/Audit.png`}
                         alt="Logo"
                         className="h-8 w-8"
                     />
-                    <span className="font-semibold">robotPOS Support</span>
+                    <span className="font-semibold dark:text-gray-200">Support</span>
                 </div>
                 <Button
                     variant="ghost"

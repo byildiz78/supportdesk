@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { CheckCircle2, User, MessageSquare, Paperclip, Reply, Upload, PenSquare, History, Calendar, Download, FileIcon, Tag } from "lucide-react"
+import { CheckCircle2, User, MessageSquare, Paperclip, Reply, Upload, PenSquare, History, Calendar, Download, FileIcon, Tag, ClipboardCheck } from "lucide-react"
 import { CommentTimeline } from "@/components/tickets/comment-timeline"
 import { CommentForm } from "@/components/tickets/comment-form"
 import { FileUpload } from "./file-upload"
@@ -10,7 +10,7 @@ import { TicketTags } from "./ticket-tags"
 import { TicketStatusHistory } from "./ticket-status-history"
 import { useState } from "react"
 import { useTicketStore } from "@/stores/ticket-store"
-import { getUserId, getUserName } from "@/utils/user-utils"
+import { getUserData, getUserId, getUserMail, getUserName } from "@/utils/user-utils"
 import axios from "@/lib/axios"
 import { EmailReplyForm } from "@/components/tickets/email-reply-form"
 import { TicketComment, FileAttachment } from "@/types/tickets"
@@ -19,6 +19,7 @@ import { getTabIcon, Tabs, TabsContent, TabsList, TabsTrigger } from "@/componen
 import { useToast } from "@/hooks/use-toast"
 import TicketResolved from "./ticket-resolved"
 import TicketCompanyHistory from "./ticket-company-history"
+import TicketEmailSendForm from "./ticket-emailSendForm"
 
 interface TicketContentProps {
     ticket: {
@@ -322,16 +323,16 @@ export function TicketContent({ ticket }: TicketContentProps) {
 
                 // E-posta içeriğine orijinal içeriği ekleyelim
                 emailHtmlContent += `<br/><br/><hr/><div class="original-email" style="margin-top: 20px; padding: 10px; border-left: 2px solid #ccc;">
-                <p><strong>From:</strong> ${replyingToEmail.sender || ''} &lt;${replyingToEmail.sender_email || ''}&gt;</p>
+                <p><strong>From:</strong> destek@robotpos.com</p>
                 <p><strong>Date:</strong> ${new Date(replyingToEmail.created_at).toLocaleString()}</p>
-                ${replyingToEmail.to_recipients && replyingToEmail.to_recipients.length > 0 ? 
-                  `<p><strong>To:</strong> ${Array.isArray(replyingToEmail.to_recipients) ? 
-                    replyingToEmail.to_recipients.join(', ') : 
-                    replyingToEmail.to_recipients}</p>` : ''}
-                ${replyingToEmail.cc_recipients && replyingToEmail.cc_recipients.length > 0 ? 
-                  `<p><strong>Cc:</strong> ${Array.isArray(replyingToEmail.cc_recipients) ? 
-                    replyingToEmail.cc_recipients.join(', ') : 
-                    replyingToEmail.cc_recipients}</p>` : ''}
+                ${replyingToEmail.to_recipients && replyingToEmail.to_recipients.length > 0 ?
+                        `<p><strong>To:</strong> ${Array.isArray(replyingToEmail.to_recipients) ?
+                            replyingToEmail.to_recipients.join(', ') :
+                            replyingToEmail.to_recipients}</p>` : ''}
+                ${replyingToEmail.cc_recipients && replyingToEmail.cc_recipients.length > 0 ?
+                        `<p><strong>Cc:</strong> ${Array.isArray(replyingToEmail.cc_recipients) ?
+                            replyingToEmail.cc_recipients.join(', ') :
+                            replyingToEmail.cc_recipients}</p>` : ''}
                 <p><strong>Subject:</strong> ${replyingToEmail.content || ''}</p>
                 <div class="original-content" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">${sanitizedOriginalContent}</div>
                 </div>`;
@@ -393,8 +394,8 @@ export function TicketContent({ ticket }: TicketContentProps) {
                         created_by_name: result.comment.createdByName || result.comment.sender,
                         email_id: result.comment.emailId,
                         thread_id: result.comment.threadId,
-                        sender: result.comment.sender,
-                        sender_email: "robotpos@gmail.com",
+                        sender: getUserName() || 'Robotpos Destek Ekibi',
+                        sender_email: getUserMail() || 'destek@robotpos.com',
                         to_recipients: result.comment.toRecipients,
                         cc_recipients: result.comment.ccRecipients,
                         html_content: result.comment.htmlContent,
@@ -465,6 +466,192 @@ export function TicketContent({ ticket }: TicketContentProps) {
         // Update the ticket in the store
         updateTicket(updatedTicket);
     };
+
+    const handleSubmitEmailSend = async (
+        content: string,
+        to: string[],
+        cc: string[],
+        subject: string,
+        isInternal: boolean,
+        files?: File[]
+    ) => {
+        if (!ticket) return;
+
+        setIsSubmitting(true);
+
+        try {
+            let uploadedAttachments: Array<{
+                id: string;
+                name: string;
+                originalFilename?: string;
+                filename?: string;
+                size: number;
+                mimeType: string;
+                url: string;
+                uploadedAt: string;
+                uploadedBy: string;
+            }> = [];
+
+            if (files && files.length > 0) {
+                try {
+                    const formData = new FormData();
+
+                    files.forEach(file => {
+                        formData.append('file', file);
+                    });
+
+                    // API'nin beklediği entityType ve createdBy parametrelerini ekleyelim
+                    formData.append('entityType', 'ticket');
+                    formData.append('entityId', ticket.id);
+                    formData.append('createdBy', getUserId() || '1f56b863-0363-407f-8466-b9495b8b4ff9');
+
+                    const uploadResponse = await axios.post('/api/main/files/uploadFile', formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    });
+
+                    const uploadResult = uploadResponse.data;
+
+                    if (uploadResult.success && uploadResult.files) {
+                        uploadedAttachments = uploadResult.files.map((file: any) => {
+                            return {
+                                id: file.id,
+                                name: file.name,
+                                originalFilename: file.originalFilename || file.name,
+                                filename: file.filename || file.name,
+                                size: file.size,
+                                mimeType: file.mimeType,
+                                url: file.url,
+                                storagePath: file.storagePath || `/uploads/${file.name}`,
+                                uploadedAt: file.uploadedAt || new Date().toISOString(),
+                                uploadedBy: file.uploadedBy || uploadResult.metadata.createdBy
+                            };
+                        });
+                    } else {
+                        uploadedAttachments = [];
+                    }
+                } catch (error) {
+                    console.error('Dosya yükleme hatası:', error);
+                    uploadedAttachments = [];
+                }
+            }
+
+            const sanitizedContent = DOMPurify.sanitize(content);
+            let emailHtmlContent = sanitizedContent;
+
+            // Ticket numarası formatını belirle
+            const ticketNoPattern = ticket.ticketno ? `#${ticket.ticketno}#` : '';
+
+            // Eğer ticketno değeri varsa ve subject içinde bu format yoksa ekle
+            let emailSubject = subject;
+            if (ticket.ticketno && ticketNoPattern && !emailSubject.includes(ticketNoPattern)) {
+                emailSubject = `${emailSubject} ${ticketNoPattern}`;
+            }
+
+            // API çağrısı için veri hazırla
+            const emailData = {
+                ticketId: ticket.id,
+                content: content,
+                htmlContent: emailHtmlContent,
+                subject: emailSubject,
+                to: to,
+                cc: cc,
+                isInternal: isInternal,
+                userId: getUserId(),
+                userName: getUserName(),
+                attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null
+            };
+
+            const response = await axios.post('/api/main/tickets/sendEmail', emailData);
+            if (!response.data.success) {
+                throw new Error('Failed to send email');
+            }
+
+            const result = response.data;
+
+            if (result.success) {
+                // If the API returns the created comment, update the UI
+                if (result.comment) {
+                    // API'den dönen yorumu frontend'in beklediği formata dönüştür
+                    const formattedComment: TicketComment = {
+                        id: result.comment.id,
+                        ticket_id: result.comment.ticketId,
+                        content: result.comment.content,
+                        is_internal: result.comment.isInternal,
+                        created_at: result.comment.createdAt,
+                        created_by: result.comment.createdBy,
+                        created_by_name: result.comment.createdByName || result.comment.sender,
+                        email_id: result.comment.emailId,
+                        thread_id: result.comment.threadId,
+                        sender: getUserName() || 'Robotpos Destek Ekibi',
+                        sender_email: getUserMail() || 'destek@robotpos.com',
+                        to_recipients: result.comment.toRecipients,
+                        cc_recipients: result.comment.ccRecipients,
+                        html_content: result.comment.htmlContent,
+                        attachments: result.comment.attachments
+                    };
+
+                    // Store'a formatlanmış yorumu ekle
+                    addComment(ticket.id, formattedComment);
+
+                    // If there are attachments, add them to the UI
+                    if (result.attachments && result.attachments.length > 0) {
+                        const formattedAttachments = result.attachments.map((attachment: {
+                            id: string;
+                            name: string;
+                            originalFilename?: string;
+                            size: number;
+                            mimeType: string;
+                            url: string;
+                            uploadedAt: string;
+                            uploadedBy: string;
+                        }) => ({
+                            id: attachment.id,
+                            name: attachment.name,
+                            originalFilename: attachment.originalFilename,
+                            size: attachment.size,
+                            type: attachment.mimeType,
+                            url: attachment.url,
+                            uploaded_at: attachment.uploadedAt,
+                            uploaded_by: attachment.uploadedBy
+                        }));
+
+                        addAttachments(ticket.id, formattedAttachments);
+                    } else if (uploadedAttachments.length > 0) {
+                        // API ekler dönmediyse ama yüklenen ekler varsa onları kullan
+                        const formattedAttachments = uploadedAttachments.map(attachment => ({
+                            id: attachment.id,
+                            name: attachment.name,
+                            originalFilename: attachment.originalFilename,
+                            size: attachment.size,
+                            type: attachment.mimeType,
+                            url: attachment.url,
+                            uploaded_at: attachment.uploadedAt,
+                            uploaded_by: attachment.uploadedBy
+                        }));
+
+                        addAttachments(ticket.id, formattedAttachments);
+                    }
+                }
+                setActiveTab('comment');
+                toast({
+                    title: "Başarılı",
+                    description: "E-posta başarıyla gönderildi",
+                    variant: "default"
+                });
+            }
+        } catch (error) {
+            console.error('E-posta gönderilirken hata oluştu:', error);
+            toast({
+                title: "Hata",
+                description: "E-posta gönderilirken bir hata oluştu",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
 
     return (
         <div className="space-y-4">
@@ -595,6 +782,14 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                     <span className="sm:hidden">Dosya</span>
                                 </TabsTrigger>
                                 <TabsTrigger
+                                    value="email"
+                                    className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-400 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
+                                    icon={getTabIcon("email")}
+                                >
+                                    <span className="hidden sm:inline">E-posta Gönder</span>
+                                    <span className="sm:hidden">E-posta</span>
+                                </TabsTrigger>
+                                <TabsTrigger
                                     value="tags"
                                     className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-gray-600 data-[state=active]:text-gray-700 dark:data-[state=active]:text-gray-300 rounded-none py-2 px-3 transition-all duration-200 flex-shrink-0 text-sm whitespace-nowrap"
                                     icon={getTabIcon("tags")}
@@ -682,6 +877,18 @@ export function TicketContent({ ticket }: TicketContentProps) {
                                         // No need to explicitly call addAttachments since the FileUpload component now handles it
                                     }}
                                 />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="email" className="mt-2">
+                            <div className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-gray-900/50 dark:to-emerald-800/50 p-5 rounded-xl shadow-sm">
+                                <TicketEmailSendForm
+                                    originalComment={undefined}
+                                    replyAll={false}
+                                    ticketMail={ticket.customer_email || undefined}
+                                    subject={ticket.title || 'Destek Talebi'}
+                                    onSubmit={handleSubmitEmailSend}
+                                    onCancel={handleCancelReply} />
                             </div>
                         </TabsContent>
 

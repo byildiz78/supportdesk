@@ -12,7 +12,7 @@ export default async function handler(
     }
 
     try {
-        const { phoneNumber, message, type = 'both', ticketNo } = req.body;
+        const { phoneNumber, message, type = 'both', ticketNo, templateId } = req.body;
 
         console.log('API isteği alındı:', req.body);
 
@@ -104,14 +104,16 @@ export default async function handler(
                 // Boşluk, tire gibi karakterleri kaldır
                 whatsappPhone = whatsappPhone.replace(/[\s-]/g, '');
 
-                console.log('WhatsApp mesajı gönderiliyor:', {
-                    originalPhone: phoneNumber,
-                    formattedPhone: whatsappPhone,
-                    message
-                });
+                // Önce token al
+                const baseUrl = process.env.NODE_ENV === 'production' ? 'https://support.robotpos.com' : 'http://localhost:3000';
+                const basePath = process.env.NEXT_PUBLIC_BASEPATH || '/supportdesk';
+                const tokenResponse = await axiosRaw.get(`${baseUrl}${basePath}/api/whatsapp-token`);
+                const accessToken = tokenResponse.data.accessToken;
 
-                // WhatsApp token'ı
-                const accessToken = '525600fa6ff79f65bcf891e7062b4d94c3d4fe3828e0215a7c515e4898c50454';
+                if (!accessToken) {
+                    throw new Error('WhatsApp token alınamadı')
+                }
+
 
                 try {
 
@@ -119,7 +121,7 @@ export default async function handler(
                         `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/${whatsappPhone}/messages/template`,
                         {
                             template: {
-                                id: "1412382113458646",
+                                id: templateId || "1412382113458646",
                                 params: [ticketNo || "0000"] // Destek numarası (ticketNo) parametresi
                             }
                         },
@@ -132,38 +134,8 @@ export default async function handler(
                         }
                     );
 
-                    // Şablon başarılı olduysa, bekle ve sonra asıl mesajı gönder
-                    if (templateResponse.status === 200) {
-                        
-                        // Her ihtimale karşı 10 saniye bekle
-                        await new Promise(resolve => setTimeout(resolve, 10000));
-
-                        const whatsappPrefix = `WhatsApp üzerinden #${ticketNo} destek talebiniz hk. bilgilendirme: `;
-
-                        // Mesaj içinde prefix varsa kaldır
-                        let cleanedMessage = message;
-                        if (message.startsWith(whatsappPrefix)) {
-                            cleanedMessage = message.substring(whatsappPrefix.length);
-                        }
-
-                        const textResponse = await axios.post(
-                            `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/${whatsappPhone}/messages/text`,
-                            {
-                                text: cleanedMessage
-                            },
-                            {
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': accessToken,
-                                    'Lang': 'en'
-                                }
-                            }
-                        );
-
-                        results.whatsapp = { success: true, data: textResponse.data, error: null };
-                    } else {
-                        throw new Error(`WhatsApp şablon mesajı gönderilemedi: ${templateResponse.status}`);
-                    }
+                    console.log('WhatsApp şablon mesajı gönderildi:', templateResponse.data);
+                    results.whatsapp = { success: true, data: templateResponse.data, error: null };
                 } catch (error: any) {
                     console.error('WhatsApp gönderme hatası:', error);
                     results.whatsapp = { success: false, data: null, error: error.message || 'WhatsApp mesajı gönderilirken bir hata oluştu' };

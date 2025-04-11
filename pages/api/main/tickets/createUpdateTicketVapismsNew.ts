@@ -3,10 +3,11 @@ import { db } from '@/lib/database';
 import { extractTenantFromBody } from '@/lib/utils';
 import { sendEventToClients } from '../../events';
 import axios from '@/lib/axios';
+import axiosRaw from 'axios';
 
 // SMS göndermeyi kontrol eden değişken
-const sendSmsEnabled = false; // SMS göndermeyi devre dışı bırak
-const sendWhatsAppEnabled = true; // WhatsApp göndermeyi devre dışı bırak
+const sendSmsEnabled = process.env.SEND_SMS_ENABLED === 'true';
+const sendWhatsAppEnabled = process.env.SEND_WHATSAPP_ENABLED === 'true';
 
 
 // WhatsApp şablonu gönderme fonksiyonu
@@ -33,12 +34,23 @@ const sendWhatsAppNotification = async (phoneNumber: string | null, ticketNo: st
   }
   
   try {
+
+      // Önce token al
+      const baseUrl = process.env.NODE_ENV === 'production' ? 'https://support.robotpos.com' : 'http://localhost:3000';
+      const basePath = process.env.NEXT_PUBLIC_BASEPATH || '/supportdesk';
+      const tokenResponse = await axiosRaw.get(`${baseUrl}${basePath}/api/whatsapp-token`);
+      const accessToken = tokenResponse.data.accessToken;
+
+      if (!accessToken) {
+          throw new Error('WhatsApp token alınamadı')
+      }
+
     // WhatsApp API'sine istek gönder
     const response = await axios({
       method: 'post',
       url: `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/90${formattedPhone}/messages/template`,
       headers: {
-        'Authorization': '525600fa6ff79f65bcf891e7062b4d94c3d4fe3828e0215a7c515e4898c50454',
+        'Authorization': accessToken,
         'Content-Type': 'application/json',
         'Lang': 'en'
       },
@@ -322,7 +334,8 @@ export default async function handler(
               const ticketNo = existingTicket.rows[0].ticketno || existingTicketId.substring(0, 8);
               if (sendSmsEnabled) {
                 await sendSmsNotification(phoneNumber, ticketNo, false);
-              } else if (sendWhatsAppEnabled) {
+              }
+              if (sendWhatsAppEnabled) {
                 await sendWhatsAppNotification(phoneNumber, ticketNo);
               }
             } catch (smsError) {
@@ -520,7 +533,8 @@ export default async function handler(
           if (safeTicketData.customer_phone) {
             if (sendSmsEnabled) {
               await sendSmsNotification(safeTicketData.customer_phone, ticketNo, true);
-            } else if (sendWhatsAppEnabled) {
+            } 
+            if (sendWhatsAppEnabled) {
               await sendWhatsAppNotification(safeTicketData.customer_phone, ticketNo);
             }
           }

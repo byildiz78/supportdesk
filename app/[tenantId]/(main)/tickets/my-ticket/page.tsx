@@ -62,11 +62,11 @@ export default function MyTicketsPage() {
             clearTickets(TAB_NAME)
         }
         
-        // Status filtrelerini sıfırla
-        if (filters.status && filters.status.length > 0) {
-            const { status, ...otherFilters } = filters;
-            setFilters(otherFilters, TAB_NAME);
-        }
+        // İlk yüklemede "Açık" durumundaki talepleri göster
+        setFilters({
+            ...filters,
+            status: ['open']
+        }, TAB_NAME);
         
         // Sadece bir kez çalışacak
         if (!hasInitializedRef.current) {
@@ -96,9 +96,9 @@ export default function MyTicketsPage() {
             setError(null)
             const latestFilter = useTabStore.getState().getTabFilter(activeTab)
             const userId = getUserId()
-
+            // latestFilter?.date?.from || Bilerek Başlangıç Tarihi Devre Dışı.
             const response = await axios.post('/api/main/tickets/myticketsList', {
-                date1: latestFilter?.date?.from || '2020-01-01',
+                date1: '2025-03-01T21:00:00.000Z',
                 date2: latestFilter?.date?.to || new Date().toISOString(),
                 userId
             })
@@ -300,7 +300,7 @@ export default function MyTicketsPage() {
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 hideAssignedUserFilter={true}
-                hideResolvedClosedStatus={true}
+                hideResolvedClosedStatus={false}
             />
 
             <Card className="border-0 shadow-xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm flex-1 overflow-hidden rounded-xl">

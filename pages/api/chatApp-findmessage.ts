@@ -40,7 +40,7 @@ export default async function handler(
 
         // ChatApp API'sine istek at
         const chatResponse = await axios.get<ApiResponse>(
-            `https://api.chatapp.online/v1/licenses/52504/messengers/grWhatsApp/chats/${formattedPhone}@c.us/messages`,
+            `https://api.chatapp.online/v1/licenses/52504/messengers/caWhatsApp/chats/${formattedPhone}@c.us/messages`,
             {
                 headers: {
                     'Authorization': accessToken,

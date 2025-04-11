@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Paperclip, Send, X, Phone, CheckCircle2, XCircle, MessageSquare, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTabStore } from "@/stores/tab-store"
@@ -36,6 +36,12 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
     const [isSendingMessage, setIsSendingMessage] = useState(false)
     const [messageType, setMessageType] = useState<"whatsapp" | "sms" | "">("")
     const [quickResponseKey, setQuickResponseKey] = useState<string>("")
+    const [hasWhatsAppHistory, setHasWhatsAppHistory] = useState<boolean>(false);
+    const [whatsappTemplates, setWhatsappTemplates] = useState<any[]>([]);
+    const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+    const [isSelectOpen, setIsSelectOpen] = useState(false);
+
     const { addTab, setActiveTab, tabs } = useTabStore()
     const defaultMessagePrefix = useRef<string>("")
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -45,7 +51,6 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
         type: 'sms' | 'whatsapp' | 'both';
         message: string;
     } | null>(null)
-    const [hasWhatsAppHistory, setHasWhatsAppHistory] = useState<boolean>(false);
 
     // WhatsApp mesaj geçmişini kontrol et
     useEffect(() => {
@@ -55,14 +60,14 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                 try {
                     const response = await axios.get<{ success: boolean; data: { hasChatHistory: boolean } }>(`/api/chatApp-findmessage?phoneNumber=${mobil}`);
                     const data = await response.data;
-                    
+
                     if (data.success && data.data) {
                         setHasWhatsAppHistory(data.data.hasChatHistory);
                     }
                 } catch (error) {
                     console.error('WhatsApp geçmişi kontrol edilirken hata:', error);
                 }
-            } 
+            }
             // Telefon numarası yoksa ama email varsa, önce telefon numarasını bul
             else if (email) {
                 try {
@@ -73,7 +78,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                             // Telefon numarası bulundu, WhatsApp geçmişini kontrol et
                             const response = await axios.get<{ success: boolean; data: { hasChatHistory: boolean } }>(`/api/chatApp-findmessage?phoneNumber=${cleanPhone}`);
                             const data = await response.data;
-                            
+
                             if (data.success && data.data) {
                                 setHasWhatsAppHistory(data.data.hasChatHistory);
                             }
@@ -84,7 +89,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                 }
             }
         };
-        
+
         checkWhatsAppHistory();
     }, [mobil, email]);
 
@@ -97,6 +102,9 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
             setContent(defaultMessagePrefix.current);
             // WhatsApp seçildiğinde dosya eklerini temizle
             if (files.length > 0) setFiles([]);
+
+            // WhatsApp şablonlarını getir
+            fetchWhatsAppTemplates();
         } else if (messageType === "sms") {
             defaultMessagePrefix.current = `SMS üzerinden ${ticketInfo} destek talebiniz hk. bilgilendirme: `;
             setContent(defaultMessagePrefix.current);
@@ -107,8 +115,43 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
             if (content.includes("destek talebiniz hk. bilgilendirme:")) {
                 setContent("");
             }
+            // Mesaj tipi değiştiğinde seçili şablonu sıfırla
+            setSelectedTemplate("");
         }
     }, [messageType, ticketNo, files.length]);
+
+    // WhatsApp şablonlarını getir
+    const fetchWhatsAppTemplates = async () => {
+        setIsLoadingTemplates(true);
+        try {
+            const response = await axios.get('/api/main/chat-send/getTemplateList');
+            if (response.data.success && response.data.data.items) {
+                setWhatsappTemplates(response.data.data.items);
+                // API'den başarılı yanıt geldiğinde select'i otomatik aç
+                setIsSelectOpen(true);
+            }
+        } catch (error) {
+            console.error('WhatsApp şablonları alınırken hata:', error);
+        } finally {
+            setIsLoadingTemplates(false);
+        }
+    };
+
+    // Şablon seçildiğinde içeriği güncelle
+    const handleTemplateSelection = (templateId: string) => {
+        setSelectedTemplate(templateId);
+
+        if (!templateId) return;
+
+        const selectedTemplateData = whatsappTemplates.find(template => template.id === templateId);
+        if (selectedTemplateData && selectedTemplateData.data) {
+            // Şablon içeriğini alıp, prefix ile birleştir
+            const ticketInfo = ticketNo ? `#${ticketNo}` : '';
+            const prefix = `WhatsApp üzerinden ${ticketInfo} destek talebiniz hk. bilgilendirme: `;
+
+            setContent(prefix + selectedTemplateData.data);
+        }
+    };
 
     // Mesaj değiştiğinde ön eki koru
     const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -164,9 +207,9 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
     const handleSendMessage = async (type: "whatsapp" | "sms") => {
         // Telefon numarasını temizle ve kontrol et
         let cleanPhone = mobil?.replace(/\D/g, '');
-        
+
         setIsSendingMessage(true);
-        
+
         try {
             // Eğer telefon numarası yoksa ve email varsa, contact API'sinden telefon numarası almayı dene
             if ((!cleanPhone || cleanPhone === '') && email) {
@@ -179,7 +222,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                     console.log('Email ile contact API\'sinden telefon numarası alınamadı:', error);
                 }
             }
-            
+
             // Hala telefon numarası yoksa hata göster
             if (!cleanPhone || cleanPhone === '') {
                 showCustomNotification(false, type, 'Telefon numarası bulunamadı. Lütfen kişi bilgilerini güncelleyin.');
@@ -199,6 +242,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                 message: content,
                 type,
                 ticketNo: ticketNo || null,
+                templateId: type === "whatsapp" ? selectedTemplate : null, // Seçilen şablonun ID'sini gönder
             });
 
             if (response.data.success) {
@@ -233,7 +277,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
         // Telefon numarası kontrolü - boş, null veya undefined olabilir
         if (!mobil || mobil.trim() === '') {
             console.log('Telefon numarası bulunamadı', mobil);
-            
+
             // Eğer email varsa, contact API'sinden telefon numarası almayı dene
             if (email) {
                 axios.get(`/api/main/contacts/getContactPhoneNumber?email=${email}`)
@@ -254,7 +298,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                     });
                 return;
             }
-            
+
             showCustomNotification(false, 'whatsapp', 'Telefon numarası bulunamadı. Lütfen kişi bilgilerini güncelleyin.');
             return;
         }
@@ -306,12 +350,12 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
     // WhatsApp mesajı içeren herhangi bir yorum var mı kontrol et
     const hasWhatsAppMessage = () => {
         // API'den gelen mesaj geçmişi kontrolü
-        return hasWhatsAppHistory || 
-        // Eski kontrol - yorum içeriğinde WhatsApp ifadesi var mı?
-        comments.some(comment =>
-            comment.content && typeof comment.content === 'string' &&
-            comment.content.includes("WhatsApp üzerinden")
-        );
+        return hasWhatsAppHistory ||
+            // Eski kontrol - yorum içeriğinde WhatsApp ifadesi var mı?
+            comments.some(comment =>
+                comment.content && typeof comment.content === 'string' &&
+                comment.content.includes("WhatsApp üzerinden")
+            );
     };
 
     return (
@@ -368,6 +412,7 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                             ? "SMS mesajınızı yazın..."
                             : "Yanıtınızı yazın..."
                 }
+                disabled={messageType === "whatsapp"} // WhatsApp seçildiğinde disabled olsun
                 className="min-h-[80px] resize-none text-sm border-gray-200 dark:border-gray-700 rounded-lg focus-visible:ring-blue-500 shadow-sm"
             />
 
@@ -404,30 +449,82 @@ export function CommentForm({ ticketId, mobil, email, ticketNo, onSubmit, classN
                     </RadioGroup>
 
                     <div className="flex items-center gap-4">
-                        <Select
-                            key={messageType} // Force re-render when message type changes
-                            value={quickResponseKey}
-                            onValueChange={(value: string) => {
-                                setQuickResponseKey(value);
-                                handleQuickResponse(value);
-                            }}
-                        >
-                            <SelectTrigger className="w-[120px] h-8 text-xs border-gray-200 dark:border-gray-700 rounded-md shadow-sm">
-                                <MessageSquare className="h-3.5 w-3.5 text-gray-500 mr-1.5" />
-                                <span className="text-gray-500">Hızlı Yanıt</span>
-                            </SelectTrigger>
-                            <SelectContent className="w-[400px]">
-                                <SelectItem value="missed_call" className="text-xs whitespace-normal py-2">
-                                    {quickResponses.missed_call}
-                                </SelectItem>
-                                <SelectItem value="need_info" className="text-xs whitespace-normal py-2">
-                                    {quickResponses.need_info}
-                                </SelectItem>
-                                <SelectItem value="future_service" className="text-xs whitespace-normal py-2">
-                                    {quickResponses.future_service}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {messageType === 'whatsapp' ? (
+                            <Select
+                                value={selectedTemplate}
+                                onValueChange={handleTemplateSelection}
+                                open={isSelectOpen}
+                                onOpenChange={(open) => setIsSelectOpen(open)}
+                                disabled={isLoadingTemplates}
+                            >
+                                <SelectTrigger className="w-[150px] h-8 text-sm border-gray-200 dark:border-gray-700 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                    <MessageSquare className="h-4 w-4 text-blue-500 mr-2" />
+                                    <SelectValue placeholder="WhatsApp Şablonu Seçin">
+                                        {selectedTemplate ? whatsappTemplates.find(t => t.id === selectedTemplate)?.elementName.replace('response_', '').replace(/_/g, ' ') : "WhatsApp Şablonu Seçin"}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent className="w-[600px] max-h-[700px] overflow-y-auto">
+                                    <div className="p-2 border-b border-gray-100 dark:border-gray-800">
+                                        <h4 className="font-medium text-sm">WhatsApp Şablonları</h4>
+                                        <p className="text-xs text-gray-500">Müşteriye göndermek için bir şablon seçin</p>
+                                    </div>
+                                    {isLoadingTemplates ? (
+                                        <div className="flex items-center justify-center p-4">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                                            <span className="ml-2 text-sm">Şablonlar yükleniyor...</span>
+                                        </div>
+                                    ) : whatsappTemplates.length === 0 ? (
+                                        <div className="p-4 text-center text-sm text-gray-500">
+                                            Şablon bulunamadı
+                                        </div>
+                                    ) : (
+                                        <div className="py-1">
+                                            {whatsappTemplates.map(template => (
+                                                <SelectItem
+                                                    key={template.elementName}
+                                                    value={template.id}
+                                                    className="text-md py-3 px-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md m-1 cursor-pointer mt-1.5"
+                                                >
+                                                    <div className="flex flex-col">
+                                                        <div className="text-md font-medium">
+                                                            {template.vertical || template.elementName.replace('response_', '').replace(/_/g, ' ')}
+                                                        </div>
+                                                        <div className="mt-2.5 text-gray-500 text-sm border-l-2 border-blue-300 pl-2 whitespace-normal">
+                                                            {template.data}
+                                                        </div>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </div>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Select
+                                key={messageType} // Force re-render when message type changes
+                                value={quickResponseKey}
+                                onValueChange={(value) => {
+                                    setQuickResponseKey(value);
+                                    handleQuickResponse(value);
+                                }}
+                            >
+                                <SelectTrigger className="w-[120px] h-8 text-xs border-gray-200 dark:border-gray-700 rounded-md shadow-sm">
+                                    <MessageSquare className="h-3.5 w-3.5 text-gray-500 mr-1.5" />
+                                    <span className="text-gray-500">Hızlı Yanıt</span>
+                                </SelectTrigger>
+                                <SelectContent className="w-[400px]">
+                                    <SelectItem value="missed_call" className="text-xs whitespace-normal py-2">
+                                        {quickResponses.missed_call}
+                                    </SelectItem>
+                                    <SelectItem value="need_info" className="text-xs whitespace-normal py-2">
+                                        {quickResponses.need_info}
+                                    </SelectItem>
+                                    <SelectItem value="future_service" className="text-xs whitespace-normal py-2">
+                                        {quickResponses.future_service}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
 
                         <div className="border-l border-gray-200 dark:border-gray-700 h-6 mx-2"></div>
 

@@ -9,7 +9,7 @@
 export const getUserId = (): string | null => {
   try {
     // Önce userData_login'den okumayı dene
-    const userData = localStorage.getItem('userData_login');
+    const userData = localStorage.getItem('userData_panel');
     if (userData) {
       const parsedUserData = JSON.parse(userData);
       if (parsedUserData && parsedUserData.userId) {
@@ -36,7 +36,7 @@ export const getUserId = (): string | null => {
  */
 export const getUserData = () => {
   try {
-    const userData = localStorage.getItem('userData_login');
+    const userData = localStorage.getItem('userData_panel');
     if (userData) {
       return JSON.parse(userData);
     }
@@ -53,7 +53,7 @@ export const getUserData = () => {
  */
 export const getUserRole = (): string | null => {
   try {
-    const userData = localStorage.getItem('userData_login');
+    const userData = localStorage.getItem('userData_panel');
     if (userData) {
       const parsedUserData = JSON.parse(userData);
       if (parsedUserData && parsedUserData.userrole) {
@@ -75,7 +75,7 @@ export const getUserRole = (): string | null => {
 export const getUserName = (): string | null => {
   try {
     // userData_login'den kullanıcı adını al
-    const userData = localStorage.getItem('userData_login');
+    const userData = localStorage.getItem('userData_panel');
     if (userData) {
       const parsedUserData = JSON.parse(userData);
       if (parsedUserData && parsedUserData.name) {
@@ -86,6 +86,28 @@ export const getUserName = (): string | null => {
     return null;
   } catch (error) {
     console.error('Kullanıcı adı alınırken hata oluştu:', error);
+    return null;
+  }
+};
+
+/**
+ * localStorage'dan kullanıcı mailini alır
+ * @returns Kullanıcı adı veya null
+ */
+export const getUserMail = (): string | null => {
+  try {
+    // userData_login'den kullanıcı adını al
+    const userData = localStorage.getItem('userData_panel');
+    if (userData) {
+      const parsedUserData = JSON.parse(userData);
+      if (parsedUserData && parsedUserData.email) {
+        return parsedUserData.email;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Kullanıcı maili alınırken hata oluştu:', error);
     return null;
   }
 };
