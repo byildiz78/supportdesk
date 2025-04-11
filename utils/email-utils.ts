@@ -405,8 +405,13 @@ export const sendTicketNotificationEmail = async (
 
 // HTML içeriğini oluşturan fonksiyon
 export function createHtmlContent(content: string): string {
-  // SQL sorgularını bulup <pre> etiketleri içine almak için
-  // Önce satır aralarına göre parçalayalım
+  // Eğer içerik zaten HTML formatındaysa
+  if (content.includes('<html>') || content.includes('<!DOCTYPE html>') || 
+      (content.includes('<body>') && content.includes('</body>'))) {
+    return content; // HTML içeriğini olduğu gibi döndür
+  }
+  
+  // İçerik HTML değilse, normal işleme devam et
   const lines = content.split('\n');
   let htmlParts = [];
   let currentParagraph = '';
@@ -414,8 +419,11 @@ export function createHtmlContent(content: string): string {
   let sqlBlock = '';
 
   for (const line of lines) {
-    // SQL komutunu tespit et (update ile başlıyorsa)
-    if (line.trim().startsWith('update ')) {
+    // SQL komutunu tespit et (update, select, insert, delete ile başlıyorsa)
+    if (line.trim().toLowerCase().startsWith('update ') || 
+        line.trim().toLowerCase().startsWith('select ') || 
+        line.trim().toLowerCase().startsWith('insert ') || 
+        line.trim().toLowerCase().startsWith('delete ')) {
       // Eğer daha önce normal metin varsa, paragraf olarak ekle
       if (currentParagraph && !inSqlBlock) {
         htmlParts.push(`<p>${currentParagraph}</p>`);

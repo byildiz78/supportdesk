@@ -45,13 +45,13 @@ export function TeamSwitcher({
                             size="lg"
                             className="cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                <div className="relative h-6 w-6">
+                            <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                                <div className="relative h-7 w-7">
                                     <Image
                                         src={activeTeam.logo}
                                         alt={activeTeam.name}
                                         fill
-                                        sizes="(max-width: 24px) 100vw"
+                                        sizes="(max-width: 50px) 100vw"
                                         className="object-contain"
                                     />
                                 </div>
@@ -65,7 +65,7 @@ export function TeamSwitcher({
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
+                    {/* <DropdownMenuContent
                         className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                         align="start"
                         side={isMobile ? "bottom" : "right"}
@@ -105,7 +105,7 @@ export function TeamSwitcher({
                                 </a>
                             </DropdownMenuItem>
                         ))}
-                    </DropdownMenuContent>
+                    </DropdownMenuContent> */}
                 </DropdownMenu>
             </SidebarMenuItem>
         </SidebarMenu>

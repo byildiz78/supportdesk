@@ -10,6 +10,33 @@ import { Label } from "@/components/ui/label"
 import { X, Paperclip, Send } from "lucide-react"
 import { processHtmlContent } from "@/utils/text-utils"
 
+// E-posta adresini normalize eden yardımcı fonksiyon
+const normalizeEmail = (email: string): string => {
+    // İsimli formatta mı kontrol et: "Ad Soyad <email@example.com>"
+    const match = email.match(/<([^>]+)>/);
+    if (match && match[1]) {
+        return match[1].toLowerCase().trim();
+    }
+    // Normal e-posta adresi
+    return email.toLowerCase().trim();
+};
+
+// Benzersiz e-postaları döndüren fonksiyon
+const getUniqueEmails = (emails: string[]): string[] => {
+    const uniqueMap = new Map<string, string>();
+    
+    emails.forEach(email => {
+        const normalizedEmail = normalizeEmail(email);
+        // Eğer bu normalize e-posta daha önce eklenmemişse veya
+        // önceki değer normalize edilmiş haldeyse, orijinal değeri ekle
+        if (!uniqueMap.has(normalizedEmail) || uniqueMap.get(normalizedEmail) === normalizedEmail) {
+            uniqueMap.set(normalizedEmail, email);
+        }
+    });
+    
+    return Array.from(uniqueMap.values());
+};
+
 interface EmailReplyFormProps {
     originalComment: TicketComment;
     replyAll: boolean;
@@ -27,21 +54,49 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
     
     // Initialize recipients based on replyAll flag
     const [recipients, setRecipients] = useState<string[]>(() => {
+        let allRecipients: string[] = [];
+        
+        // Göndericiyi ekle
         if (originalComment.sender_email) {
-            return [originalComment.sender_email];
+            const senderEmail = originalComment.sender_email;
+            const normalizedSender = normalizeEmail(senderEmail);
+            
+            // Destek e-posta adreslerini filtrele
+            if (!normalizedSender.includes('destek@robotpos.com') && 
+                !normalizedSender.includes('robotpos destek ekibi')) {
+                allRecipients.push(senderEmail);
+            }
         }
-        return [];
+        
+        // Eğer "Tümünü yanıtla" seçildiyse, orijinal e-postanın tüm alıcılarını ekle
+        if (replyAll && originalComment.to_recipients && originalComment.to_recipients.length > 0) {
+            // Destek e-posta adreslerini filtrele
+            const filteredRecipients = originalComment.to_recipients.filter(email => {
+                const normalizedEmail = normalizeEmail(email);
+                return !normalizedEmail.includes('destek@robotpos.com') && 
+                       !normalizedEmail.includes('robotpos destek ekibi');
+            });
+            
+            // Tekrar eden e-postaları önlemek için benzersiz e-postaları al
+            const uniqueRecipients = getUniqueEmails(allRecipients.concat(filteredRecipients));
+            
+            allRecipients = uniqueRecipients;
+        }
+        
+        return allRecipients;
     });
     
     // Initialize CC recipients based on replyAll flag
     const [ccRecipients, setCcRecipients] = useState<string[]>(() => {
         if (replyAll && originalComment.cc_recipients) {
             // Destek e-posta adreslerini filtrele
-            return originalComment.cc_recipients.filter(email => {
-                const normalizedEmail = email.toLowerCase();
+            const filteredEmails = originalComment.cc_recipients.filter(email => {
+                const normalizedEmail = normalizeEmail(email);
                 return !normalizedEmail.includes('destek@robotpos.com') && 
                        !normalizedEmail.includes('robotpos destek ekibi');
             });
+            // Benzersiz CC alıcılarını döndür
+            return getUniqueEmails(filteredEmails);
         }
         return [];
     });
@@ -86,14 +141,24 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
     
     const handleRecipientsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const emails = e.target.value.split(',').map(email => email.trim()).filter(Boolean);
-        setRecipients(emails);
+        // Benzersiz e-postaları almak için Set kullan
+        const uniqueEmails = getUniqueEmails(emails);
+        // Destek e-posta adreslerini filtrele
+        const filteredEmails = uniqueEmails.filter(email => {
+            const normalizedEmail = normalizeEmail(email);
+            return !normalizedEmail.includes('destek@robotpos.com') && 
+                   !normalizedEmail.includes('robotpos destek ekibi');
+        });
+        setRecipients(filteredEmails);
     };
     
     const handleCcRecipientsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const emails = e.target.value.split(',').map(email => email.trim()).filter(Boolean);
+        // Benzersiz e-postaları almak için Set kullan
+        const uniqueEmails = getUniqueEmails(emails);
         // Destek e-posta adreslerini filtrele
-        const filteredEmails = emails.filter(email => {
-            const normalizedEmail = email.toLowerCase();
+        const filteredEmails = uniqueEmails.filter(email => {
+            const normalizedEmail = normalizeEmail(email);
             return !normalizedEmail.includes('destek@robotpos.com') && 
                    !normalizedEmail.includes('robotpos destek ekibi');
         });
@@ -115,6 +180,11 @@ export function EmailReplyForm({ originalComment, replyAll, subject, onSubmit, o
                             placeholder="recipient@example.com"
                             disabled={isSubmitting}
                         />
+                        {replyAll && originalComment.to_recipients && originalComment.to_recipients.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                <span className="font-medium">Gönderici + Alıcılar:</span> Tümünü yanıtla seçeneği ile orijinal e-postanın hem göndericisi hem de tüm alıcıları eklenmiştir. Yeni mail için ";" ayırarak kullanabilirsiniz.
+                            </p>
+                        )}
                     </div>
                     
                     <div className="space-y-1">

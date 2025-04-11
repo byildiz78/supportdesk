@@ -1,6 +1,7 @@
 import axios from "@/lib/axios";
 import { Ticket, Company, Tag } from "../types";
 import { getUserId } from '@/utils/user-utils';
+import { toast } from "@/hooks/use-toast";
 
 export const TicketService = {
   // Bilet detaylarını getir
@@ -134,11 +135,10 @@ export const TicketService = {
   },
   
   // Bileti çözümle
-  resolveTicket: async (ticket: { id: string, resolution_notes: string, tags?: string[] }): Promise<Ticket> => {
+  resolveTicket: async (ticket: { id: string, resolution_notes: string, tags?: string[]}): Promise<Ticket> => {
     try {
       // Kullanıcı ID'sini al
       const userId = getUserId();
-      
       const ticketToResolve = {
         ...ticket,
         resolved_by: userId

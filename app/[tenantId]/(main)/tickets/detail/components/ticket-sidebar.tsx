@@ -798,7 +798,8 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
                 toast({
                     title: "Başarılı",
-                    description: "Bilet başarıyla güncellendi.",
+                    description: "Bilet başarıyla güncellendi",
+                    variant: "default",
                 })
 
                 // İletişim bilgilerini güncelle ve kaydet
@@ -901,17 +902,13 @@ export function TicketSidebar({ ticket, onTicketUpdate }: TicketSidebarProps) {
 
         setIsResolvingTicket(true)
         try {
-            // Önce yapılan tüm değişiklikleri kaydet
-            // Eğer değişiklik yapılmışsa (validationError yoksa) handleSave fonksiyonunu çağır
-            if (JSON.stringify(ticket) !== JSON.stringify(updatedTicket) && !validationError) {
-                // Değişiklikleri kaydet
-                await handleSave();
+            // Her durumda değişiklikleri kaydet
+            await handleSave();
 
-                // Eğer kaydetme sırasında bir hata olursa, çözümleme işlemini durdur
-                if (validationError) {
-                    setIsResolvingTicket(false);
-                    return;
-                }
+            // Eğer kaydetme sırasında bir hata olursa, çözümleme işlemini durdur
+            if (validationError) {
+                setIsResolvingTicket(false);
+                return;
             }
 
             // Orijinal bilet durumunu sakla (audit log için)

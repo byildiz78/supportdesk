@@ -46,13 +46,16 @@ export default async function handler(
       LEFT JOIN users u ON t.assigned_to = u.id
       LEFT JOIN categories c ON c.id = t.category_id
       WHERE (t.is_deleted = false OR t.is_deleted IS NULL)
-      AND (
-        CAST(t.created_by AS TEXT) = CAST($1 AS TEXT) OR 
-        CAST(t.assigned_to AS TEXT) = CAST($1 AS TEXT)
-      )
+      AND CAST(t.assigned_to AS TEXT) = CAST($1 AS TEXT)
       AND (t.created_at BETWEEN $2 AND $3)
       ORDER BY t.created_at DESC
     `;
+    
+    // 10-04 Geliştirme Talebi Sadece Kendisine Atananlan Gelecek
+    // AND (
+    //   CAST(t.created_by AS TEXT) = CAST($1 AS TEXT) OR 
+    //   CAST(t.assigned_to AS TEXT) = CAST($1 AS TEXT)
+    // )
 
     // Execute query with our database utility
     const tickets = await db.executeQuery<any[]>({
